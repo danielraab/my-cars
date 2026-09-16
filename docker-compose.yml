@@ -1,0 +1,99 @@
+# Reference topology for my-cars: the single application image (Go
+# backend serving the embedded frontend) plus its PostgreSQL database.
+#
+# Local development:
+#   docker compose up -d db        # just the database; run `go run .` on the host
+#   docker compose up --build      # the whole stack
+#
+# This same shape is what CI runs (a postgres service container) and what a
+# production deployment mirrors.
+
+services:
+  db:
+    image: postgres:17
+    profiles:
+      - "dev"
+      - "prod"
+    environment:
+      POSTGRES_USER: mycars
+      POSTGRES_PASSWORD: mycars
+      POSTGRES_DB: mycars
+    ports:
+      # Exposed so a host-side `go run .` can use the DATABASE_URL from
+      # backend/.env.example. Not required for the containerised app.
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mycars -d mycars"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles:
+      - "prod"
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://mycars:mycars@db:5432/mycars?sslmode=disable
+      SMTP_FROM: "admin@example.com"
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_TLS: none
+      AUTH_BASE_URL: http://localhost:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    profiles:
+      - "dev"
+      - "dev-only"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "8081:80" # web UI (8080 on the host is the app's port)
+    volumes:
+      - pgadmin-dev:/var/lib/pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles:
+      - "dev"
+      - "dev-only"
+    environment:
+      # Accept mail with or without auth and over plain connections — this is a
+      # throwaway local catcher, never a real relay.
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_MAX_MESSAGES: "500"
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # web UI + API
+    volumes:
+      - mailpit-dev:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  pgadmin-dev:
+  mailpit-dev:

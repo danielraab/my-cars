@@ -1,0 +1,46 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+context: |
+  Domain: car management app. This is a rewrite of a legacy Next.js full-stack
+  app (Sequelize/Postgres/MariaDB, Bootstrap, JWT auth via jsonwebtoken +
+  nodemailer) that lives untouched in the `old/` folder for reference only.
+
+  Target architecture:
+  - Backend: Go. Exposes a REST API. In production it also serves the
+    frontend's static build output.
+  - Frontend: React, built to static files only (no SSR, no Node server at
+    runtime). Stack: pnpm, Vite, TanStack Router, Tailwind CSS, lucide-react
+    icons, HeadlessUI.
+  - API contract: every REST endpoint is documented in an OpenAPI spec. The
+    spec is the source of truth for request/response shapes.
+  - Auth: handled entirely by the Go backend (the frontend never talks to an
+    identity provider directly). Two login methods are supported: OIDC and
+    magic link (passwordless email). If both methods resolve to the same
+    email address, they must log in to the same account. Tokens/sessions
+    must never be stored in browser localStorage.
+  - i18n: the frontend must support internationalization and always ship
+    German (de) and English (en) translations. Every user-facing string
+    added to the frontend needs both locales; a feature isn't done until
+    it works in both.
+
+  Workflow rule: any non-trivial change to this project goes through
+  OpenSpec explore -> propose (-> apply) rather than being implemented
+  ad hoc. Small, obvious fixes are exempt.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

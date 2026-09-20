@@ -1,0 +1,30 @@
+@host = http://localhost:3000
+
+@userEmail = test@draab.at
+@userPassword = tester
+@userId = 1
+@userAccessToken = 3ccd3035-9c4d-487b-b12e-d6a733296baf
+
+
+### register new user
+
+POST {{host}}/api/v1/auth/register
+content-type: application/json
+
+{
+    "email": "{{userEmail}}",
+    "password": "{{userPassword}}"
+}
+
+
+
+### verfify mail
+
+# @prompt specialToken SpecialToken from email
+POST {{host}}/api/v1/auth/verifyMail
+content-type: application/json
+
+{
+    "userId": "{{userId}}",
+    "specialToken": "{{specialToken}}"
+}

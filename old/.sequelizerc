@@ -1,0 +1,13 @@
+// .sequelizerc
+
+require("dotenv").config();
+
+const path = require("path");
+
+module.exports = {
+  url: process.env.APP_DB_URI,
+  // config: path.resolve("config", "sequelize.json"),
+  "models-path": path.resolve("db", "models"),
+  "seeders-path": path.resolve("db", "seeders"),
+  "migrations-path": path.resolve("db", "migrations"),
+};

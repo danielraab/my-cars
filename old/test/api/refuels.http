@@ -1,0 +1,59 @@
+@host = http://localhost:3000
+
+@userEmail = test@draab.at
+@userPassword = tester
+@userId = 1
+@carId = 3
+@refuelId = 2
+@userAccessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0QGRyYWFiLmF0IiwiZmlyc3RuYW1lIjpudWxsLCJsYXN0bmFtZSI6bnVsbCwiaWF0IjoxNjcyNTM0NDMxLCJleHAiOjE2NzI1MzQ3MzF9.PW1QFx_mC4zlZSAhjlGmts_Z7_vetUoTkVy6RedImWQ
+
+
+
+### get list of refuels of logged in user
+
+GET {{host}}/api/v1/refuels
+Authorization: Bearer {{userAccessToken}}
+
+### get list of all refuel stations of logged in user
+
+GET {{host}}/api/v1/refuels/stations
+Authorization: Bearer {{userAccessToken}}
+
+
+
+### get list of refuels of single car
+
+GET {{host}}/api/v1/cars/{{carId}}/refuels
+Authorization: Bearer {{userAccessToken}}
+
+
+### add new refuel
+
+POST {{host}}/api/v1/cars/{{carId}}/refuels
+Authorization: Bearer {{userAccessToken}}
+Content-Type: application/json
+
+{
+    "station": "test station",
+    "odometerReading": 10000,
+    "fuel": "normal",
+    "liter": 80,
+    "amount": 150
+}
+
+
+
+### update refuel
+
+PUT {{host}}/api/v1/refuels/{{refuelId}}
+Authorization: Bearer {{userAccessToken}}
+Content-Type: application/json
+
+{
+    "station": "test station updated",
+    "odometerReading": 999999,
+    "fuel": "special",
+    "liter": 800,
+    "amount": 1500
+}
+

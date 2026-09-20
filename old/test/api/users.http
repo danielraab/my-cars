@@ -1,0 +1,26 @@
+
+@host = http://localhost:3000
+
+@userEmail = test@draab.at
+@userPassword = tester
+@userId = 6384b4b9097bb1fa1f2ac4a2
+@userAccessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzODRiNGI5MDk3YmIxZmExZjJhYzRhMiIsImVtYWlsIjoidGVzdEBkcmFhYi5hdCIsImZpcnN0bmFtZSI6bnVsbCwibGFzdG5hbWUiOiJUZXN0IiwiaWF0IjoxNjY5NjQyNzIwLCJleHAiOjE2Njk2NDMzMjB9.CVfbfVh-x402CggLBYSj5f1E_k66k-lGf82tXDlA6V8
+
+### get specific user info
+
+GET {{host}}/api/v1/users/{{userId}}
+Authorization: Bearer {{userAccessToken}}
+
+
+
+
+### update user info
+
+PUT {{host}}/api/v1/users/{{userId}}
+Authorization: Bearer {{userAccessToken}}
+content-type: application/json
+
+{
+    "email": "{{userEmail}}",
+    "firstname": "Test"
+}

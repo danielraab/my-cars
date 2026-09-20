@@ -1,0 +1,22 @@
+@host = http://localhost:3000
+
+@userEmail = test@draab.at
+@userPassword = tester
+@userId = 1
+@userAccessToken = 
+
+### status call
+
+## @prompt testPrompt This is a sample Testprompt
+GET {{host}}/api/v1/status
+
+
+### set default user
+
+POST {{host}}/api/v1/status
+Content-Type: application/json
+
+{
+    "token": "63805ef999a9a3d19603eaac"
+}
+

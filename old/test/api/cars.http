@@ -1,0 +1,59 @@
+@host = http://localhost:3000
+
+@userEmail = test@draab.at
+@userPassword = tester
+@userId = 1
+@userAccessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0QGRyYWFiLmF0IiwiZmlyc3RuYW1lIjpudWxsLCJsYXN0bmFtZSI6bnVsbCwiaWF0IjoxNjcwNDU3Njk5LCJleHAiOjE2NzA0NTk0OTl9.-7yxV2sJObMwzLKhOWVyxETM7mEC5ekejokK7I9Mkzw
+
+### get list of cars
+
+GET {{host}}/api/v1/cars
+Authorization: Bearer {{userAccessToken}}
+
+
+### add new car
+
+POST {{host}}/api/v1/cars
+Authorization: Bearer {{userAccessToken}}
+Content-Type: application/json
+
+{
+    "name": "testCar",
+    "type": "testType",
+    "carMake": "test",
+    "fuel": "testfuel",
+    "licensePlate": "test",
+    "fin": "testfin",
+    "isActive": false,
+    "purchasePrice": 10
+}
+
+
+### get car info
+
+GET {{host}}/api/v1/cars/1
+Authorization: Bearer {{userAccessToken}}
+
+
+### edit car
+
+PUT {{host}}/api/v1/cars/1
+Authorization: Bearer {{userAccessToken}}
+Content-Type: application/json
+
+{
+    "name": "testCar new name",
+    "type": "testType",
+    "carMake": "test",
+    "fuel": "testfuel",
+    "licensePlate": "test",
+    "fin": "testfin",
+    "isActive": false,
+    "purchasePrice": 10
+}
+
+
+### delete car
+
+DELETE  {{host}}/api/v1/cars/1
+Authorization: Bearer {{userAccessToken}}

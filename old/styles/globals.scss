@@ -1,0 +1,8 @@
+@import "customBootstrap";
+@import "bootstrap/scss/bootstrap";
+
+
+div.card:hover {
+    border: solid 1px;
+    background: rgba(128, 128, 128, 0.315);
+}

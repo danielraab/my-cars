@@ -1,0 +1,59 @@
+version: '3.1'
+
+services:
+
+  my-car:
+    image: my-car-dev
+    user: 1000:1000
+    build:
+      context: ./
+      dockerfile: "./docker/development.Dockerfile"
+    ports:
+      - 3000:3000
+    volumes:
+      - ./:/app
+    depends_on:
+      - mariadb
+    networks:
+      db:
+
+
+  mariadb:
+    image: mariadb:10.6
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: user
+      MYSQL_USER: user 
+      MYSQL_PASSWORD: user
+    ports:
+        - "3306:3306"
+    volumes:
+     - mariadb:/var/lib/mysql
+    networks:
+      db:
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306 
+    networks:
+      db:
+
+  mailcatcher:
+    image: sj26/mailcatcher
+    ports:
+      - 1025:1025
+      - 1080:1080
+    networks:
+      db:
+
+networks:
+  db:
+
+volumes:
+  mariadb:

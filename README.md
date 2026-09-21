@@ -1,6 +1,6 @@
 # my-car
 
-A car management app — vehicles, service history, costs, and reminders in
+A car management app — vehicles, refuels, repairs, and traffic tickets in
 one place. This repository is a ground-up **rewrite** of a legacy Next.js
 full-stack app; the legacy code lives, untouched, in [`old/`](old) purely
 as reference and will be deleted once the rewrite is complete.

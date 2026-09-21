@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-21
+# Documentation only — this change records what the legacy app already does so
+# later slices can declare capabilities against it. No behaviour changes, so
+# there is nothing for a spec to describe.
+skip_specs: true

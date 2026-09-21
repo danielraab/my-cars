@@ -63,11 +63,11 @@
 - [x] 5.1 Cross-check every `EP-` line against the legacy handler it cites by
       reading each file, confirming the recorded auth requirement, scoping and
       sort order; verify no line contradicts its source.
-- [ ] 5.2 Run `openspec validate legacy-parity-baseline` and confirm it passes
-      with `skip_specs: true` and no zero-delta error. **Blocked**: the
-      `openspec` CLI is not installed in this environment (`openspec:
-      command not found`, and no matching npm package exists to install).
-      Needs to be run manually with the CLI available.
+- [x] 5.2 Run `openspec validate legacy-parity-baseline` and confirm it passes
+      with `skip_specs: true` and no zero-delta error. Ran via
+      `npx @fission-ai/openspec validate legacy-parity-baseline`: "Change
+      'legacy-parity-baseline' is valid", with the expected info note that
+      `skip_specs` accepts the zero-delta change.
 - [x] 5.3 Run the repository's CI checks locally (`go build ./...`, `go vet ./...`,
       `go test ./...` in `backend/`, and `pnpm check` + `pnpm build` in
       `frontend/`) and confirm they still pass — this change touches no code, so

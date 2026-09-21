@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# Three independent jobs rather than one: a failure names itself from the job
+# alone, and the fast checks do not queue behind the slow image build.
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          # Read the version from go.mod so CI cannot drift from the module.
+          go-version-file: backend/go.mod
+
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./...
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+
+      # Node 26 no longer bundles Corepack (nodejs/node#57617), so install it
+      # from npm before enabling it. The Dockerfile does the same thing for the
+      # same reason — keep the two in step.
+      - name: Enable Corepack
+        run: npm install -g corepack && corepack enable
+
+      # The pnpm version comes from package.json's packageManager field, so
+      # this resolves to the same pnpm the image build uses. --frozen-lockfile
+      # makes a stale lockfile a failure rather than a silent rewrite.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm check
+      - run: pnpm typecheck
+      - run: pnpm build
+
+  image:
+    name: Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Builds what actually ships, frontend and backend together. It repeats
+      # work the jobs above do, and it is the only job that proves the
+      # published artifact still builds.
+      - name: Build the application image
+        run: docker build .

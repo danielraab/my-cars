@@ -1,0 +1,5 @@
+# Frontend build output, copied in by the Dockerfile and embedded at compile time.
+static/out/
+
+# Binary produced by `go build ./...`, named after the module.
+/my-car

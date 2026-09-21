@@ -1,0 +1,14 @@
+# Placeholder contract. The api-contract-v1 change replaces this with the real
+# v1 surface (auth, cars, refuels, repairs, tickets, stats). It exists now only
+# so the backend build stage's COPY of this file resolves; the Dockerfile
+# embeds it into the binary, so it must always be valid.
+openapi: 3.1.0
+info:
+  title: my-car API
+  version: 0.0.0
+  description: >-
+    REST API for the my-car rewrite. No endpoints are defined yet.
+  license:
+    name: GPL-3.0-only
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+paths: {}

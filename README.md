@@ -103,6 +103,10 @@ Small, obvious fixes are exempt. See [`AGENTS.md`](AGENTS.md) and
 context and ground rules, including that **`old/` is strictly read-only**
 and will be removed once the rewrite lands.
 
+Parity with the legacy app is the acceptance criterion for the rewrite; see
+[`docs/parity-checklist.md`](docs/parity-checklist.md) for the checkable
+inventory.
+
 ## Contributing
 
 - Follow the workflow above — start with an OpenSpec proposal for

@@ -1,11 +1,12 @@
 # Tasks
 
-> Verification note: the image build (3.2, 8.1) and the CI run (6.1–6.4, 8.2)
-> cannot be checked from the development sandbox — Docker Hub blob downloads
-> are blocked by its network policy, and a workflow only runs once pushed.
-> Every `COPY` source in the `Dockerfile` was verified to exist instead, and
-> the commands each CI job runs were executed locally and pass. Those boxes
-> stay unticked until the first CI run confirms them.
+> Verification note: the image build (3.2, 9.1) and the CI run (6.1-6.4, 9.3)
+> could not be checked from the development sandbox — Docker Hub blob downloads
+> are blocked by its network policy, and a workflow only runs once pushed. They
+> were confirmed instead by the first CI run on PR #2, commit `2716e59`, where
+> all three jobs passed: Backend, Frontend and Image. The Image job is a full
+> `docker build` of the real Dockerfile, so it covers the backend stage's
+> `COPY openapi/openapi.yaml` as well.
 
 ## 1. Frontend build output
 
@@ -25,7 +26,7 @@ Deviations recorded during implementation:
 ## 3. API contract placeholder
 
 - [x] 3.1 Create `openapi/openapi.yaml` as an OpenAPI 3.1 document with `info` (title, version) and `paths: {}`, plus a comment saying `api-contract-v1` fills it in, and verify it parses as YAML
-- [ ] 3.2 Verify the backend stage's `COPY openapi/openapi.yaml` now resolves by building that stage alone with `docker build --target backend .`
+- [x] 3.2 Verify the backend stage's `COPY openapi/openapi.yaml` now resolves by building that stage alone with `docker build --target backend .`
 
 ## 4. Backend housekeeping
 
@@ -40,10 +41,10 @@ Deviations recorded during implementation:
 
 ## 6. Continuous integration
 
-- [ ] 6.1 Add `.github/workflows/ci.yml` triggered on push and pull request, with a `backend` job running `go build ./...`, `go vet ./...` and `go test ./...` using `go-version-file: backend/go.mod`, and verify it passes on this branch
-- [ ] 6.2 Add the `frontend` job: install corepack from npm before `corepack enable` (Node 26 no longer bundles it, same as the `Dockerfile`), then `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm typecheck` and `pnpm build`, and verify it passes
-- [ ] 6.3 Add the `image` job running `docker build .` with no push, and verify it produces an image
-- [ ] 6.4 Verify the three jobs run in parallel and that each one's failure is attributable from the job name alone, by reading the workflow run summary
+- [x] 6.1 Add `.github/workflows/ci.yml` triggered on push and pull request, with a `backend` job running `go build ./...`, `go vet ./...` and `go test ./...` using `go-version-file: backend/go.mod`, and verify it passes on this branch
+- [x] 6.2 Add the `frontend` job: install corepack from npm before `corepack enable` (Node 26 no longer bundles it, same as the `Dockerfile`), then `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm typecheck` and `pnpm build`, and verify it passes
+- [x] 6.3 Add the `image` job running `docker build .` with no push, and verify it produces an image
+- [x] 6.4 Verify the three jobs run in parallel and that each one's failure is attributable from the job name alone, by reading the workflow run summary
 
 ## 7. Documentation corrections
 
@@ -65,7 +66,7 @@ single quotes.
 
 ## 9. Acceptance
 
-- [ ] 9.1 From a clean clone of the branch, verify `docker build .` succeeds end to end with no manual steps
+- [x] 9.1 From a clean clone of the branch, verify `docker build .` succeeds end to end with no manual steps
 - [x] 9.2 Verify every `COPY` source in the `Dockerfile` that reads from the build context exists, as the locally checkable part of 9.1
-- [ ] 9.3 Verify CI is green on the pull request, with all three jobs reporting success
+- [x] 9.3 Verify CI is green on the pull request, with all three jobs reporting success
 - [x] 9.4 Verify `old/` is untouched: `git diff --stat` against the branch point shows no path under `old/`

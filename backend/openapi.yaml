@@ -1,0 +1,15 @@
+# Committed copy for `go build`/`go test` outside Docker to embed. The
+# Dockerfile overwrites this file with the root openapi/openapi.yaml (the
+# source of truth) before compiling the shipped image, so drift here only
+# affects a bare local build, never what ships. See Dockerfile's backend
+# stage.
+openapi: 3.1.0
+info:
+  title: my-car API
+  version: 0.0.0
+  description: >-
+    REST API for the my-car rewrite. No endpoints are defined yet.
+  license:
+    name: GPL-3.0-only
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+paths: {}

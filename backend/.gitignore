@@ -1,5 +1,9 @@
-# Frontend build output, copied in by the Dockerfile and embedded at compile time.
-static/out/
+# Frontend build output, copied in by the Dockerfile and embedded at compile
+# time. placeholder is committed so `go build` outside Docker still has a
+# file to embed; the Dockerfile clears this directory before copying the
+# real build in.
+static/out/*
+!static/out/placeholder
 
 # Binary produced by `go build ./...`, named after the module.
 /my-car

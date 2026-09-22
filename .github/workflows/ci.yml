@@ -16,6 +16,24 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # Matches docker-compose.yml's db service: same image, same credentials.
+    # Migration and connection-pool tests (internal/db) need a real database.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: mycars
+          POSTGRES_PASSWORD: mycars
+          POSTGRES_DB: mycars
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mycars -d mycars"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://mycars:mycars@localhost:5432/mycars?sslmode=disable
     steps:
       - uses: actions/checkout@v5
 

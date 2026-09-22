@@ -1,0 +1,4 @@
+Committed placeholder so `go build` outside Docker has a file to embed
+under static/out/. The Dockerfile removes this directory's contents and
+copies the real frontend build (frontend/out/) here before compiling the
+shipped image; see Dockerfile's backend stage.

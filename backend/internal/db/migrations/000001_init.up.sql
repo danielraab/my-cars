@@ -1,0 +1,4 @@
+-- Initial migration. Establishes the migrations mechanism and its
+-- version-tracking table (created automatically by golang-migrate); no
+-- domain schema yet. Domain tables belong to db-schema-v1 and
+-- auth-oidc-magic-link.

@@ -31,3 +31,11 @@ implemented ad hoc. Small, obvious fixes are exempt.
 
 See `openspec/config.yaml` for the full project context handed to artifact
 generation.
+
+## Parity
+
+[`docs/parity-checklist.md`](docs/parity-checklist.md) is the acceptance
+criterion for every rewrite slice: it inventories every legacy screen,
+endpoint and derived value with a stable id, plus the closed list of
+non-goals. Anything outside it and outside its non-goals needs its own
+proposal.

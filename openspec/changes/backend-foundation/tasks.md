@@ -68,19 +68,13 @@
       credentials, and set `DATABASE_URL` for the job's steps; verify the
       workflow file is valid YAML and the credentials match
       `docker-compose.yml`.
-- [ ] 5.2 Run `docker compose up --build` locally and confirm the `app`
+- [x] 5.2 Run `docker compose up --build` locally and confirm the `app`
       container's `HEALTHCHECK` reports `healthy` (`docker inspect
       --format='{{json .State.Health}}' <container>`) within its configured
-      retries; record the result. **Blocked**: this sandbox's network policy
-      denies Docker Hub image pulls outright (`docker build .` fails
-      resolving even the base `docker/dockerfile:1` syntax image with a 403
-      from the registry CDN, confirmed via the proxy's own status endpoint
-      as a policy denial, not a transient failure). Verified everything
-      short of the container instead: the compiled binary run directly
-      against a local Postgres serves `/api/healthz` as `200`/`503`
-      correctly and `server healthcheck` exits `0`/`1` to match (see 4.2's
-      manual run). Needs a `docker compose up --build` in an environment
-      with registry access to close out.
+      retries; record the result. Blocked in the sandbox that implemented
+      this change (Docker Hub pulls denied by network policy); confirmed by
+      the user on their own machine with registry access — the `app`
+      container reports `healthy`.
 
 ## 6. Verify the change
 

@@ -98,6 +98,13 @@ architectural decision — goes through:
    `openspec/changes/` (proposal, design, specs, tasks).
 3. **Apply** — implement against the approved proposal.
 
+Validate the API contract locally with:
+
+```bash
+cd frontend
+pnpm lint:openapi
+```
+
 Small, obvious fixes are exempt. See [`AGENTS.md`](AGENTS.md) and
 [`openspec/config.yaml`](openspec/config.yaml) for the full project
 context and ground rules, including that **`old/` is strictly read-only**

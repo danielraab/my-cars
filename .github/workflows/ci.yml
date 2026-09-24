@@ -6,12 +6,55 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
-# Three independent jobs rather than one: a failure names itself from the job
-# alone, and the fast checks do not queue behind the slow image build.
+# The detector runs first so the expensive jobs below only receive a runner when
+# a changed path can affect them. A CI-workflow change deliberately selects all
+# jobs, ensuring its own behaviour is exercised on the pull request.
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      image: ${{ steps.filter.outputs.image }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # PRs compare their head to the PR base; pushes compare only this
+          # commit to the immediately preceding pushed commit.
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'openapi/**'
+              - 'docker-compose.yml'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - 'openapi/**'
+              - 'redocly.yaml'
+              - '.github/workflows/ci.yml'
+            image:
+              - 'Dockerfile'
+              - 'backend/**'
+              - 'frontend/**'
+              - 'openapi/**'
+              - '.github/workflows/ci.yml'
+
+  # Three independent jobs rather than one: a failure names itself from the job
+  # alone, and the fast checks do not queue behind the slow image build.
   backend:
     name: Backend
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,6 +91,8 @@ jobs:
 
   frontend:
     name: Frontend
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -72,10 +117,13 @@ jobs:
 
       - run: pnpm check
       - run: pnpm typecheck
+      - run: pnpm lint:openapi
       - run: pnpm build
 
   image:
     name: Image
+    needs: changes
+    if: ${{ needs.changes.outputs.image == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

@@ -1,14 +1,1239 @@
-# Placeholder contract. The api-contract-v1 change replaces this with the real
-# v1 surface (auth, cars, refuels, repairs, tickets, stats). It exists now only
-# so the backend build stage's COPY of this file resolves; the Dockerfile
-# embeds it into the binary, so it must always be valid.
 openapi: 3.1.0
 info:
   title: my-car API
-  version: 0.0.0
-  description: >-
-    REST API for the my-car rewrite. No endpoints are defined yet.
+  version: 1.0.0
+  description: REST API for the my-car rewrite.
   license:
     name: GPL-3.0-only
     url: https://www.gnu.org/licenses/gpl-3.0.html
-paths: {}
+servers:
+- url: /api/v1
+security:
+- cookieSession: []
+paths:
+  /auth/oidc/start:
+    get:
+      tags:
+      - Authentication
+      security: []
+      operationId: startOidcLogin
+      parameters:
+      - $ref: '#/components/parameters/ReturnTo'
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/oidc/callback:
+    get:
+      tags:
+      - Authentication
+      security: []
+      operationId: completeOidcLogin
+      parameters:
+      - name: code
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '302':
+          $ref: '#/components/responses/SessionRedirect'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/magic-links:
+    post:
+      tags:
+      - Authentication
+      security: []
+      operationId: requestMagicLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MagicLinkRequest'
+      responses:
+        '202':
+          description: Request accepted without revealing account existence.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/magic-links/{token}:
+    get:
+      tags:
+      - Authentication
+      security: []
+      operationId: consumeMagicLink
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '302':
+          $ref: '#/components/responses/SessionRedirect'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /session:
+    get:
+      tags:
+      - Authentication
+      operationId: getSession
+      responses:
+        '200':
+          description: Current authenticated account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+      - Authentication
+      operationId: logout
+      responses:
+        '204':
+          description: Session invalidated and cookie cleared.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /me:
+    get:
+      tags:
+      - Profile
+      operationId: getMe
+      responses:
+        '200':
+          description: Current profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+    patch:
+      tags:
+      - Profile
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /cars:
+    get:
+      tags:
+      - Cars
+      operationId: listCars
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Cars ordered by creation time then ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+      - Cars
+      operationId: createCar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarInput'
+      responses:
+        '201':
+          description: Created car.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /cars/{carId}:
+    parameters:
+    - $ref: '#/components/parameters/CarId'
+    get:
+      tags:
+      - Cars
+      operationId: getCar
+      responses:
+        '200':
+          description: Car.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/ServerError'
+    patch:
+      tags:
+      - Cars
+      operationId: updateCar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarUpdate'
+      responses:
+        '200':
+          description: Updated car.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+      - Cars
+      operationId: deleteCar
+      responses:
+        '204':
+          description: Car and associated expenses deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /cars/{carId}/refuels:
+    get:
+      $ref: '#/components/pathItems/CarExpenseCollection/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    parameters:
+    - $ref: '#/components/parameters/CarId'
+  /cars/{carId}/repairs:
+    get:
+      $ref: '#/components/pathItems/CarExpenseCollection/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    parameters:
+    - $ref: '#/components/parameters/CarId'
+  /cars/{carId}/tickets:
+    get:
+      $ref: '#/components/pathItems/CarExpenseCollection/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    parameters:
+    - $ref: '#/components/parameters/CarId'
+  /refuels:
+    get:
+      $ref: '#/components/pathItems/ExpenseCollection/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    post:
+      $ref: '#/components/pathItems/RefuelCreate/post'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /refuels/{refuelId}:
+    parameters:
+    - $ref: '#/components/parameters/RefuelId'
+    get:
+      $ref: '#/components/pathItems/RefuelDetail/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    patch:
+      $ref: '#/components/pathItems/RefuelDetail/patch'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      $ref: '#/components/pathItems/RefuelDetail/delete'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /refuels/stations:
+    get:
+      $ref: '#/components/pathItems/StationSuggestions/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /refuels/chart:
+    get:
+      tags:
+      - Expenses
+      operationId: getRefuelChart
+      parameters:
+      - $ref: '#/components/parameters/CarFilter'
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          description: Complete chart series ordered by date then ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefuelChart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /repairs:
+    get:
+      $ref: '#/components/pathItems/ExpenseCollection/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    post:
+      $ref: '#/components/pathItems/RepairCreate/post'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /repairs/{repairId}:
+    parameters:
+    - $ref: '#/components/parameters/RepairId'
+    get:
+      $ref: '#/components/pathItems/RepairDetail/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    patch:
+      $ref: '#/components/pathItems/RepairDetail/patch'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      $ref: '#/components/pathItems/RepairDetail/delete'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /repairs/stations:
+    get:
+      $ref: '#/components/pathItems/StationSuggestions/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /tickets:
+    get:
+      $ref: '#/components/pathItems/ExpenseCollection/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    post:
+      $ref: '#/components/pathItems/TicketCreate/post'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /tickets/{ticketId}:
+    parameters:
+    - $ref: '#/components/parameters/TicketId'
+    get:
+      $ref: '#/components/pathItems/TicketDetail/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    patch:
+      $ref: '#/components/pathItems/TicketDetail/patch'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      $ref: '#/components/pathItems/TicketDetail/delete'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /tickets/locations:
+    get:
+      $ref: '#/components/pathItems/LocationSuggestions/get'
+      responses:
+        default:
+          $ref: '#/components/responses/ServerError'
+  /stats/expenses:
+    get:
+      tags:
+      - Expenses
+      operationId: getExpenseStatistics
+      parameters:
+      - $ref: '#/components/parameters/FromRequired'
+      - $ref: '#/components/parameters/ToRequired'
+      - $ref: '#/components/parameters/CarFilter'
+      responses:
+        '200':
+          description: Categorized daily expense totals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseStatistics'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+components:
+  securitySchemes:
+    cookieSession:
+      type: apiKey
+      in: cookie
+      name: my_car_session
+      description: HttpOnly, Secure, SameSite session cookie issued only by the backend.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Opaque cursor from nextCursor.
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    CarId:
+      name: carId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UUID'
+    RefuelId:
+      name: refuelId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UUID'
+    RepairId:
+      name: repairId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UUID'
+    TicketId:
+      name: ticketId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UUID'
+    CarFilter:
+      name: carId
+      in: query
+      schema:
+        $ref: '#/components/schemas/UUID'
+    From:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date-time
+    To:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date-time
+    FromRequired:
+      name: from
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+    ToRequired:
+      name: to
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+    ReturnTo:
+      name: returnTo
+      in: query
+      schema:
+        type: string
+        format: uri-reference
+  responses:
+    Redirect:
+      description: Redirect to the identity provider.
+    SessionRedirect:
+      description: Session established and redirect to an allowed frontend path.
+      headers:
+        Set-Cookie:
+          schema:
+            type: string
+          description: HttpOnly Secure SameSite session cookie.
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource absent or not owned by caller.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Request conflicts with existing state.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  pathItems:
+    CarExpenseCollection:
+      get:
+        tags:
+        - Expenses
+        operationId: listCarExpenses
+        parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        responses:
+          '200':
+            description: Paginated car expense records.
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    ExpenseCollection:
+      get:
+        tags:
+        - Expenses
+        operationId: listExpenses
+        parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/CarFilter'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        responses:
+          '200':
+            description: Paginated records ordered by date then ID.
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          default:
+            $ref: '#/components/responses/ServerError'
+    RefuelCreate:
+      post:
+        tags:
+        - Expenses
+        operationId: createRefuel
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefuelInput'
+        responses:
+          '201':
+            description: Created refuel.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Refuel'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    RepairCreate:
+      post:
+        tags:
+        - Expenses
+        operationId: createRepair
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepairInput'
+        responses:
+          '201':
+            description: Created repair.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Repair'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    TicketCreate:
+      post:
+        tags:
+        - Expenses
+        operationId: createTicket
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketInput'
+        responses:
+          '201':
+            description: Created ticket.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Ticket'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    RefuelDetail:
+      get:
+        tags:
+        - Expenses
+        operationId: getRefuel
+        responses:
+          '200':
+            description: Refuel.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Refuel'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+      patch:
+        tags:
+        - Expenses
+        operationId: updateRefuel
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefuelUpdate'
+        responses:
+          '200':
+            description: Updated refuel.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Refuel'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+      delete:
+        tags:
+        - Expenses
+        operationId: deleteRefuel
+        responses:
+          '204':
+            description: Deleted.
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    RepairDetail:
+      get:
+        tags:
+        - Expenses
+        operationId: getRepair
+        responses:
+          '200':
+            description: Repair.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Repair'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+      patch:
+        tags:
+        - Expenses
+        operationId: updateRepair
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepairUpdate'
+        responses:
+          '200':
+            description: Updated repair.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Repair'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+      delete:
+        tags:
+        - Expenses
+        operationId: deleteRepair
+        responses:
+          '204':
+            description: Deleted.
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    TicketDetail:
+      get:
+        tags:
+        - Expenses
+        operationId: getTicket
+        responses:
+          '200':
+            description: Ticket.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Ticket'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+      patch:
+        tags:
+        - Expenses
+        operationId: updateTicket
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketUpdate'
+        responses:
+          '200':
+            description: Updated ticket.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Ticket'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+      delete:
+        tags:
+        - Expenses
+        operationId: deleteTicket
+        responses:
+          '204':
+            description: Deleted.
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          default:
+            $ref: '#/components/responses/ServerError'
+    StationSuggestions:
+      get:
+        tags:
+        - Expenses
+        operationId: listRefuelStations
+        responses:
+          '200':
+            description: Distinct caller-owned station names.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          default:
+            $ref: '#/components/responses/ServerError'
+    LocationSuggestions:
+      get:
+        tags:
+        - Expenses
+        operationId: listTicketLocations
+        responses:
+          '200':
+            description: Distinct caller-owned locations.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          default:
+            $ref: '#/components/responses/ServerError'
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+    Decimal:
+      type: string
+      pattern: ^-?[0-9]+(\\.[0-9]+)?$
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: validation_failed
+        message:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+    Profile:
+      type: object
+      required:
+      - id
+      - email
+      - firstName
+      - lastName
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+    ProfileUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+    Session:
+      type: object
+      required:
+      - profile
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+    MagicLinkRequest:
+      type: object
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+        returnTo:
+          type: string
+          format: uri-reference
+    CarInput:
+      type: object
+      required:
+      - type
+      - make
+      - name
+      - fuel
+      - firstRegistration
+      - licensePlate
+      properties:
+        type:
+          type: string
+        make:
+          type: string
+        name:
+          type: string
+        fuel:
+          type: string
+        firstRegistration:
+          type: string
+          format: date
+        licensePlate:
+          type: string
+        fin:
+          type: string
+        isActive:
+          type: boolean
+          default: true
+        purchaseDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        purchasePrice:
+          $ref: '#/components/schemas/Decimal'
+    CarUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        type:
+          type: string
+        make:
+          type: string
+        name:
+          type: string
+        fuel:
+          type: string
+        firstRegistration:
+          type: string
+          format: date
+        licensePlate:
+          type: string
+        fin:
+          type: string
+        isActive:
+          type: boolean
+        purchaseDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        purchasePrice:
+          $ref: '#/components/schemas/Decimal'
+    Car:
+      allOf:
+      - $ref: '#/components/schemas/CarInput'
+      - type: object
+        required:
+        - id
+        - createdAt
+        - updatedAt
+        properties:
+          id:
+            $ref: '#/components/schemas/UUID'
+          createdAt:
+            type: string
+            format: date-time
+          updatedAt:
+            type: string
+            format: date-time
+    CarPage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Car'
+        nextCursor:
+          type:
+          - string
+          - 'null'
+    ExpenseBase:
+      type: object
+      required:
+      - id
+      - carId
+      - date
+      - amount
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        carId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date-time
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    RefuelInput:
+      type: object
+      required:
+      - carId
+      - date
+      - station
+      - odometerReading
+      - fuel
+      - liters
+      - amount
+      properties:
+        carId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date-time
+        station:
+          type: string
+        odometerReading:
+          type: integer
+          minimum: 0
+        fuel:
+          type: string
+        liters:
+          $ref: '#/components/schemas/Decimal'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    RefuelUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        date:
+          type: string
+          format: date-time
+        station:
+          type: string
+        odometerReading:
+          type: integer
+          minimum: 0
+        fuel:
+          type: string
+        liters:
+          $ref: '#/components/schemas/Decimal'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    Refuel:
+      allOf:
+      - $ref: '#/components/schemas/ExpenseBase'
+      - $ref: '#/components/schemas/RefuelInput'
+      - type: object
+        required:
+        - perLiter
+        properties:
+          perLiter:
+            $ref: '#/components/schemas/Decimal'
+          distance:
+            type:
+            - integer
+            - 'null'
+            minimum: 0
+          consumption:
+            type:
+            - string
+            - 'null'
+            pattern: ^[0-9]+(\\.[0-9]+)?$
+    RepairInput:
+      type: object
+      required:
+      - carId
+      - date
+      - station
+      - odometerReading
+      - type
+      - amount
+      properties:
+        carId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date-time
+        station:
+          type: string
+        odometerReading:
+          type: integer
+          minimum: 0
+        type:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        description:
+          type: string
+    RepairUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        date:
+          type: string
+          format: date-time
+        station:
+          type: string
+        odometerReading:
+          type: integer
+          minimum: 0
+        type:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        description:
+          type: string
+    Repair:
+      allOf:
+      - $ref: '#/components/schemas/ExpenseBase'
+      - $ref: '#/components/schemas/RepairInput'
+    TicketInput:
+      type: object
+      required:
+      - carId
+      - date
+      - type
+      - location
+      - amount
+      properties:
+        carId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+        location:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        description:
+          type: string
+    TicketUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+        location:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        description:
+          type: string
+    Ticket:
+      allOf:
+      - $ref: '#/components/schemas/ExpenseBase'
+      - $ref: '#/components/schemas/TicketInput'
+    RefuelChart:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refuel'
+    ExpenseStatistics:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required:
+            - date
+            - refuels
+            - repairs
+            - tickets
+            properties:
+              date:
+                type: string
+                format: date
+              refuels:
+                $ref: '#/components/schemas/Decimal'
+              repairs:
+                $ref: '#/components/schemas/Decimal'
+              tickets:
+                $ref: '#/components/schemas/Decimal'

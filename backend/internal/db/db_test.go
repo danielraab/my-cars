@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -68,10 +69,159 @@ func TestRunMigrations(t *testing.T) {
 	if err := sqlDB.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 1 {
-		t.Errorf("schema_migrations.version = %d, want 1", version)
+	if version != 2 {
+		t.Errorf("schema_migrations.version = %d, want 2", version)
 	}
 	if dirty {
 		t.Errorf("schema_migrations.dirty = true, want false")
+	}
+}
+
+func TestDomainSchema(t *testing.T) {
+	url := testDatabaseURL(t)
+	if err := RunMigrations(url); err != nil {
+		t.Fatalf("RunMigrations() error: %v", err)
+	}
+
+	sqlDB, err := sql.Open("pgx", url)
+	if err != nil {
+		t.Fatalf("sql.Open() error: %v", err)
+	}
+	defer sqlDB.Close()
+
+	if _, err := sqlDB.Exec("TRUNCATE accounts CASCADE"); err != nil {
+		t.Fatalf("truncate domain tables: %v", err)
+	}
+	defer func() {
+		if _, err := sqlDB.Exec("TRUNCATE accounts CASCADE"); err != nil {
+			t.Errorf("cleanup domain tables: %v", err)
+		}
+	}()
+
+	assertSchemaObjects(t, sqlDB)
+	accountID := insertAccount(t, sqlDB, "driver@example.com")
+	assertRejected(t, sqlDB, "INSERT INTO accounts (email) VALUES ('DRIVER@example.com')")
+	assertRejected(t, sqlDB, "INSERT INTO accounts (email) VALUES ('driver@example.com')")
+
+	carID := insertCar(t, sqlDB, accountID)
+	assertRejected(t, sqlDB, "INSERT INTO cars (account_id, type, make, name, fuel, first_registration, license_plate) VALUES ($1, ' ', 'Ford', 'Focus', 'gasoline', '2020-01-01', 'AB-123')", accountID)
+
+	assertNullableOdometerAndNumericChecks(t, sqlDB, carID)
+	assertUpdatedAtTrigger(t, sqlDB, carID)
+	assertCarDeleteCascades(t, sqlDB, carID)
+}
+
+func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
+	t.Helper()
+	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets"} {
+		var exists bool
+		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1)", table).Scan(&exists); err != nil {
+			t.Fatalf("check %s table: %v", table, err)
+		}
+		if !exists {
+			t.Errorf("%s table does not exist", table)
+		}
+	}
+
+	for enumName, wantValues := range map[string]int{"vehicle_fuel": 4, "refuel_fuel": 3, "repair_type": 4, "ticket_type": 3} {
+		var got int
+		if err := sqlDB.QueryRow("SELECT count(*) FROM pg_enum JOIN pg_type ON pg_type.oid = pg_enum.enumtypid WHERE pg_type.typname = $1", enumName).Scan(&got); err != nil {
+			t.Fatalf("count %s values: %v", enumName, err)
+		}
+		if got != wantValues {
+			t.Errorf("%s enum has %d values, want %d", enumName, got, wantValues)
+		}
+	}
+
+	for _, index := range []string{"cars_account_created_at_id_idx", "refuels_car_date_id_idx", "repairs_car_date_id_idx", "tickets_car_date_id_idx"} {
+		var exists bool
+		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = $1)", index).Scan(&exists); err != nil {
+			t.Fatalf("check %s index: %v", index, err)
+		}
+		if !exists {
+			t.Errorf("%s does not exist", index)
+		}
+	}
+}
+
+func insertAccount(t *testing.T, sqlDB *sql.DB, email string) string {
+	t.Helper()
+	var id string
+	if err := sqlDB.QueryRow("INSERT INTO accounts (email) VALUES ($1) RETURNING id", email).Scan(&id); err != nil {
+		t.Fatalf("insert account: %v", err)
+	}
+	return id
+}
+
+func insertCar(t *testing.T, sqlDB *sql.DB, accountID string) string {
+	t.Helper()
+	var id string
+	if err := sqlDB.QueryRow("INSERT INTO cars (account_id, type, make, name, fuel, first_registration, license_plate) VALUES ($1, 'Car', 'Ford', 'Focus', 'gasoline', '2020-01-01', 'AB-123') RETURNING id", accountID).Scan(&id); err != nil {
+		t.Fatalf("insert car: %v", err)
+	}
+	return id
+}
+
+func assertNullableOdometerAndNumericChecks(t *testing.T, sqlDB *sql.DB, carID string) {
+	t.Helper()
+	var odometer sql.NullInt64
+	if err := sqlDB.QueryRow("INSERT INTO refuels (car_id, date, station, fuel, liters, amount) VALUES ($1, now(), 'Station', 'normal', 20.5, 50.2) RETURNING odometer_reading", carID).Scan(&odometer); err != nil {
+		t.Fatalf("insert refuel without odometer: %v", err)
+	}
+	if odometer.Valid {
+		t.Error("refuel odometer is present, want NULL")
+	}
+	assertRejected(t, sqlDB, "INSERT INTO refuels (car_id, date, station, fuel, liters, amount) VALUES ($1, now(), 'Station', 'normal', 0, 50.2)", carID)
+	assertRejected(t, sqlDB, "INSERT INTO repairs (car_id, date, station, type, amount) VALUES ($1, now(), 'Garage', 'service', -1)", carID)
+}
+
+func assertUpdatedAtTrigger(t *testing.T, sqlDB *sql.DB, carID string) {
+	t.Helper()
+	var before, after time.Time
+	if err := sqlDB.QueryRow("SELECT updated_at FROM cars WHERE id = $1", carID).Scan(&before); err != nil {
+		t.Fatalf("read car updated_at before update: %v", err)
+	}
+	if _, err := sqlDB.Exec("SELECT pg_sleep(0.01)"); err != nil {
+		t.Fatalf("sleep before update: %v", err)
+	}
+	if _, err := sqlDB.Exec("UPDATE cars SET name = 'Fiesta' WHERE id = $1", carID); err != nil {
+		t.Fatalf("update car: %v", err)
+	}
+	if err := sqlDB.QueryRow("SELECT updated_at FROM cars WHERE id = $1", carID).Scan(&after); err != nil {
+		t.Fatalf("read car updated_at after update: %v", err)
+	}
+	if !after.After(before) {
+		t.Errorf("updated_at = %s after update, want value after %s", after, before)
+	}
+}
+
+func assertCarDeleteCascades(t *testing.T, sqlDB *sql.DB, carID string) {
+	t.Helper()
+	for _, statement := range []string{
+		"INSERT INTO repairs (car_id, date, station, type, amount) VALUES ($1, now(), 'Garage', 'service', 10)",
+		"INSERT INTO tickets (car_id, date, type, location, amount) VALUES ($1, now(), 'parking', 'Vienna', 20)",
+	} {
+		if _, err := sqlDB.Exec(statement, carID); err != nil {
+			t.Fatalf("insert dependent expense: %v", err)
+		}
+	}
+	if _, err := sqlDB.Exec("DELETE FROM cars WHERE id = $1", carID); err != nil {
+		t.Fatalf("delete car: %v", err)
+	}
+	for _, table := range []string{"refuels", "repairs", "tickets"} {
+		var count int
+		if err := sqlDB.QueryRow("SELECT count(*) FROM "+table+" WHERE car_id = $1", carID).Scan(&count); err != nil {
+			t.Fatalf("count %s after car deletion: %v", table, err)
+		}
+		if count != 0 {
+			t.Errorf("%s has %d rows after car deletion, want 0", table, count)
+		}
+	}
+}
+
+func assertRejected(t *testing.T, sqlDB *sql.DB, statement string, args ...any) {
+	t.Helper()
+	if _, err := sqlDB.Exec(statement, args...); err == nil {
+		t.Errorf("statement succeeded, want constraint failure: %s", statement)
 	}
 }

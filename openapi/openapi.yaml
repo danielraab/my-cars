@@ -957,6 +957,11 @@ components:
           type: string
         fuel:
           type: string
+          enum:
+          - other
+          - diesel
+          - gasoline
+          - electric
         firstRegistration:
           type: string
           format: date
@@ -986,6 +991,11 @@ components:
           type: string
         fuel:
           type: string
+          enum:
+          - other
+          - diesel
+          - gasoline
+          - electric
         firstRegistration:
           type: string
           format: date
@@ -1056,7 +1066,6 @@ components:
       - carId
       - date
       - station
-      - odometerReading
       - fuel
       - liters
       - amount
@@ -1069,10 +1078,16 @@ components:
         station:
           type: string
         odometerReading:
-          type: integer
+          type:
+          - integer
+          - 'null'
           minimum: 0
         fuel:
           type: string
+          enum:
+          - normal
+          - special
+          - other
         liters:
           $ref: '#/components/schemas/Decimal'
         amount:
@@ -1087,10 +1102,16 @@ components:
         station:
           type: string
         odometerReading:
-          type: integer
+          type:
+          - integer
+          - 'null'
           minimum: 0
         fuel:
           type: string
+          enum:
+          - normal
+          - special
+          - other
         liters:
           $ref: '#/components/schemas/Decimal'
         amount:
@@ -1121,7 +1142,6 @@ components:
       - carId
       - date
       - station
-      - odometerReading
       - type
       - amount
       properties:
@@ -1133,10 +1153,17 @@ components:
         station:
           type: string
         odometerReading:
-          type: integer
+          type:
+          - integer
+          - 'null'
           minimum: 0
         type:
           type: string
+          enum:
+          - check
+          - service
+          - wearing_part
+          - crash_repair
         amount:
           $ref: '#/components/schemas/Decimal'
         description:
@@ -1151,10 +1178,17 @@ components:
         station:
           type: string
         odometerReading:
-          type: integer
+          type:
+          - integer
+          - 'null'
           minimum: 0
         type:
           type: string
+          enum:
+          - check
+          - service
+          - wearing_part
+          - crash_repair
         amount:
           $ref: '#/components/schemas/Decimal'
         description:
@@ -1179,6 +1213,10 @@ components:
           format: date-time
         type:
           type: string
+          enum:
+          - parking
+          - velocity
+          - other
         location:
           type: string
         amount:
@@ -1194,6 +1232,10 @@ components:
           format: date-time
         type:
           type: string
+          enum:
+          - parking
+          - velocity
+          - other
         location:
           type: string
         amount:

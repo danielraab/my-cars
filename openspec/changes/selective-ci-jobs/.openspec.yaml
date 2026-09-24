@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-24
+# CI scheduling changes tooling only; product/API behaviour is unchanged.
+skip_specs: true

@@ -26,10 +26,10 @@ lints that document.
 ### Use one `dorny/paths-filter` detection job
 
 The workflow gains a `changes` job that checks out the repository with enough
-history for push comparisons and uses `dorny/paths-filter@v3`. It publishes
-boolean outputs consumed through `needs.changes.outputs.<name>` by the existing
-jobs. The action handles pull-request API comparison and push commit comparison
-without custom shell Git logic.
+history for comparisons and uses `dorny/paths-filter@v3`. It compares a pull
+request head to its base SHA, and a push only to `github.event.before` (the
+previous pushed commit). It publishes boolean outputs consumed through
+`needs.changes.outputs.<name>` by the existing jobs.
 
 Native workflow-level `paths` filters were rejected because they skip the whole
 workflow, not individual jobs. Per-job `git diff` commands were rejected because

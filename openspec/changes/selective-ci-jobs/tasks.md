@@ -12,5 +12,5 @@
 
 ## 3. Verify the change
 
-- [ ] 3.1 Run a workflow YAML validator and inspect the pull-request Actions run for the change; verify the detector runs before job conditions are evaluated and no application code or `old/` files changed.
-- [ ] 3.2 Run `openspec validate selective-ci-jobs --strict` and confirm all task evidence and path-filter decisions match `design.md`.
+- [x] 3.1 Run a workflow YAML validator and inspect the pull-request Actions run for the change; verify the detector runs before job conditions are evaluated and no application code or `old/` files changed.
+- [x] 3.2 Run `openspec validate selective-ci-jobs --strict` and confirm all task evidence and path-filter decisions match `design.md`.

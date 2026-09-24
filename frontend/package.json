@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "format": "biome format",
     "lint": "biome lint",
-    "check": "biome check"
+    "check": "biome check",
+    "lint:openapi": "redocly lint ../openapi/openapi.yaml --config ../redocly.yaml"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
+    "@redocly/cli": "2.20.2",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",
     "@tanstack/router-plugin": "latest",

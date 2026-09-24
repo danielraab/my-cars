@@ -72,6 +72,7 @@ jobs:
 
       - run: pnpm check
       - run: pnpm typecheck
+      - run: pnpm lint:openapi
       - run: pnpm build
 
   image:

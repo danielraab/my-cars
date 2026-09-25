@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -72,6 +73,19 @@ func Load() (*Config, error) {
 	}
 	if len(missing) > 0 {
 		return nil, fmt.Errorf("missing required environment variable(s): %s", strings.Join(missing, ", "))
+	}
+	for _, key := range []string{"AUTH_BASE_URL", "OIDC_ISSUER_URL"} {
+		u, err := url.Parse(values[key])
+		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+			return nil, fmt.Errorf("%s must be an absolute HTTP(S) URL", key)
+		}
+	}
+	baseURL, _ := url.Parse(values["AUTH_BASE_URL"])
+	if (baseURL.Path != "" && baseURL.Path != "/") || baseURL.RawQuery != "" || baseURL.Fragment != "" {
+		return nil, fmt.Errorf("AUTH_BASE_URL must contain only an origin")
+	}
+	if values["SMTP_TLS"] != "none" && values["SMTP_TLS"] != "starttls" && values["SMTP_TLS"] != "tls" {
+		return nil, fmt.Errorf("SMTP_TLS must be one of none, starttls, tls")
 	}
 
 	return &Config{

@@ -12,8 +12,7 @@ import (
 var envLineRE = regexp.MustCompile(`^([A-Z][A-Z0-9_]*)=`)
 
 // parseEnvExampleKeys returns every uncommented KEY=... variable name in
-// backend/.env.example. Commented-out lines (such as the OIDC_* variables,
-// not implemented yet) are intentionally excluded.
+// backend/.env.example. Commented-out lines are intentionally excluded.
 func parseEnvExampleKeys(t *testing.T) []string {
 	t.Helper()
 

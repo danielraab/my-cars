@@ -83,3 +83,25 @@ func TestLoad_OptionalSMTPAuthentication(t *testing.T) {
 		t.Fatalf("Load() SMTP credentials = %q, %q; want configured values", cfg.SMTPUser, cfg.SMTPPassword)
 	}
 }
+
+func TestLoad_RejectsInvalidAuthenticationConfiguration(t *testing.T) {
+	for key, value := range map[string]string{"AUTH_BASE_URL": "relative", "OIDC_ISSUER_URL": "javascript:bad", "SMTP_TLS": "sometimes"} {
+		t.Run(key, func(t *testing.T) {
+			setAllEnv(t)
+			t.Setenv(key, value)
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), key) {
+				t.Fatalf("Load() error=%v", err)
+			}
+		})
+	}
+}
+
+func TestLoad_RejectsAuthBaseURLWithPath(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("AUTH_BASE_URL", "https://cars.example/subpath")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "AUTH_BASE_URL") {
+		t.Fatalf("Load() error=%v", err)
+	}
+}

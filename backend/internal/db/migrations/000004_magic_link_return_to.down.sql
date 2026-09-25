@@ -1,0 +1,10 @@
+ALTER TABLE sessions
+    DROP CONSTRAINT sessions_token_digest_length;
+ALTER TABLE magic_link_challenges
+    DROP CONSTRAINT magic_link_challenges_return_to_local,
+    DROP CONSTRAINT magic_link_challenges_token_digest_length;
+ALTER TABLE oidc_login_attempts
+    DROP CONSTRAINT oidc_login_attempts_return_to_local,
+    DROP CONSTRAINT oidc_login_attempts_state_digest_length;
+ALTER TABLE magic_link_challenges
+    DROP COLUMN return_to;

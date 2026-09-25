@@ -32,14 +32,18 @@ func TestStatic_KnownAsset(t *testing.T) {
 func TestStatic_UnmatchedPathFallsBackToIndex(t *testing.T) {
 	mux := NewMux(fakePinger{}, nil, testStaticFS())
 
-	req := httptest.NewRequest(http.MethodGet, "/cars/42", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
+	for _, path := range []string{"/", "/auth/login", "/home", "/cars", "/refuels", "/repairs", "/tickets", "/profile"} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
-	}
-	if rec.Body.String() != "<html>spa shell</html>" {
-		t.Fatalf("body = %q, want index.html's contents", rec.Body.String())
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			if rec.Body.String() != "<html>spa shell</html>" {
+				t.Fatalf("body = %q, want index.html's contents", rec.Body.String())
+			}
+		})
 	}
 }

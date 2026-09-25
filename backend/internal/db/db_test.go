@@ -69,8 +69,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := sqlDB.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 2 {
-		t.Errorf("schema_migrations.version = %d, want 2", version)
+	if version != 3 {
+		t.Errorf("schema_migrations.version = %d, want 3", version)
 	}
 	if dirty {
 		t.Errorf("schema_migrations.dirty = true, want false")
@@ -113,7 +113,7 @@ func TestDomainSchema(t *testing.T) {
 
 func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
-	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets"} {
+	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets", "oidc_identities", "oidc_login_attempts", "magic_link_challenges", "sessions"} {
 		var exists bool
 		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1)", table).Scan(&exists); err != nil {
 			t.Fatalf("check %s table: %v", table, err)

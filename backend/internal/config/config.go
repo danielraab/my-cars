@@ -10,15 +10,18 @@ import (
 
 // Config holds every environment variable the backend reads.
 type Config struct {
-	Port         string
-	DatabaseURL  string
-	SMTPFrom     string
-	SMTPHost     string
-	SMTPPort     string
-	SMTPTLS      string
-	SMTPUser     string
-	SMTPPassword string
-	AuthBaseURL  string
+	Port             string
+	DatabaseURL      string
+	SMTPFrom         string
+	SMTPHost         string
+	SMTPPort         string
+	SMTPTLS          string
+	SMTPUser         string
+	SMTPPassword     string
+	AuthBaseURL      string
+	OIDCIssuerURL    string
+	OIDCClientID     string
+	OIDCClientSecret string
 }
 
 // EnvKeys lists every environment variable Load reads, in the order
@@ -34,6 +37,9 @@ var EnvKeys = []string{
 	"SMTP_USER",
 	"SMTP_PASSWORD",
 	"AUTH_BASE_URL",
+	"OIDC_ISSUER_URL",
+	"OIDC_CLIENT_ID",
+	"OIDC_CLIENT_SECRET",
 }
 
 var requiredEnvKeys = []string{
@@ -44,6 +50,9 @@ var requiredEnvKeys = []string{
 	"SMTP_PORT",
 	"SMTP_TLS",
 	"AUTH_BASE_URL",
+	"OIDC_ISSUER_URL",
+	"OIDC_CLIENT_ID",
+	"OIDC_CLIENT_SECRET",
 }
 
 // Load reads Config from the environment, returning an error naming every
@@ -58,21 +67,25 @@ func Load() (*Config, error) {
 		}
 		values[key] = v
 	}
-	values["SMTP_USER"] = os.Getenv("SMTP_USER")
-	values["SMTP_PASSWORD"] = os.Getenv("SMTP_PASSWORD")
+	for _, key := range []string{"SMTP_USER", "SMTP_PASSWORD"} {
+		values[key] = os.Getenv(key)
+	}
 	if len(missing) > 0 {
 		return nil, fmt.Errorf("missing required environment variable(s): %s", strings.Join(missing, ", "))
 	}
 
 	return &Config{
-		Port:         values["PORT"],
-		DatabaseURL:  values["DATABASE_URL"],
-		SMTPFrom:     values["SMTP_FROM"],
-		SMTPHost:     values["SMTP_HOST"],
-		SMTPPort:     values["SMTP_PORT"],
-		SMTPTLS:      values["SMTP_TLS"],
-		SMTPUser:     values["SMTP_USER"],
-		SMTPPassword: values["SMTP_PASSWORD"],
-		AuthBaseURL:  values["AUTH_BASE_URL"],
+		Port:             values["PORT"],
+		DatabaseURL:      values["DATABASE_URL"],
+		SMTPFrom:         values["SMTP_FROM"],
+		SMTPHost:         values["SMTP_HOST"],
+		SMTPPort:         values["SMTP_PORT"],
+		SMTPTLS:          values["SMTP_TLS"],
+		SMTPUser:         values["SMTP_USER"],
+		SMTPPassword:     values["SMTP_PASSWORD"],
+		AuthBaseURL:      values["AUTH_BASE_URL"],
+		OIDCIssuerURL:    values["OIDC_ISSUER_URL"],
+		OIDCClientID:     values["OIDC_CLIENT_ID"],
+		OIDCClientSecret: values["OIDC_CLIENT_SECRET"],
 	}, nil
 }

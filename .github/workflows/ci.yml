@@ -117,6 +117,8 @@ jobs:
 
       - run: pnpm check
       - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm check:api
       - run: pnpm lint:openapi
       - run: pnpm build
 

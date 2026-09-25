@@ -1,0 +1,7 @@
+import { createFileRoute } from '@tanstack/react-router'
+
+import { DeferredPage } from '#/components/deferred-page'
+
+export const Route = createFileRoute('/_authenticated/refuels')({
+  component: () => <DeferredPage feature="refuels" />,
+})

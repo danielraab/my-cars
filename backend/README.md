@@ -5,16 +5,26 @@ The Go half of the my-car rewrite. It owns the REST API described by
 frontend's static build from the binary itself — there is no Node process at
 runtime.
 
-## State
+## Authentication
 
-Early scaffolding. `main.go` prints and exits; there is no HTTP server, no
-database access and no authentication yet. The `backend-foundation` change adds
-the server, configuration and migrations, and `auth-oidc-magic-link` adds login.
+Authentication is passwordless and entirely backend-owned:
 
-**A container built today reports unhealthy, and that is expected.** The image's
-`HEALTHCHECK` runs `server healthcheck`, which probes `/api/healthz`; neither
-the subcommand nor the endpoint exists until `backend-foundation` lands. The
-image builds and the binary runs — it just has nothing to report healthy about.
+- **OIDC** uses issuer discovery and the authorization-code flow with state,
+  nonce, and PKCE. Configure `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and
+  `OIDC_CLIENT_SECRET`; register
+  `${AUTH_BASE_URL}/api/v1/auth/oidc/callback` at the provider.
+- **Magic links** are sent with `SMTP_FROM`, `SMTP_HOST`, `SMTP_PORT`,
+  `SMTP_TLS`, and optional `SMTP_USER`/`SMTP_PASSWORD`. `SMTP_TLS` accepts
+  `none`, `starttls`, or `tls`.
+
+Both methods normalize a provider-verified email and resolve it to the same
+account. Passwords, bearer JWTs, refresh tokens, and browser-localStorage
+credentials are deliberately unsupported.
+
+Successful login sets the opaque `my_car_session` cookie. It is `Secure`,
+`HttpOnly`, `SameSite=Lax`, and backed by a revocable server-side session. This
+means browser login testing requires HTTPS (browsers treat `localhost`
+specially in some contexts, but deployments must terminate TLS).
 
 ## Running it
 
@@ -29,15 +39,17 @@ The database it will talk to comes from compose:
 docker compose up -d db      # Postgres on localhost:5432
 ```
 
-Add `--profile dev` for pgadmin (`localhost:8081`) and mailpit
-(`localhost:8025`) alongside it.
+Add `--profile dev` for pgadmin (`localhost:8081`) and Mailpit
+(`localhost:8025`) alongside it. Mailpit accepts the `.env.example` SMTP
+settings and displays delivered magic links in its web UI.
 
 ## Configuration
 
 Every variable the service reads is listed in [`.env.example`](.env.example)
 with a placeholder value, and the names match what `docker-compose.yml` sets.
-The `OIDC_*` entries are commented out until `auth-oidc-magic-link` implements
-them.
+All listed variables are required except SMTP username/password. The service
+performs OIDC discovery during startup and fails fast if the provider or its
+configuration is unavailable.
 
 Nothing in that file is a real credential, and nothing that is one belongs
 there.

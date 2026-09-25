@@ -69,8 +69,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := sqlDB.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 2 {
-		t.Errorf("schema_migrations.version = %d, want 2", version)
+	if version != 4 {
+		t.Errorf("schema_migrations.version = %d, want 4", version)
 	}
 	if dirty {
 		t.Errorf("schema_migrations.dirty = true, want false")
@@ -88,6 +88,18 @@ func TestDomainSchema(t *testing.T) {
 		t.Fatalf("sql.Open() error: %v", err)
 	}
 	defer sqlDB.Close()
+	lock, err := sqlDB.Conn(context.Background())
+	if err != nil {
+		t.Fatalf("acquire schema-test lock connection: %v", err)
+	}
+	if _, err = lock.ExecContext(context.Background(), "SELECT pg_advisory_lock(7242026)"); err != nil {
+		lock.Close()
+		t.Fatalf("acquire schema-test lock: %v", err)
+	}
+	defer func() {
+		_, _ = lock.ExecContext(context.Background(), "SELECT pg_advisory_unlock(7242026)")
+		_ = lock.Close()
+	}()
 
 	if _, err := sqlDB.Exec("TRUNCATE accounts CASCADE"); err != nil {
 		t.Fatalf("truncate domain tables: %v", err)
@@ -100,6 +112,8 @@ func TestDomainSchema(t *testing.T) {
 
 	assertSchemaObjects(t, sqlDB)
 	accountID := insertAccount(t, sqlDB, "driver@example.com")
+	assertRejected(t, sqlDB, "INSERT INTO oidc_login_attempts (state_digest, nonce, pkce_verifier, return_to, expires_at) VALUES (decode('00','hex'), 'nonce', 'verifier', '/', now() + interval '1 minute')")
+	assertRejected(t, sqlDB, "INSERT INTO magic_link_challenges (token_digest, email, return_to, expires_at) VALUES (decode('00','hex'), 'other@example.com', '/', now() + interval '1 minute')")
 	assertRejected(t, sqlDB, "INSERT INTO accounts (email) VALUES ('DRIVER@example.com')")
 	assertRejected(t, sqlDB, "INSERT INTO accounts (email) VALUES ('driver@example.com')")
 
@@ -113,7 +127,7 @@ func TestDomainSchema(t *testing.T) {
 
 func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
-	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets"} {
+	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets", "oidc_identities", "oidc_login_attempts", "magic_link_challenges", "sessions"} {
 		var exists bool
 		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1)", table).Scan(&exists); err != nil {
 			t.Fatalf("check %s table: %v", table, err)
@@ -133,7 +147,7 @@ func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
 		}
 	}
 
-	for _, index := range []string{"cars_account_created_at_id_idx", "refuels_car_date_id_idx", "repairs_car_date_id_idx", "tickets_car_date_id_idx"} {
+	for _, index := range []string{"cars_account_created_at_id_idx", "refuels_car_date_id_idx", "repairs_car_date_id_idx", "tickets_car_date_id_idx", "oidc_login_attempts_expiry_idx", "magic_link_challenges_expiry_idx", "sessions_account_expiry_idx", "sessions_expiry_idx"} {
 		var exists bool
 		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = $1)", index).Scan(&exists); err != nil {
 			t.Fatalf("check %s index: %v", index, err)

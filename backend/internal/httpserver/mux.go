@@ -15,11 +15,14 @@ import (
 //   - GET /api/openapi.yaml     -> openapiHandler
 //   - /api/*                    -> 404 for anything else under the API namespace
 //   - /*                        -> staticHandler (embedded frontend, SPA fallback)
-func NewMux(db Pinger, openapiDoc []byte, staticFS fs.FS) *http.ServeMux {
+func NewMux(db Pinger, openapiDoc []byte, staticFS fs.FS, register ...func(*http.ServeMux)) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("/api/healthz", healthzHandler(db))
 	mux.Handle("GET /api/openapi.yaml", openapiHandler(openapiDoc))
+	for _, routes := range register {
+		routes(mux)
+	}
 	// Reserves the whole /api/ subtree for API routes: without this, an
 	// unmatched /api/* path would fall through to the "/" pattern below
 	// and be served (incorrectly) as a frontend route.

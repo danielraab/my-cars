@@ -9,9 +9,9 @@ runtime.
 
 Authentication is passwordless and entirely backend-owned:
 
-- **OIDC** uses issuer discovery and the authorization-code flow with state,
-  nonce, and PKCE. Configure `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and
-  `OIDC_CLIENT_SECRET`; register
+- **OIDC** is optional and uses issuer discovery and the authorization-code flow
+  with state, nonce, and PKCE. Configure `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`,
+  and `OIDC_CLIENT_SECRET` together to enable it; register
   `${AUTH_BASE_URL}/api/v1/auth/oidc/callback` at the provider.
 - **Magic links** are sent with `SMTP_FROM`, `SMTP_HOST`, `SMTP_PORT`,
   `SMTP_TLS`, and optional `SMTP_USER`/`SMTP_PASSWORD`. `SMTP_TLS` accepts
@@ -47,9 +47,10 @@ settings and displays delivered magic links in its web UI.
 
 Every variable the service reads is listed in [`.env.example`](.env.example)
 with a placeholder value, and the names match what `docker-compose.yml` sets.
-All listed variables are required except SMTP username/password. The service
-performs OIDC discovery during startup and fails fast if the provider or its
-configuration is unavailable.
+All listed variables are required except SMTP username/password and the OIDC
+group. Leaving all three OIDC values empty runs in magic-link-only mode. If any
+OIDC value is provided, all three are required; the service performs discovery
+during startup and fails fast if the provider is unavailable.
 
 Nothing in that file is a real credential, and nothing that is one belongs
 there.

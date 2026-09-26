@@ -152,6 +152,25 @@ func TestMagicLinkRequestConsumptionAndReplay(t *testing.T) {
 		t.Fatalf("replay status=%d", w.Code)
 	}
 }
+
+func TestAuthenticationMethodsReflectOIDCAvailability(t *testing.T) {
+	s, _, _, _ := newTestService()
+	w := serve(s, "GET", "/api/v1/auth/methods", "", nil)
+	if w.Code != http.StatusOK || w.Body.String() != "{\"methods\":[\"magic_link\",\"oidc\"]}\n" {
+		t.Fatalf("enabled response=%d %q", w.Code, w.Body.String())
+	}
+
+	s.oidc = nil
+	w = serve(s, "GET", "/api/v1/auth/methods", "", nil)
+	if w.Code != http.StatusOK || w.Body.String() != "{\"methods\":[\"magic_link\"]}\n" {
+		t.Fatalf("disabled response=%d %q", w.Code, w.Body.String())
+	}
+	for _, target := range []string{"/api/v1/auth/oidc/start", "/api/v1/auth/oidc/callback"} {
+		if w = serve(s, "GET", target, "", nil); w.Code != http.StatusNotFound {
+			t.Fatalf("disabled route %s status=%d", target, w.Code)
+		}
+	}
+}
 func TestMagicLinkRequestDoesNotEnumerateAndCleansSendFailure(t *testing.T) {
 	s, st, m, _ := newTestService()
 	for _, email := range []string{"new@example.com", "existing@example.com"} {

@@ -51,10 +51,9 @@ var requiredEnvKeys = []string{
 	"SMTP_PORT",
 	"SMTP_TLS",
 	"AUTH_BASE_URL",
-	"OIDC_ISSUER_URL",
-	"OIDC_CLIENT_ID",
-	"OIDC_CLIENT_SECRET",
 }
+
+var oidcEnvKeys = []string{"OIDC_ISSUER_URL", "OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET"}
 
 // Load reads Config from the environment, returning an error naming every
 // missing required variable.
@@ -68,13 +67,26 @@ func Load() (*Config, error) {
 		}
 		values[key] = v
 	}
-	for _, key := range []string{"SMTP_USER", "SMTP_PASSWORD"} {
+	for _, key := range append([]string{"SMTP_USER", "SMTP_PASSWORD"}, oidcEnvKeys...) {
 		values[key] = os.Getenv(key)
 	}
 	if len(missing) > 0 {
 		return nil, fmt.Errorf("missing required environment variable(s): %s", strings.Join(missing, ", "))
 	}
-	for _, key := range []string{"AUTH_BASE_URL", "OIDC_ISSUER_URL"} {
+	configuredOIDCValues := 0
+	for _, key := range oidcEnvKeys {
+		if values[key] != "" {
+			configuredOIDCValues++
+		}
+	}
+	if configuredOIDCValues != 0 && configuredOIDCValues != len(oidcEnvKeys) {
+		return nil, fmt.Errorf("OIDC_ISSUER_URL, OIDC_CLIENT_ID, and OIDC_CLIENT_SECRET must be configured together")
+	}
+	urlKeys := []string{"AUTH_BASE_URL"}
+	if configuredOIDCValues == len(oidcEnvKeys) {
+		urlKeys = append(urlKeys, "OIDC_ISSUER_URL")
+	}
+	for _, key := range urlKeys {
 		u, err := url.Parse(values[key])
 		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 			return nil, fmt.Errorf("%s must be an absolute HTTP(S) URL", key)
@@ -102,4 +114,9 @@ func Load() (*Config, error) {
 		OIDCClientID:     values["OIDC_CLIENT_ID"],
 		OIDCClientSecret: values["OIDC_CLIENT_SECRET"],
 	}, nil
+}
+
+// OIDCEnabled reports whether the complete optional OIDC configuration is set.
+func (c *Config) OIDCEnabled() bool {
+	return c.OIDCIssuerURL != "" && c.OIDCClientID != "" && c.OIDCClientSecret != ""
 }

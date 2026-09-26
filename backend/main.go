@@ -86,9 +86,12 @@ func runServer() {
 			}
 		}
 	}()
-	oidcClient, err := auth.NewOIDCClient(ctx, cfg.OIDCIssuerURL, cfg.OIDCClientID, cfg.OIDCClientSecret, cfg.AuthBaseURL+"/api/v1/auth/oidc/callback")
-	if err != nil {
-		log.Fatalf("configure OIDC: %v", err)
+	var oidcClient auth.OIDCProvider
+	if cfg.OIDCEnabled() {
+		oidcClient, err = auth.NewOIDCClient(ctx, cfg.OIDCIssuerURL, cfg.OIDCClientID, cfg.OIDCClientSecret, cfg.AuthBaseURL+"/api/v1/auth/oidc/callback")
+		if err != nil {
+			log.Fatalf("configure OIDC: %v", err)
+		}
 	}
 	mailer := auth.NewSMTPMailer(cfg.SMTPFrom, cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPTLS, cfg.SMTPUser, cfg.SMTPPassword)
 	authService := auth.NewService(store, mailer, oidcClient, cfg.AuthBaseURL)

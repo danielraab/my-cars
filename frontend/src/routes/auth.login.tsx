@@ -1,10 +1,18 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, KeyRound, Mail, Send } from 'lucide-react'
+import {
+  ArrowLeft,
+  KeyRound,
+  LoaderCircle,
+  Mail,
+  RefreshCw,
+  Send,
+} from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ApiError, requestMagicLink } from '#/api/client'
+import { authenticationMethodsQueryOptions } from '#/auth/methods'
 import { oidcStartUrl, validReturnTo } from '#/auth/return-to'
 import { PublicHeader } from '#/components/public-header'
 
@@ -27,6 +35,7 @@ function LoginPage() {
   const returnTo = validReturnTo(rawReturnTo)
   const [email, setEmail] = useState('')
   const [invalid, setInvalid] = useState(false)
+  const methods = useQuery(authenticationMethodsQueryOptions)
   const magicLink = useMutation({ mutationFn: requestMagicLink })
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -50,7 +59,11 @@ function LoginPage() {
         <section className="login-intro">
           <p className="eyebrow">{t('login.eyebrow')}</p>
           <h1>{t('login.title')}</h1>
-          <p>{t('login.description')}</p>
+          <p>
+            {methods.data?.methods.includes('oidc')
+              ? t('login.description')
+              : t('login.descriptionMagicLink')}
+          </p>
           <div className="login-art" aria-hidden="true">
             <KeyRound size={44} />
             <span>{t('login.securityLabel')}</span>
@@ -58,7 +71,26 @@ function LoginPage() {
         </section>
 
         <section className="login-card">
-          {magicLink.isSuccess ? (
+          {methods.isPending ? (
+            <output className="login-method-status">
+              <LoaderCircle className="spin" aria-hidden="true" size={25} />
+              <p>{t('login.methodsLoading')}</p>
+            </output>
+          ) : methods.isError ? (
+            <div className="login-method-status" role="alert">
+              <RefreshCw aria-hidden="true" size={25} />
+              <h2>{t('login.methodsErrorTitle')}</h2>
+              <p>{t('login.methodsError')}</p>
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => methods.refetch()}
+              >
+                <RefreshCw aria-hidden="true" size={17} />
+                {t('login.methodsRetry')}
+              </button>
+            </div>
+          ) : magicLink.isSuccess ? (
             <output className="accepted-message">
               <span className="status-icon">
                 <Mail aria-hidden="true" size={25} />
@@ -68,13 +100,20 @@ function LoginPage() {
             </output>
           ) : (
             <>
-              <a className="button button-oidc" href={oidcStartUrl(returnTo)}>
-                <KeyRound aria-hidden="true" size={18} />
-                {t('login.oidc')}
-              </a>
-              <div className="divider">
-                <span>{t('login.divider')}</span>
-              </div>
+              {methods.data.methods.includes('oidc') ? (
+                <>
+                  <a
+                    className="button button-oidc"
+                    href={oidcStartUrl(returnTo)}
+                  >
+                    <KeyRound aria-hidden="true" size={18} />
+                    {t('login.oidc')}
+                  </a>
+                  <div className="divider">
+                    <span>{t('login.divider')}</span>
+                  </div>
+                </>
+              ) : null}
               <form noValidate onSubmit={submit}>
                 <label htmlFor="email">{t('login.emailLabel')}</label>
                 <div className="input-wrap">

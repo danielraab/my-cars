@@ -43,12 +43,24 @@ func NewService(store Repository, mailer Mailer, oidc OIDCProvider, baseURL stri
 }
 
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/auth/methods", s.getAuthenticationMethods)
 	mux.HandleFunc("POST /api/v1/auth/magic-links", s.requestMagicLink)
 	mux.HandleFunc("GET /api/v1/auth/magic-links/{token}", s.consumeMagicLink)
-	mux.HandleFunc("GET /api/v1/auth/oidc/start", s.startOIDC)
-	mux.HandleFunc("GET /api/v1/auth/oidc/callback", s.callbackOIDC)
+	if s.oidc != nil {
+		mux.HandleFunc("GET /api/v1/auth/oidc/start", s.startOIDC)
+		mux.HandleFunc("GET /api/v1/auth/oidc/callback", s.callbackOIDC)
+	}
 	mux.Handle("GET /api/v1/session", s.RequireSession(http.HandlerFunc(s.getSession)))
 	mux.Handle("DELETE /api/v1/session", s.RequireSession(http.HandlerFunc(s.logout)))
+}
+
+func (s *Service) getAuthenticationMethods(w http.ResponseWriter, _ *http.Request) {
+	methods := []string{"magic_link"}
+	if s.oidc != nil {
+		methods = append(methods, "oidc")
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string][]string{"methods": methods})
 }
 
 func validEmail(raw string) (string, bool) {

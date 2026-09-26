@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ApiError,
+  getAuthenticationMethods,
   getSession,
   logout,
   requestMagicLink,
@@ -20,6 +21,60 @@ const session = {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('API client', () => {
+  it('returns enabled authentication methods', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ methods: ['magic_link', 'oidc'] }), {
+          status: 200,
+        }),
+      ),
+    )
+
+    await expect(getAuthenticationMethods()).resolves.toEqual({
+      methods: ['magic_link', 'oidc'],
+    })
+  })
+
+  it.each([
+    {},
+    { methods: [] },
+    { methods: ['oidc'] },
+    { methods: ['magic_link', 'password'] },
+    { methods: ['magic_link', 'magic_link'] },
+  ])('rejects malformed authentication methods %#', async (body) => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 })),
+    )
+
+    await expect(getAuthenticationMethods()).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_response',
+    })
+  })
+
+  it('preserves authentication-method API failures', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ code: 'unavailable', message: 'Try later' }),
+            { status: 503 },
+          ),
+        ),
+    )
+
+    await expect(getAuthenticationMethods()).rejects.toMatchObject({
+      status: 503,
+      code: 'unavailable',
+    })
+  })
+
   it('returns a valid current session using same-origin credentials', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(session), {
@@ -109,5 +164,9 @@ describe('API client', () => {
       expect.objectContaining({ status: 0, code: 'network_error' }),
     )
     await expect(getSession()).rejects.toBeInstanceOf(ApiError)
+    await expect(getAuthenticationMethods()).rejects.toMatchObject({
+      status: 0,
+      code: 'network_error',
+    })
   })
 })

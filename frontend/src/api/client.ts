@@ -3,6 +3,8 @@ import type { components } from './schema.gen'
 export type ApiErrorBody = components['schemas']['Error']
 export type Session = components['schemas']['Session']
 export type MagicLinkRequest = components['schemas']['MagicLinkRequest']
+export type AuthenticationMethods =
+  components['schemas']['AuthenticationMethods']
 
 export class ApiError extends Error {
   constructor(
@@ -33,6 +35,45 @@ function isSession(value: unknown): value is Session {
   return [id, email, firstName, lastName].every(
     (field) => typeof field === 'string',
   )
+}
+
+function isAuthenticationMethods(
+  value: unknown,
+): value is AuthenticationMethods {
+  if (!isRecord(value) || !Array.isArray(value.methods)) return false
+  const methods = value.methods
+  return (
+    methods.length > 0 &&
+    methods.includes('magic_link') &&
+    new Set(methods).size === methods.length &&
+    methods.every((method) => method === 'magic_link' || method === 'oidc')
+  )
+}
+
+async function jsonBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+}
+
+export async function getAuthenticationMethods(): Promise<AuthenticationMethods> {
+  const response = await fetchApi('/api/v1/auth/methods')
+  if (!response.ok) throw await errorFrom(response)
+  const body = await jsonBody(response)
+  if (!isAuthenticationMethods(body)) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+  return body
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
@@ -84,16 +125,7 @@ export async function getSession(): Promise<Session> {
   if (response.status === 401) throw new UnauthorizedError()
   if (!response.ok) throw await errorFrom(response)
 
-  let body: unknown
-  try {
-    body = await response.json()
-  } catch {
-    throw new ApiError(
-      502,
-      'invalid_response',
-      'The server response is invalid',
-    )
-  }
+  const body = await jsonBody(response)
   if (!isSession(body)) {
     throw new ApiError(
       502,

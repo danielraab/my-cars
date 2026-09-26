@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -117,11 +118,13 @@ func (s *Service) requestMagicLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = s.store.CreateMagicLink(r.Context(), digest, email, returnTo, s.now().Add(15*time.Minute)); err != nil {
+		log.Printf("create magic-link challenge: %v", err)
 		writeError(w, 500, "authentication unavailable")
 		return
 	}
 	link := s.baseURL + "/api/v1/auth/magic-links/" + url.PathEscape(token)
 	if err = s.mailer.SendMagicLink(r.Context(), email, link); err != nil {
+		log.Printf("deliver magic-link email: %v", err)
 		_ = s.store.DeleteMagicLink(r.Context(), digest)
 		writeError(w, 500, "authentication unavailable")
 		return

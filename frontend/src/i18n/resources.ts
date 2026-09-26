@@ -53,6 +53,12 @@ export const resources = {
         title: 'Sign in to my-car',
         description:
           'Choose your identity provider or receive a secure sign-in link by email.',
+        descriptionMagicLink: 'Receive a secure sign-in link by email.',
+        methodsLoading: 'Loading sign-in options…',
+        methodsErrorTitle: 'Sign-in options unavailable',
+        methodsError:
+          'We could not load the available sign-in options. Please try again.',
+        methodsRetry: 'Try again',
         oidc: 'Continue with identity provider',
         divider: 'or',
         emailLabel: 'Email address',
@@ -144,6 +150,12 @@ export const resources = {
         title: 'Bei my-car anmelden',
         description:
           'Wähle deinen Identitätsanbieter oder erhalte einen sicheren Anmeldelink per E-Mail.',
+        descriptionMagicLink: 'Erhalte einen sicheren Anmeldelink per E-Mail.',
+        methodsLoading: 'Anmeldeoptionen werden geladen…',
+        methodsErrorTitle: 'Anmeldeoptionen nicht verfügbar',
+        methodsError:
+          'Die verfügbaren Anmeldeoptionen konnten nicht geladen werden. Bitte versuche es erneut.',
+        methodsRetry: 'Erneut versuchen',
         oidc: 'Mit Identitätsanbieter fortfahren',
         divider: 'oder',
         emailLabel: 'E-Mail-Adresse',

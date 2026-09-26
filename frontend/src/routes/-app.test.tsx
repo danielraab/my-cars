@@ -54,7 +54,10 @@ describe('public routes', () => {
   })
 
   it('submits a validated magic-link request with account-neutral feedback', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(response(202))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(response(200, { methods: ['magic_link'] }))
+      .mockResolvedValueOnce(response(202))
     vi.stubGlobal('fetch', fetchMock)
     const user = userEvent.setup()
     renderApp('/auth/login?returnTo=%2Frefuels')
@@ -70,7 +73,7 @@ describe('public routes', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Check your inbox',
     )
-    const [, init] = fetchMock.mock.calls[0]
+    const [, init] = fetchMock.mock.calls[1]
     expect(JSON.parse(String(init.body))).toEqual({
       email: 'driver@example.com',
       returnTo: '/refuels',
@@ -78,7 +81,12 @@ describe('public routes', () => {
   })
 
   it('shows localized validation and exposes only the backend OIDC URL', async () => {
-    vi.stubGlobal('fetch', vi.fn())
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(response(200, { methods: ['magic_link', 'oidc'] })),
+    )
     const user = userEvent.setup()
     renderApp('/auth/login?returnTo=https%3A%2F%2Fevil.example')
 
@@ -94,6 +102,50 @@ describe('public routes', () => {
     expect(
       screen.getByRole('link', { name: 'Continue with identity provider' }),
     ).toHaveAttribute('href', '/api/v1/auth/oidc/start?returnTo=%2Fhome')
+  })
+
+  it('hides OIDC when only magic links are enabled', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(response(200, { methods: ['magic_link'] })),
+    )
+    renderApp('/auth/login')
+
+    expect(
+      await screen.findByRole('textbox', { name: 'Email address' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Continue with identity provider' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText('Receive a secure sign-in link by email.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows loading and a localized retry when methods are unavailable', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce(response(503, { code: 'unavailable' }))
+      .mockResolvedValueOnce(response(200, { methods: ['magic_link'] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    const { unmount } = renderApp('/auth/login')
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Loading sign-in options',
+    )
+    unmount()
+
+    await i18n.changeLanguage('de')
+    renderApp('/auth/login')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Anmeldeoptionen nicht verfügbar',
+    )
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(
+      await screen.findByRole('textbox', { name: 'E-Mail-Adresse' }),
+    ).toBeInTheDocument()
   })
 })
 

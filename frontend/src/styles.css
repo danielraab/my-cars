@@ -419,6 +419,34 @@ select:focus-visible {
   box-shadow: 0 24px 70px rgb(28 48 41 / 12%);
 }
 
+.login-method-status {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  padding: 1rem 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.login-method-status h2,
+.login-method-status p {
+  margin: 0;
+}
+
+.login-method-status h2 {
+  color: var(--navy);
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .divider {
   display: flex;
   align-items: center;

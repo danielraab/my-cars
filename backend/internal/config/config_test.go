@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -81,6 +82,50 @@ func TestLoad_OptionalSMTPAuthentication(t *testing.T) {
 	}
 	if cfg.SMTPUser != "mailer" || cfg.SMTPPassword != "secret" {
 		t.Fatalf("Load() SMTP credentials = %q, %q; want configured values", cfg.SMTPUser, cfg.SMTPPassword)
+	}
+}
+
+func TestLoad_OptionalOIDCConfiguration(t *testing.T) {
+	setAllEnv(t)
+	for _, key := range oidcEnvKeys {
+		t.Setenv(key, "")
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() returned unexpected error: %v", err)
+	}
+	if cfg.OIDCEnabled() {
+		t.Fatal("OIDCEnabled() = true with all OIDC values absent")
+	}
+}
+
+func TestLoad_CompleteOIDCConfigurationIsEnabled(t *testing.T) {
+	setAllEnv(t)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() returned unexpected error: %v", err)
+	}
+	if !cfg.OIDCEnabled() {
+		t.Fatal("OIDCEnabled() = false with complete OIDC configuration")
+	}
+}
+
+func TestLoad_RejectsPartialOIDCConfiguration(t *testing.T) {
+	for mask := 1; mask < 1<<len(oidcEnvKeys)-1; mask++ {
+		t.Run(fmt.Sprintf("combination_%d", mask), func(t *testing.T) {
+			setAllEnv(t)
+			for index, key := range oidcEnvKeys {
+				if mask&(1<<index) == 0 {
+					t.Setenv(key, "")
+				}
+			}
+
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), "must be configured together") {
+				t.Fatalf("Load() error = %v", err)
+			}
+		})
 	}
 }
 

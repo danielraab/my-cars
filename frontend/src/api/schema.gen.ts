@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/auth/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAuthenticationMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/oidc/start": {
         parameters: {
             query?: never;
@@ -401,6 +417,9 @@ export interface components {
         Session: {
             profile: components["schemas"]["Profile"];
         };
+        AuthenticationMethods: {
+            methods: ("magic_link" | "oidc")[];
+        };
         MagicLinkRequest: {
             /** Format: email */
             email: string;
@@ -782,6 +801,27 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getAuthenticationMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Passwordless authentication methods enabled for this deployment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticationMethods"];
+                };
+            };
+            default: components["responses"]["ServerError"];
+        };
+    };
     startOidcLogin: {
         parameters: {
             query?: {

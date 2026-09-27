@@ -278,7 +278,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: components["pathItems"]["ExpenseCollection"]["get"];
+        get: operations["listRepairs"];
         put?: never;
         post: components["pathItems"]["RepairCreate"]["post"];
         delete?: never;
@@ -312,7 +312,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: components["pathItems"]["StationSuggestions"]["get"];
+        get: operations["listRepairStations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -399,7 +399,7 @@ export interface components {
             /** @example validation_failed */
             code: string;
             message: string;
-            /** @description Validation details keyed by request member name (`_body` for the request as a whole). Values are machine-readable reasons, such as `read_only` (the member cannot be changed), `unknown` (the member is not part of the request schema), `invalid_type` (wrong JSON type), `too_long` (exceeds the documented maximum length), `required` (a required member is missing), `empty` (a string is blank after trimming), `invalid_enum` (not one of the documented codes), `invalid_date` (not an RFC 3339 full-date), `invalid_decimal` (not a decimal string), and `negative` (below zero). */
+            /** @description Validation details keyed by request member name (`_body` for the request as a whole). Values are machine-readable reasons, such as `read_only` (the member cannot be changed), `unknown` (the member is not part of the request schema), `invalid_type` (wrong JSON type), `too_long` (exceeds the documented maximum length), `required` (a required member is missing), `empty` (a string is blank after trimming), `invalid_enum` (not one of the documented codes), `invalid_date` (not an RFC 3339 full-date), `invalid_decimal` (not a decimal string), and `negative` (a numeric value below zero). */
             fields?: {
                 [key: string]: string;
             };
@@ -537,7 +537,23 @@ export interface components {
             amount?: components["schemas"]["Decimal"];
             description?: string;
         };
-        Repair: components["schemas"]["ExpenseBase"] & components["schemas"]["RepairInput"];
+        /** @description A repair. Every member is always present; `odometerReading` is `null` and `description` is empty when not recorded. */
+        Repair: {
+            id: components["schemas"]["UUID"];
+            carId: components["schemas"]["UUID"];
+            /** Format: date-time */
+            date: string;
+            station: string;
+            odometerReading: number | null;
+            /** @enum {string} */
+            type: "check" | "service" | "wearing_part" | "crash_repair";
+            amount: components["schemas"]["Decimal"];
+            description: string;
+        };
+        RepairPage: {
+            items: components["schemas"]["Repair"][];
+            nextCursor: string | null;
+        };
         TicketInput: {
             carId: components["schemas"]["UUID"];
             /** Format: date-time */
@@ -1152,6 +1168,58 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    listRepairs: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from nextCursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                carId?: components["parameters"]["CarFilter"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's repairs ordered by date then ID. A `carId` that names no car of the caller's yields an empty page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepairPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    listRepairStations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct station names from the caller's repairs, in ascending order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             default: components["responses"]["ServerError"];
         };

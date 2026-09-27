@@ -2,7 +2,7 @@
 
 ## 1. API contract
 
-- [ ] 1.1 In `openapi/openapi.yaml`, add `additionalProperties: false` to
+- [x] 1.1 In `openapi/openapi.yaml`, add `additionalProperties: false` to
   `RepairInput` and `RepairUpdate`; add a `RepairPage` schema
   (`{ items: Repair[], nextCursor }`, mirroring `CarPage`); rewrite
   `/repairs`'s `get` inline (dropping the `ExpenseCollection` pathItem
@@ -13,13 +13,13 @@
   `string[]` response shape; generalize the `negative` reason's
   description in `Error.fields` to be field-agnostic; verify with
   `pnpm lint:openapi` in `frontend/`
-- [ ] 1.2 Copy the source to `backend/openapi.yaml` and regenerate
+- [x] 1.2 Copy the source to `backend/openapi.yaml` and regenerate
   `frontend/src/api/schema.gen.ts` (`pnpm generate:api`); verify `go test
   ./...` (`openapi_sync_test.go`) and `pnpm check:api` pass
 
 ## 2. Backend repairs package
 
-- [ ] 2.1 Add `backend/internal/repairs` with a `Repository` interface
+- [x] 2.1 Add `backend/internal/repairs` with a `Repository` interface
   (`List`, `Create`, `Get`, `Update`, `Delete`, all scoped by `accountID`
   via a join to `cars`) and a pgx `Store`; the `List` query implements the
   `(date, id)` keyset from design D2 (fetch `limit+1`, drop the extra row,
@@ -28,13 +28,13 @@
   first page, following a cursor, the last page (`nextCursor` is `null`),
   the `carId` filter, the `from`/`to` filter, create, get, update, and
   delete
-- [ ] 2.2 Implement `Update` per design D3: a `RepairPatch` with a
-  `(value, isSet)` pair for `odometerReading` and `description`, plain
-  pointers for the rest, applied in one `UPDATE ... CASE WHEN ...
+- [x] 2.2 Implement `Update` per design D3: a `Patch` with a
+  `(value, isSet)` pair for `odometerReading` and plain pointers for the
+  rest (including `description`, cleared with `""`), applied in one `UPDATE ... CASE WHEN ...
   COALESCE(...)` statement; verify with a store test that clears
   `odometerReading` to `null`, leaves `description` untouched when absent,
   and sets `amount` to a new value (including `0`) in the same call
-- [ ] 2.3 Implement the five HTTP handlers (`GET/POST /api/v1/repairs`,
+- [x] 2.3 Implement the five HTTP handlers (`GET/POST /api/v1/repairs`,
   `GET/PATCH/DELETE /api/v1/repairs/{repairId}`, `GET
   /api/v1/repairs/stations`) with the validation from design D4: required-
   field checks and per-field reason codes on create (including the
@@ -46,7 +46,7 @@
   covering every scenario in `specs/api-contract/expenses/spec.md`'s
   repair-related requirements, including that the store is never called
   on a `400`
-- [ ] 2.4 Register all five routes in `main.go` behind
+- [x] 2.4 Register all five routes in `main.go` behind
   `authService.RequireSession`; verify with a mux/integration test that an
   unauthenticated request to each route returns `401` and that
   `/api/v1/repairs` no longer falls through to `404`

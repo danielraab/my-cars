@@ -102,13 +102,22 @@ join. Rejected — the table is small, the join is a single indexed lookup
 on `cars.id`/`cars.account_id`, and it would be schema churn purely for a
 query-planning concern with no evidence it's needed yet (see Risks).
 
-### D3. Partial update: two nullable columns need tri-state, the rest use `COALESCE`
+### D3. Partial update: only `odometerReading` needs tri-state
 
-`odometer_reading` and `description` are nullable; `date`, `station`,
-`type`, and `amount` are not. Same shape as cars' `Patch`: non-nullable
-fields are plain pointers combined with `COALESCE`, the two nullable ones
-are `(value, isSet)` pairs combined with `CASE WHEN`. This is smaller than
-cars' three-nullable-column patch, not a new pattern.
+`odometer_reading` is nullable and the contract types it `integer | null`,
+so it is a `(value, isSet)` pair combined with `CASE WHEN`, as in cars'
+`Patch`. `description` is nullable in the table but the contract types it
+as a plain `string`, and `api-contract/expenses` already says updates
+apply "empty optional text" — so an empty string is how a description is
+cleared, and it is a plain pointer with `COALESCE` like `date`, `station`,
+`type`, and `amount`. The store writes `''` rather than `NULL` for an
+absent description and reads `COALESCE(description, '')`, so the API never
+has to distinguish the two.
+
+*Alternative considered*: making `description` `string | null` in the
+contract to mirror the column. Rejected — it adds a third state for a
+free-text field whose only meaningful "unset" value is empty, and the
+existing requirement already names empty text as the clearing value.
 
 ### D4. Validation reuses cars-management's reasons without adding any
 
@@ -140,6 +149,13 @@ and `odometerReading`.
 - `RepairInput`/`RepairUpdate` gain `additionalProperties: false`, same
   rationale as `CarInput`/`CarUpdate`: an unexpected member should be a
   localizable `400`, not a silent no-op.
+- `Repair` becomes a standalone schema instead of `allOf: [ExpenseBase,
+  RepairInput]`, for the same reason cars-management made `Car` standalone:
+  with `additionalProperties: false` on `RepairInput`, the `allOf` would
+  make every `Repair` carrying `id` schema-invalid. The standalone `Repair`
+  requires every member (`odometerReading` may be `null`, `description`
+  may be empty), so the frontend never has to tell "absent" from "null".
+  `ExpenseBase` stays for `Refuel`/`Ticket`.
 - New `RepairPage` schema (`{ items: Repair[], nextCursor }`), mirroring
   `CarPage`. `/repairs`'s `get` stops `$ref`-ing
   `#/components/pathItems/ExpenseCollection/get` and is written inline

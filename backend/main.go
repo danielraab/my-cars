@@ -16,6 +16,7 @@ import (
 	"at.draab/my-car/internal/healthcheck"
 	"at.draab/my-car/internal/httpserver"
 	"at.draab/my-car/internal/profile"
+	"at.draab/my-car/internal/repairs"
 )
 
 //go:embed openapi.yaml
@@ -99,9 +100,11 @@ func runServer() {
 	authService := auth.NewService(store, mailer, oidcClient, cfg.AuthBaseURL)
 	profileHandler := profile.NewHandler(profile.NewStore(pool))
 	carsHandler := cars.NewHandler(cars.NewStore(pool))
+	repairsHandler := repairs.NewHandler(repairs.NewStore(pool))
 	mux := httpserver.NewMux(pool, openapiDoc, staticOut, authService.RegisterRoutes, func(mux *http.ServeMux) {
 		profileHandler.RegisterRoutes(mux, authService.RequireSession)
 		carsHandler.RegisterRoutes(mux, authService.RequireSession)
+		repairsHandler.RegisterRoutes(mux, authService.RequireSession)
 	})
 
 	log.Printf("listening on :%s", cfg.Port)

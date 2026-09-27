@@ -53,7 +53,7 @@
 
 ## 3. Frontend API client
 
-- [ ] 3.1 Add `Repair`/`RepairInput`/`RepairUpdate`/`RepairPage` types plus
+- [x] 3.1 Add `Repair`/`RepairInput`/`RepairUpdate`/`RepairPage` types plus
   `getRepairs({ cursor, carId, from, to })`, `createRepair`, `getRepair`,
   `updateRepair`, `deleteRepair`, and `getRepairStations` to
   `src/api/client.ts`, with an `isRepair`/`isRepairPage` response guard
@@ -63,40 +63,40 @@
 
 ## 4. Frontend repairs screens
 
-- [ ] 4.1 Add de and en messages under `repairs.*` (list columns,
+- [x] 4.1 Add de and en messages under `repairs.*` (list columns,
   repair-type labels, form field labels/hints, load-more, running-total
   label, create/edit/delete actions and confirmations, and field/error
   messages for every reason repairs can produce plus a generic fallback);
   verify with the existing i18n completeness test
   (`src/i18n/index.test.ts`) passing for both locales
-- [ ] 4.2 Replace `_authenticated.repairs.tsx` with
+- [x] 4.2 Replace `_authenticated.repairs.tsx` with
   `_authenticated.repairs.index.tsx`, the paginated list per design D6/D7
   (`useInfiniteQuery`, load-more button, the documented columns, a running
   amount total over loaded rows, loading/retryable-error states, link to
   create); verify with `pnpm typecheck` and `pnpm check`
-- [ ] 4.3 Add `_authenticated.repairs.create.tsx` and a shared
+- [x] 4.3 Add `_authenticated.repairs.create.tsx` and a shared
   `RepairForm` component (used by create and edit) with the 7 fields from
   design D6 (car select populated from `getCars({ limit: 100 })`, date,
   station with datalist autocomplete from `getRepairStations`, odometer,
   type, amount, description), field-level errors, a form-level error that
   preserves input, and support for an optional `?carId=` preselect; verify
   with `pnpm typecheck` and `pnpm check`
-- [ ] 4.4 Add `_authenticated.repairs.$repairId.edit.tsx` reusing
+- [x] 4.4 Add `_authenticated.repairs.$repairId.edit.tsx` reusing
   `RepairForm` pre-filled (car field fixed) plus `TwoStepDeleteButton`;
   verify with `pnpm typecheck` and `pnpm check`
-- [ ] 4.5 Add route tests covering every scenario in
+- [x] 4.5 Add route tests covering every scenario in
   `specs/frontend/repairs/spec.md`: list with load-more and running total,
   list load failure, create success (including the `?carId=` preselect
   case) and a `400` field error, edit success reflected on the list,
   delete with cancel and with confirm, not-found on an unowned/missing
   repair, and switching the locale to German on the list; verify with
   `pnpm test`
-- [ ] 4.6 Confirm the other deferred routes (dashboard, refuels, tickets)
+- [x] 4.6 Confirm the other deferred routes (dashboard, refuels, tickets)
   still render the placeholder; verify the existing `-app.test.tsx` passes
 
 ## 5. Integration check
 
-- [ ] 5.1 Run `go test ./...` in `backend/` and `pnpm check && pnpm
+- [x] 5.1 Run `go test ./...` in `backend/` and `pnpm check && pnpm
   typecheck && pnpm test && pnpm build` in `frontend/`, then log in
   locally, create a repair from a car's context (`?carId=`) and from
   scratch, confirm it appears in the list with the running total updated,

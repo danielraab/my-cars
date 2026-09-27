@@ -21,3 +21,10 @@ export function carQueryOptions(carId: string) {
     queryFn: () => getCar(carId),
   })
 }
+
+// Every car of the caller's for pickers and name lookups. It lives under the
+// list key so any change that drops the cars list drops it too.
+export const allCarsQueryOptions = queryOptions({
+  queryKey: [...carsListQueryKey, 'all'],
+  queryFn: () => getCars({ limit: 100 }),
+})

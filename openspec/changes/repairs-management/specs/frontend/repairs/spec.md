@@ -11,8 +11,8 @@ edits their repairs, in German and English.
 The frontend SHALL render the `/repairs` route inside the authenticated
 application shell and SHALL load the caller's repairs from the documented
 paginated repairs operation, showing date, car (linked to that car's
-detail screen), station, odometer reading, and type (localized) for each
-row, and a running sum of the amount of every row loaded so far. While the
+detail screen), station, odometer reading, type (localized), and amount
+for each row, and a running sum of the amount of every row loaded so far. While the
 first page loads it SHALL show a localized loading state; a load failure
 SHALL show a localized error with a retry action. When a further page is
 available the screen SHALL offer a localized action to load it, appending

@@ -8,9 +8,9 @@ two-step-confirm delete): `/repairs` is still the placeholder route, and
 the backend has no `internal/repairs` package. The contract for it is
 already largely documented (`api-contract/expenses`, from `api-contract-v1`)
 and the database table already exists (`persistence/schema`, from
-`db-schema-v1`), but three contract gaps block implementation: `RepairInput`
-and `RepairUpdate` have no response schema for the paginated collection,
-`/repairs/stations` inherits the wrong `operationId` from the shared
+`db-schema-v1`), but three contract gaps block implementation: `GET
+/repairs` has no response body schema (the shared `ExpenseCollection`
+pathItem never had one), `/repairs/stations` inherits the wrong `operationId` from the shared
 `StationSuggestions` pathItem it `$ref`s (`listRefuelStations`), and
 `RepairInput`/`RepairUpdate` lack the `additionalProperties: false`
 strictness `CarInput`/`CarUpdate` already have. Repairs is a smaller,

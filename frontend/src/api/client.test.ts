@@ -3,17 +3,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
   createCar,
+  createRepair,
   deleteCar,
+  deleteRepair,
   getAuthenticationMethods,
   getCar,
   getCars,
   getMe,
+  getRepair,
+  getRepairStations,
+  getRepairs,
   getSession,
   logout,
   requestMagicLink,
   UnauthorizedError,
   updateCar,
   updateMe,
+  updateRepair,
 } from './client'
 
 const session = {
@@ -365,6 +371,129 @@ describe('cars API client', () => {
 
     await expect(getCars()).rejects.toMatchObject({
       status: 502,
+      code: 'invalid_response',
+    })
+  })
+})
+
+describe('repairs API client', () => {
+  const repair = {
+    id: '4d7c2b1e-8a3f-4c6d-9e0f-1a2b3c4d5e6f',
+    carId: '9b0a5f0e-5d8f-4a55-9d59-0b8f1f3c2a10',
+    date: '2026-09-27T10:30:00Z',
+    station: 'Garage',
+    odometerReading: null,
+    type: 'service',
+    amount: '120.50',
+    description: '',
+  }
+
+  function stub(status: number, body?: unknown) {
+    const fetchMock = vi.fn(
+      async (_path: string, _init?: RequestInit) =>
+        new Response(body === undefined ? null : JSON.stringify(body), {
+          status,
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('reads a page of repairs and passes the cursor and car filter', async () => {
+    const page = { items: [repair], nextCursor: 'next' }
+    const fetchMock = stub(200, page)
+
+    await expect(getRepairs()).resolves.toEqual(page)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/repairs')
+
+    await getRepairs({ cursor: 'a/b', limit: 10, carId: repair.carId })
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      `/api/v1/repairs?cursor=a%2Fb&limit=10&carId=${repair.carId}`,
+    )
+  })
+
+  it('creates, reads, updates and deletes a repair', async () => {
+    let fetchMock = stub(201, repair)
+    await expect(
+      createRepair({
+        carId: repair.carId,
+        date: repair.date,
+        station: 'Garage',
+        type: 'service',
+        amount: '120.50',
+      }),
+    ).resolves.toEqual(repair)
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('POST')
+
+    fetchMock = stub(200, repair)
+    await expect(getRepair(repair.id)).resolves.toEqual(repair)
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/v1/repairs/${repair.id}`)
+
+    fetchMock = stub(200, { ...repair, odometerReading: 1200 })
+    await expect(
+      updateRepair(repair.id, { odometerReading: 1200 }),
+    ).resolves.toMatchObject({ odometerReading: 1200 })
+    const [path, init] = fetchMock.mock.calls[0]
+    expect(path).toBe(`/api/v1/repairs/${repair.id}`)
+    expect(init?.method).toBe('PATCH')
+    expect(init?.body).toBe('{"odometerReading":1200}')
+
+    fetchMock = stub(204)
+    await expect(deleteRepair(repair.id)).resolves.toBeUndefined()
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE')
+  })
+
+  it('reads the station suggestions', async () => {
+    const fetchMock = stub(200, ['Alpha', 'Zeta'])
+    await expect(getRepairStations()).resolves.toEqual(['Alpha', 'Zeta'])
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/repairs/stations')
+  })
+
+  it('exposes repair validation field reasons', async () => {
+    stub(400, {
+      code: 'validation_failed',
+      message: 'request validation failed',
+      fields: { amount: 'negative' },
+    })
+    await expect(
+      updateRepair(repair.id, { amount: '-1' }),
+    ).rejects.toMatchObject({
+      status: 400,
+      fields: { amount: 'negative' },
+    })
+  })
+
+  it('treats a repair 401 as unauthorized and keeps a 404', async () => {
+    stub(401, { code: 'unauthorized', message: 'authentication required' })
+    await expect(getRepairs()).rejects.toBeInstanceOf(UnauthorizedError)
+
+    stub(404, { code: 'not_found', message: 'resource not found' })
+    await expect(getRepair(repair.id)).rejects.toMatchObject({
+      status: 404,
+      code: 'not_found',
+    })
+    await expect(deleteRepair(repair.id)).rejects.toMatchObject({
+      status: 404,
+    })
+  })
+
+  it.each([
+    { items: [{ ...repair, type: 'tuning' }], nextCursor: null },
+    { items: [{ ...repair, odometerReading: 12.5 }], nextCursor: null },
+    { items: [{ ...repair, description: null }], nextCursor: null },
+    { items: [repair] },
+    [repair],
+  ])('rejects malformed repair pages %#', async (body) => {
+    stub(200, body)
+    await expect(getRepairs()).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_response',
+    })
+  })
+
+  it('rejects malformed station suggestions', async () => {
+    stub(200, ['Alpha', 3])
+    await expect(getRepairStations()).rejects.toMatchObject({
       code: 'invalid_response',
     })
   })

@@ -173,10 +173,13 @@ disclosed and SHALL produce 404".
 
 ### D8. Route shape
 
-`_authenticated.cars.tsx` (list, replaces the placeholder),
-`_authenticated.cars.create.tsx`, `_authenticated.cars.$carId.tsx`
-(detail), `_authenticated.cars.$carId.edit.tsx` — the app's first
-dynamic-segment routes.
+`_authenticated.cars.index.tsx` (list, replaces the
+`_authenticated.cars.tsx` placeholder), `_authenticated.cars.create.tsx`,
+`_authenticated.cars.$carId.index.tsx` (detail), and
+`_authenticated.cars.$carId.edit.tsx` — the app's first dynamic-segment
+routes. The list and detail are `index` routes because a flat
+`cars.tsx`/`cars.$carId.tsx` would become the layout parent of its sibling
+files and have to render an `<Outlet />`.
 
 ## Risks / Trade-offs
 

@@ -7,6 +7,21 @@ export type ProfileUpdate = components['schemas']['ProfileUpdate']
 export type MagicLinkRequest = components['schemas']['MagicLinkRequest']
 export type AuthenticationMethods =
   components['schemas']['AuthenticationMethods']
+export type Car = components['schemas']['Car']
+export type CarFuel = Car['fuel']
+type GeneratedCarInput = components['schemas']['CarInput']
+// The generator marks defaulted members as required; isActive may be omitted.
+export type CarInput = Omit<GeneratedCarInput, 'isActive'> &
+  Partial<Pick<GeneratedCarInput, 'isActive'>>
+export type CarUpdate = components['schemas']['CarUpdate']
+export type CarPage = components['schemas']['CarPage']
+
+export const carFuels: readonly CarFuel[] = [
+  'gasoline',
+  'diesel',
+  'electric',
+  'other',
+]
 
 export class ApiError extends Error {
   constructor(
@@ -36,6 +51,39 @@ function isProfile(value: unknown): value is Profile {
   const { id, email, firstName, lastName } = value
   return [id, email, firstName, lastName].every(
     (field) => typeof field === 'string',
+  )
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+function isCar(value: unknown): value is Car {
+  if (!isRecord(value)) return false
+  const required = [
+    value.id,
+    value.type,
+    value.make,
+    value.name,
+    value.firstRegistration,
+    value.licensePlate,
+    value.createdAt,
+    value.updatedAt,
+  ]
+  return (
+    required.every((field) => typeof field === 'string') &&
+    carFuels.some((fuel) => fuel === value.fuel) &&
+    typeof value.isActive === 'boolean' &&
+    [value.fin, value.purchaseDate, value.purchasePrice].every(isNullableString)
+  )
+}
+
+function isCarPage(value: unknown): value is CarPage {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.items) &&
+    value.items.every(isCar) &&
+    isNullableString(value.nextCursor)
   )
 }
 
@@ -156,12 +204,19 @@ export async function updateMe(input: ProfileUpdate): Promise<Profile> {
   return profileFrom(response)
 }
 
-async function profileFrom(response: Response): Promise<Profile> {
+function profileFrom(response: Response): Promise<Profile> {
+  return decoded(response, isProfile)
+}
+
+async function decoded<T>(
+  response: Response,
+  guard: (value: unknown) => value is T,
+): Promise<T> {
   if (response.status === 401) throw new UnauthorizedError()
   if (!response.ok) throw await errorFrom(response)
 
   const body = await jsonBody(response)
-  if (!isProfile(body)) {
+  if (!guard(body)) {
     throw new ApiError(
       502,
       'invalid_response',
@@ -169,6 +224,58 @@ async function profileFrom(response: Response): Promise<Profile> {
     )
   }
   return body
+}
+
+function carPath(carId: string): string {
+  return `/api/v1/cars/${encodeURIComponent(carId)}`
+}
+
+export async function getCars(
+  options: { cursor?: string | null; limit?: number } = {},
+): Promise<CarPage> {
+  const query = new URLSearchParams()
+  if (options.cursor) query.set('cursor', options.cursor)
+  if (options.limit !== undefined) query.set('limit', String(options.limit))
+  const search = query.toString()
+  return decoded(
+    await fetchApi(`/api/v1/cars${search ? `?${search}` : ''}`),
+    isCarPage,
+  )
+}
+
+export async function getCar(carId: string): Promise<Car> {
+  return decoded(await fetchApi(carPath(carId)), isCar)
+}
+
+export async function createCar(input: CarInput): Promise<Car> {
+  const response = await fetchApi('/api/v1/cars', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return decoded(response, isCar)
+}
+
+export async function updateCar(carId: string, input: CarUpdate): Promise<Car> {
+  const response = await fetchApi(carPath(carId), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return decoded(response, isCar)
+}
+
+export async function deleteCar(carId: string): Promise<void> {
+  const response = await fetchApi(carPath(carId), { method: 'DELETE' })
+  if (response.status === 401) throw new UnauthorizedError()
+  if (!response.ok) throw await errorFrom(response)
+  if (response.status !== 204) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
 }
 
 export async function requestMagicLink(input: MagicLinkRequest): Promise<void> {

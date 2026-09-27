@@ -50,7 +50,7 @@
 
 ## 4. Frontend API client
 
-- [ ] 4.1 Add `Car`/`CarInput`/`CarUpdate`/`CarPage` types plus `getCars({
+- [x] 4.1 Add `Car`/`CarInput`/`CarUpdate`/`CarPage` types plus `getCars({
   cursor })`, `createCar`, `getCar`, `updateCar`, and `deleteCar` to
   `src/api/client.ts`, with an `isCar`/`isCarPage` response guard following
   the existing `isProfile` pattern; verify with `client.test.ts` cases for
@@ -59,39 +59,39 @@
 
 ## 5. Frontend cars screens
 
-- [ ] 5.1 Add de and en messages under `cars.*` (list columns, fuel-type
+- [x] 5.1 Add de and en messages under `cars.*` (list columns, fuel-type
   labels, form field labels/hints, load-more, create/edit/delete actions
   and confirmations, and field/error messages for every reason in design
   D4 plus a generic fallback); verify with the existing i18n completeness
   test (`src/i18n/index.test.ts`) passing for both locales
-- [ ] 5.2 Add a standalone `TwoStepDeleteButton` component (arm on first
+- [x] 5.2 Add a standalone `TwoStepDeleteButton` component (arm on first
   click, confirm/cancel, calls the provided action on confirm); verify with
   a component test covering arm, confirm, and cancel
-- [ ] 5.3 Replace `_authenticated.cars.tsx` with the paginated list per
+- [x] 5.3 Replace `_authenticated.cars.tsx` with the paginated list per
   design D7 (`useInfiniteQuery`, load-more button, the documented columns,
   loading/retryable-error states, link to create); verify with
   `pnpm typecheck` and `pnpm check`
-- [ ] 5.4 Add `_authenticated.cars.create.tsx` and a shared `CarForm`
+- [x] 5.4 Add `_authenticated.cars.create.tsx` and a shared `CarForm`
   component (used by create and edit) with the 8 fields from design D7,
   field-level errors, and a form-level error that preserves input; verify
   with `pnpm typecheck` and `pnpm check`
-- [ ] 5.5 Add `_authenticated.cars.$carId.tsx` (Details tab only, per the
+- [x] 5.5 Add `_authenticated.cars.$carId.tsx` (Details tab only, per the
   Non-Goals) with a not-found state for a missing or unowned car, and
   `_authenticated.cars.$carId.edit.tsx` reusing `CarForm` pre-filled plus
   `TwoStepDeleteButton`; verify with `pnpm typecheck` and `pnpm check`
-- [ ] 5.6 Add route tests covering every scenario in
+- [x] 5.6 Add route tests covering every scenario in
   `specs/frontend/cars/spec.md`: list with load-more, list load failure,
   create success and a `400` field error, detail success and not-found,
   edit success reflected on the detail screen, delete with cancel and with
   confirm, and switching the locale to German on the list; verify with
   `pnpm test`
-- [ ] 5.7 Confirm the other deferred routes (dashboard, refuels, repairs,
+- [x] 5.7 Confirm the other deferred routes (dashboard, refuels, repairs,
   tickets) still render the placeholder; verify the existing `-app.test.tsx`
   passes
 
 ## 6. Integration check
 
-- [ ] 6.1 Run `go test ./...` in `backend/` and `pnpm check && pnpm
+- [x] 6.1 Run `go test ./...` in `backend/` and `pnpm check && pnpm
   typecheck && pnpm test && pnpm build` in `frontend/`, then log in
   locally, create a car, open its detail screen, edit it, load a second
   page after creating enough cars to exceed the default limit, and delete

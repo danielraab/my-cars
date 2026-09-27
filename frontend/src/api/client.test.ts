@@ -2,12 +2,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ApiError,
+  createCar,
+  deleteCar,
   getAuthenticationMethods,
+  getCar,
+  getCars,
   getMe,
   getSession,
   logout,
   requestMagicLink,
   UnauthorizedError,
+  updateCar,
   updateMe,
 } from './client'
 
@@ -245,6 +250,120 @@ describe('API client', () => {
     )
 
     await expect(getMe()).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_response',
+    })
+  })
+})
+
+describe('cars API client', () => {
+  const car = {
+    id: '9b0a5f0e-5d8f-4a55-9d59-0b8f1f3c2a10',
+    type: 'Hatchback',
+    make: 'VW',
+    name: 'Golf',
+    fuel: 'diesel',
+    firstRegistration: '2019-03-01',
+    licensePlate: 'W-123AB',
+    fin: null,
+    isActive: true,
+    purchaseDate: null,
+    purchasePrice: '18500.50',
+    createdAt: '2026-09-27T10:00:00Z',
+    updatedAt: '2026-09-27T10:00:00Z',
+  }
+
+  function stub(status: number, body?: unknown) {
+    const fetchMock = vi.fn(
+      async (_path: string, _init?: RequestInit) =>
+        new Response(body === undefined ? null : JSON.stringify(body), {
+          status,
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('reads a page of cars and passes the cursor', async () => {
+    const page = { items: [car], nextCursor: 'next' }
+    const fetchMock = stub(200, page)
+
+    await expect(getCars()).resolves.toEqual(page)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/cars')
+
+    await getCars({ cursor: 'a/b', limit: 10 })
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      '/api/v1/cars?cursor=a%2Fb&limit=10',
+    )
+  })
+
+  it('creates, reads, updates and deletes a car', async () => {
+    let fetchMock = stub(201, car)
+    await expect(
+      createCar({
+        type: 'Hatchback',
+        make: 'VW',
+        name: 'Golf',
+        fuel: 'diesel',
+        firstRegistration: '2019-03-01',
+        licensePlate: 'W-123AB',
+      }),
+    ).resolves.toEqual(car)
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' })
+
+    fetchMock = stub(200, car)
+    await expect(getCar(car.id)).resolves.toEqual(car)
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/v1/cars/${car.id}`)
+
+    fetchMock = stub(200, { ...car, fin: 'ABC' })
+    await expect(updateCar(car.id, { fin: 'ABC' })).resolves.toMatchObject({
+      fin: 'ABC',
+    })
+    const [path, init] = fetchMock.mock.calls[0]
+    expect(path).toBe(`/api/v1/cars/${car.id}`)
+    expect(init).toMatchObject({ method: 'PATCH' })
+    expect(JSON.parse(String(init?.body))).toEqual({ fin: 'ABC' })
+
+    fetchMock = stub(204)
+    await expect(deleteCar(car.id)).resolves.toBeUndefined()
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
+  })
+
+  it('exposes car validation field reasons', async () => {
+    stub(400, {
+      code: 'validation_failed',
+      message: 'request validation failed',
+      fields: { fuel: 'invalid_enum' },
+    })
+
+    await expect(updateCar(car.id, { name: 'x' })).rejects.toMatchObject({
+      status: 400,
+      fields: { fuel: 'invalid_enum' },
+    })
+  })
+
+  it('treats a car 401 as unauthorized and keeps a 404', async () => {
+    stub(401)
+    await expect(getCars()).rejects.toBeInstanceOf(UnauthorizedError)
+
+    stub(404, { code: 'not_found', message: 'resource not found' })
+    await expect(getCar(car.id)).rejects.toMatchObject({
+      status: 404,
+      code: 'not_found',
+    })
+    stub(404, { code: 'not_found', message: 'resource not found' })
+    await expect(deleteCar(car.id)).rejects.toMatchObject({ status: 404 })
+  })
+
+  it.each([
+    { items: [{ ...car, fuel: 'petrol' }], nextCursor: null },
+    { items: [{ ...car, fin: undefined }], nextCursor: null },
+    { items: [car] },
+    [car],
+  ])('rejects malformed car pages %#', async (body) => {
+    stub(200, body)
+
+    await expect(getCars()).rejects.toMatchObject({
       status: 502,
       code: 'invalid_response',
     })

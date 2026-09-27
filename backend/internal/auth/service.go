@@ -194,6 +194,7 @@ func (s *Service) callbackOIDC(w http.ResponseWriter, r *http.Request) {
 	}
 	identity, err := s.oidc.Verify(r.Context(), r.URL.Query().Get("code"), attempt.PKCEVerifier, attempt.Nonce)
 	if err != nil {
+		log.Printf("verify OIDC identity: %v", err)
 		writeError(w, 401, "identity could not be verified")
 		return
 	}

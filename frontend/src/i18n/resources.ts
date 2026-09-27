@@ -79,6 +79,29 @@ export const resources = {
         loggingOut: 'Signing out…',
         logoutError: 'Sign-out failed. Please try again.',
       },
+      profile: {
+        eyebrow: 'Your account',
+        title: 'Profile',
+        description: 'Manage the name shown in my-car.',
+        loading: 'Loading your profile…',
+        loadErrorTitle: 'Profile unavailable',
+        loadError: 'We could not load your profile. Please try again.',
+        retry: 'Try again',
+        emailLabel: 'Email address',
+        emailHint:
+          'You sign in with this address, so it cannot be changed here.',
+        firstNameLabel: 'First name',
+        lastNameLabel: 'Last name',
+        save: 'Save changes',
+        saving: 'Saving…',
+        saved: 'Your profile has been saved.',
+        saveError: 'Your changes could not be saved. Please try again.',
+        fieldErrors: {
+          too_long: 'Use at most 100 characters.',
+          invalid_type: 'Enter text only.',
+          invalid: 'Check this value.',
+        },
+      },
       unavailable: {
         eyebrow: 'Coming next',
         title: '{{feature}} is not available yet',
@@ -176,6 +199,31 @@ export const resources = {
         logout: 'Abmelden',
         loggingOut: 'Abmeldung läuft…',
         logoutError: 'Abmeldung fehlgeschlagen. Bitte versuche es erneut.',
+      },
+      profile: {
+        eyebrow: 'Dein Konto',
+        title: 'Profil',
+        description: 'Verwalte den Namen, der in my-car angezeigt wird.',
+        loading: 'Profil wird geladen…',
+        loadErrorTitle: 'Profil nicht verfügbar',
+        loadError:
+          'Dein Profil konnte nicht geladen werden. Bitte versuche es erneut.',
+        retry: 'Erneut versuchen',
+        emailLabel: 'E-Mail-Adresse',
+        emailHint:
+          'Mit dieser Adresse meldest du dich an, daher kann sie hier nicht geändert werden.',
+        firstNameLabel: 'Vorname',
+        lastNameLabel: 'Nachname',
+        save: 'Änderungen speichern',
+        saving: 'Wird gespeichert…',
+        saved: 'Dein Profil wurde gespeichert.',
+        saveError:
+          'Deine Änderungen konnten nicht gespeichert werden. Bitte versuche es erneut.',
+        fieldErrors: {
+          too_long: 'Verwende höchstens 100 Zeichen.',
+          invalid_type: 'Gib nur Text ein.',
+          invalid: 'Bitte überprüfe diesen Wert.',
+        },
       },
       unavailable: {
         eyebrow: 'Demnächst',

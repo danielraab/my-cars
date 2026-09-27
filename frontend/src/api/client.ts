@@ -2,6 +2,8 @@ import type { components } from './schema.gen'
 
 export type ApiErrorBody = components['schemas']['Error']
 export type Session = components['schemas']['Session']
+export type Profile = components['schemas']['Profile']
+export type ProfileUpdate = components['schemas']['ProfileUpdate']
 export type MagicLinkRequest = components['schemas']['MagicLinkRequest']
 export type AuthenticationMethods =
   components['schemas']['AuthenticationMethods']
@@ -29,12 +31,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isSession(value: unknown): value is Session {
-  if (!isRecord(value) || !isRecord(value.profile)) return false
-  const { id, email, firstName, lastName } = value.profile
+function isProfile(value: unknown): value is Profile {
+  if (!isRecord(value)) return false
+  const { id, email, firstName, lastName } = value
   return [id, email, firstName, lastName].every(
     (field) => typeof field === 'string',
   )
+}
+
+function isSession(value: unknown): value is Session {
+  return isRecord(value) && isProfile(value.profile)
 }
 
 function isAuthenticationMethods(
@@ -127,6 +133,35 @@ export async function getSession(): Promise<Session> {
 
   const body = await jsonBody(response)
   if (!isSession(body)) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+  return body
+}
+
+export async function getMe(): Promise<Profile> {
+  const response = await fetchApi('/api/v1/me')
+  return profileFrom(response)
+}
+
+export async function updateMe(input: ProfileUpdate): Promise<Profile> {
+  const response = await fetchApi('/api/v1/me', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return profileFrom(response)
+}
+
+async function profileFrom(response: Response): Promise<Profile> {
+  if (response.status === 401) throw new UnauthorizedError()
+  if (!response.ok) throw await errorFrom(response)
+
+  const body = await jsonBody(response)
+  if (!isProfile(body)) {
     throw new ApiError(
       502,
       'invalid_response',

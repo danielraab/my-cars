@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { validReturnTo } from '#/auth/return-to'
 import { sessionQueryKey, sessionQueryOptions } from '#/auth/session'
@@ -21,8 +22,11 @@ export const Route = createFileRoute('/_authenticated')({
 })
 
 function AuthenticatedLayout() {
-  const { session } = Route.useRouteContext()
-  return <AppShell session={session} />
+  const { session: resolved } = Route.useRouteContext()
+  // Follow the cached session so profile edits reach the shell without a
+  // reload; the route context value covers the moment before it is cached.
+  const { data } = useQuery(sessionQueryOptions)
+  return <AppShell session={data ?? resolved} />
 }
 
 function SessionError({ reset }: { reset: () => void }) {

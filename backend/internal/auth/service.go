@@ -242,6 +242,13 @@ func (s *Service) RequireSession(next http.Handler) http.Handler {
 	})
 }
 
+// WithAccount returns a context carrying account as the authenticated caller,
+// as RequireSession does. It lets handlers outside this package be exercised
+// without a stored session.
+func WithAccount(ctx context.Context, account Account) context.Context {
+	return context.WithValue(ctx, sessionContextKey{}, authenticatedSession{Session: Session{Account: account}})
+}
+
 func AccountFromContext(ctx context.Context) (Account, bool) {
 	authenticated, ok := ctx.Value(sessionContextKey{}).(authenticatedSession)
 	return authenticated.Account, ok

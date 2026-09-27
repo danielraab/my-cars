@@ -1,17 +1,6 @@
-# api-contract/profile Specification
+# Spec Delta
 
-## Purpose
-
-Defines the authenticated caller's profile representation and safe update operation used by the rewrite's profile screen.
-
-## Requirements
-
-### Requirement: Caller can retrieve the current profile
-The system SHALL expose `GET /api/v1/me` for the authenticated account and return its ID, email, first name, and last name without exposing session or identity-provider credentials.
-
-#### Scenario: Authenticated caller reads profile
-- **WHEN** an authenticated caller requests `GET /api/v1/me`
-- **THEN** the response is `200` with that caller's profile
+## MODIFIED Requirements
 
 ### Requirement: Caller can update the current profile
 The system SHALL expose `PATCH /api/v1/me` for first name and last name

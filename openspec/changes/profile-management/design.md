@@ -118,11 +118,14 @@ The contract is changed in the same commit as the handler, so
 - `/profile` uses `useQuery({ queryKey: ['me'], queryFn: getMe })`.
 - The form uses plain controlled inputs. On a successful `useMutation`, the
   returned profile is written with `setQueryData(['me'], profile)` and
-  `setQueryData(['session'], s => s && { ...s, profile })`, so the shell
-  updates without refetching.
+  `setQueryData(['session'], s => s && { ...s, profile })`. The
+  authenticated layout subscribes to the `['session']` query (falling back
+  to its `beforeLoad` context value), so the shell updates without
+  refetching.
 - The form re-initializes from the saved profile. An `ApiError` with status
   `400` maps `fields.firstName`/`fields.lastName` reasons to localized
-  messages (`profile.errors.too_long`, and so on), rendered with
+  messages (`profile.fieldErrors.too_long`, `invalid_type`, or a generic
+  fallback), rendered with
   `aria-describedby`/`aria-invalid`. Any other error shows a form-level alert
   and leaves the inputs untouched. Success is announced through a
   `role="status"` region.

@@ -169,7 +169,6 @@ describe('protected routes', () => {
     ['/refuels', 'Refuels'],
     ['/repairs', 'Repairs'],
     ['/tickets', 'Tickets'],
-    ['/profile', 'Profile'],
   ])('renders the authenticated %s placeholder inside the shell', async (path, label) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, session)))
     renderApp(path)

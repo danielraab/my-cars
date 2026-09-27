@@ -36,7 +36,8 @@ and tasks should cite ids rather than restating the items below.
 - **SCR-03** — `/profile` (`old/pages/profile.tsx`). Shows a form to edit
   the caller's own user info (email, firstname, lastname; backed by
   `EP-34`/`EP-35`) and a read-only dump of the decoded JWT's claims
-  (`iat`/`exp` formatted as dates).
+  (`iat`/`exp` formatted as dates). The claims dump and email editing are
+  not ported — see `NG-07`.
 - **SCR-04** — `/auth/login` (`old/pages/auth/login.tsx`). Email + password
   login form (`EP-01`).
 - **SCR-05** — `/auth/register` (`old/pages/auth/register.tsx`). Email +
@@ -326,3 +327,12 @@ the reason why.
   (`old/lib/frontend/userService.ts`). The target architecture explicitly
   forbids storing tokens/sessions in browser localStorage (`AGENTS.md`);
   the new backend-issued session mechanism replaces this.
+- **NG-07** — Profile token claims and email changes. `SCR-03` shows a
+  read-only dump of the decoded JWT's claims, and `EP-35` lets the caller
+  change their email address. The rewrite has no browser-visible token
+  (`NG-06`), so there are no claims to show; the profile screen shows the
+  email and the first and last name only. The email address is how OIDC and
+  magic-link logins find an account, so letting a user set it without
+  verifying it would let them claim an address they do not own; it is
+  read-only (`api-contract/profile`) until a verified email-change flow is
+  proposed.

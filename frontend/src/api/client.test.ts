@@ -3,10 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
   getAuthenticationMethods,
+  getMe,
   getSession,
   logout,
   requestMagicLink,
   UnauthorizedError,
+  updateMe,
 } from './client'
 
 const session = {
@@ -167,6 +169,84 @@ describe('API client', () => {
     await expect(getAuthenticationMethods()).rejects.toMatchObject({
       status: 0,
       code: 'network_error',
+    })
+  })
+
+  it('reads the current profile', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(session.profile), { status: 200 }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getMe()).resolves.toEqual(session.profile)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/me',
+      expect.objectContaining({ credentials: 'same-origin' }),
+    )
+  })
+
+  it('patches only the supplied name fields', async () => {
+    const updated = { ...session.profile, firstName: 'Grace' }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(updated), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(updateMe({ firstName: 'Grace' })).resolves.toEqual(updated)
+    const [path, init] = fetchMock.mock.calls[0]
+    expect(path).toBe('/api/v1/me')
+    expect(init).toMatchObject({ method: 'PATCH', credentials: 'same-origin' })
+    expect(JSON.parse(init.body)).toEqual({ firstName: 'Grace' })
+  })
+
+  it('exposes profile validation field reasons', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            code: 'validation_failed',
+            message: 'request validation failed',
+            fields: { lastName: 'too_long' },
+          }),
+          { status: 400 },
+        ),
+      ),
+    )
+
+    await expect(updateMe({ lastName: 'x' })).rejects.toMatchObject({
+      status: 400,
+      code: 'validation_failed',
+      fields: { lastName: 'too_long' },
+    })
+  })
+
+  it('treats a profile 401 as unauthorized', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
+    )
+
+    await expect(getMe()).rejects.toBeInstanceOf(UnauthorizedError)
+  })
+
+  it.each([
+    {},
+    { ...session.profile, email: null },
+    session,
+  ])('rejects malformed profiles %#', async (body) => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 })),
+    )
+
+    await expect(getMe()).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_response',
     })
   })
 })

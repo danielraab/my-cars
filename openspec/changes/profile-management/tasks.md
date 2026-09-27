@@ -18,19 +18,19 @@
 
 ## 4. Frontend API client
 
-- [ ] 4.1 Add `Profile`/`ProfileUpdate` types plus `getMe()` and `updateMe()` to `src/api/client.ts` with an `isProfile` response guard (reuse it inside `isSession`); verify with `client.test.ts` cases for success, a `400` with `fields`, a `401` → `UnauthorizedError`, and an invalid response shape
+- [x] 4.1 Add `Profile`/`ProfileUpdate` types plus `getMe()` and `updateMe()` to `src/api/client.ts` with an `isProfile` response guard (reuse it inside `isSession`); verify with `client.test.ts` cases for success, a `400` with `fields`, a `401` → `UnauthorizedError`, and an invalid response shape
 
 ## 5. Frontend profile screen
 
-- [ ] 5.1 Add de and en messages under `profile.*` (title, email label, email hint, name labels, save, saving, saved, load error, retry, save error, and the field reasons `too_long`, `invalid_type`, `read_only`, `unknown`, `required`); verify with the existing i18n completeness test (`src/i18n/index.test.ts`) passing for both locales
-- [ ] 5.2 Replace `_authenticated.profile.tsx` with the profile screen per design D5: `['me']` query with loading and retryable error states, read-only email with hint, a controlled name form, a mutation that writes `['me']` and `['session']`, field-level `aria-invalid`/`aria-describedby` errors, a form-level error that preserves input, and a `role="status"` success message; verify with `pnpm typecheck` and `pnpm check`
-- [ ] 5.3 Add route tests covering each `specs/frontend/profile/spec.md` scenario: prefilled form with read-only email and no token details, load failure with retry, a successful save that sends only name fields and updates the shell's session data, a `400` field error on `lastName`, a server error keeping the input, and switching the locale to German; verify with `pnpm test`
-- [ ] 5.4 Confirm the other deferred routes still render the placeholder and that `DeferredPage`'s `profile` feature entry is removed if no longer used; verify with the existing `-app.test.tsx` passing
+- [x] 5.1 Add de and en messages under `profile.*` (title, email label, email hint, name labels, save, saving, saved, load error, retry, save error, and field messages for `too_long`, `invalid_type`, and a generic fallback; the form always sends both names, so `read_only`/`unknown`/`required` can only surface as the form-level save error); verify with the existing i18n completeness test (`src/i18n/index.test.ts`) passing for both locales
+- [x] 5.2 Replace `_authenticated.profile.tsx` with the profile screen per design D5: `['me']` query with loading and retryable error states, read-only email with hint, a controlled name form, a mutation that writes `['me']` and `['session']`, field-level `aria-invalid`/`aria-describedby` errors, a form-level error that preserves input, and a `role="status"` success message; verify with `pnpm typecheck` and `pnpm check`
+- [x] 5.3 Add route tests covering each `specs/frontend/profile/spec.md` scenario: prefilled form with read-only email and no token details, load failure with retry, a successful save that sends only name fields and updates the shell's session data, a `400` field error on `lastName`, a server error keeping the input, and switching the locale to German; verify with `pnpm test`
+- [x] 5.4 Confirm the other deferred routes still render the placeholder and that `DeferredPage`'s `profile` feature entry is removed if no longer used; verify with the existing `-app.test.tsx` passing
 
 ## 6. Parity documentation
 
-- [ ] 6.1 Add `NG-07` (decoded token claims on the profile screen are not ported; no browser-visible token under `NG-06`; email change from `EP-35` deliberately not ported) to `docs/parity-checklist.md`; verify the id is unique and referenced from the `SCR-03` entry
+- [x] 6.1 Add `NG-07` (decoded token claims on the profile screen are not ported; no browser-visible token under `NG-06`; email change from `EP-35` deliberately not ported) to `docs/parity-checklist.md`; verify the id is unique and referenced from the `SCR-03` entry
 
 ## 7. Integration check
 
-- [ ] 7.1 Run `go test ./...` in `backend/` and `pnpm check && pnpm typecheck && pnpm test && pnpm build` in `frontend/`, then log in locally, open `/profile`, change a name, and confirm the change survives a reload; verify all commands pass and the manual flow behaves as specified
+- [x] 7.1 Run `go test ./...` in `backend/` and `pnpm check && pnpm typecheck && pnpm test && pnpm build` in `frontend/`, then log in locally, open `/profile`, change a name, and confirm the change survives a reload; verify all commands pass and the manual flow behaves as specified

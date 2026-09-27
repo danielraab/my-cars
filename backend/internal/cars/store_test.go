@@ -21,11 +21,26 @@ func testStore(t *testing.T) (*Store, *pgxpool.Pool) {
 	if err := db.RunMigrations(url); err != nil {
 		t.Fatal(err)
 	}
-	pool, err := db.NewPool(context.Background(), url)
+	ctx := context.Background()
+	pool, err := db.NewPool(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
+	// Serialize with other packages' database tests, one of which truncates
+	// the domain tables while holding this lock.
+	lock, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lock.Exec(ctx, `SELECT pg_advisory_lock(7242026)`); err != nil {
+		lock.Release()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		lock.Exec(ctx, `SELECT pg_advisory_unlock(7242026)`)
+		lock.Release()
+	})
 	return NewStore(pool), pool
 }
 

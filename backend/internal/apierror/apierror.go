@@ -1,0 +1,53 @@
+// Package apierror writes the API's common error representation
+// (components/schemas/Error in openapi/openapi.yaml): a stable,
+// machine-readable code, a human-readable message and, for validation
+// failures, machine-readable reasons keyed by request member name.
+package apierror
+
+import (
+	"encoding/json"
+	"net/http"
+)
+
+// Stable error codes.
+const (
+	CodeValidationFailed = "validation_failed"
+	CodeUnauthorized     = "unauthorized"
+	CodeInternal         = "internal_error"
+)
+
+// Field reasons reported in the error's fields map.
+const (
+	ReasonReadOnly    = "read_only"
+	ReasonUnknown     = "unknown"
+	ReasonInvalidType = "invalid_type"
+	ReasonTooLong     = "too_long"
+	ReasonRequired    = "required"
+)
+
+// BodyField is the fields key for a problem with the request body as a whole.
+const BodyField = "_body"
+
+type body struct {
+	Code    string            `json:"code"`
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields,omitempty"`
+}
+
+// Write sends an error response with the given status, code, message and
+// optional field reasons.
+func Write(w http.ResponseWriter, status int, code, message string, fields map[string]string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(body{Code: code, Message: message, Fields: fields})
+}
+
+// Validation sends a 400 validation_failed response carrying field reasons.
+func Validation(w http.ResponseWriter, fields map[string]string) {
+	Write(w, http.StatusBadRequest, CodeValidationFailed, "request validation failed", fields)
+}
+
+// Internal sends a 500 internal_error response without exposing details.
+func Internal(w http.ResponseWriter) {
+	Write(w, http.StatusInternalServerError, CodeInternal, "internal server error", nil)
+}

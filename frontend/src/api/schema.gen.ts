@@ -113,6 +113,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** @description Updates the caller's first and/or last name. Names are trimmed and may be empty. The email address is read-only; a body containing `email` is rejected with `400` and a `read_only` reason for `email`, and nothing is applied. */
         patch: operations["updateMe"];
         trace?: never;
     };
@@ -397,6 +398,7 @@ export interface components {
             /** @example validation_failed */
             code: string;
             message: string;
+            /** @description Validation details keyed by request member name (`_body` for the request as a whole). Values are machine-readable reasons, such as `read_only` (the member cannot be changed), `unknown` (the member is not part of the request schema), `invalid_type` (wrong JSON type), `too_long` (exceeds the documented maximum length), and `required` (a required member is missing). */
             fields?: {
                 [key: string]: string;
             };
@@ -409,8 +411,6 @@ export interface components {
             lastName: string;
         };
         ProfileUpdate: {
-            /** Format: email */
-            email?: string;
             firstName?: string;
             lastName?: string;
         };
@@ -980,7 +980,6 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            409: components["responses"]["Conflict"];
             default: components["responses"]["ServerError"];
         };
     };

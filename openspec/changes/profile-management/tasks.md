@@ -2,19 +2,19 @@
 
 ## 1. API contract
 
-- [ ] 1.1 In `openapi/openapi.yaml`, remove `email` from `ProfileUpdate`, add `additionalProperties: false` and `maxLength: 100` to `firstName`/`lastName`, drop the `409` response from `PATCH /me`, document the email rejection in the operation description, and document the `fields` reason codes (`read_only`, `unknown`, `invalid_type`, `too_long`, `required`) on `Error.fields`; verify with `pnpm lint:openapi` in `frontend/`
-- [ ] 1.2 Copy the source to `backend/openapi.yaml` and regenerate `frontend/src/api/schema.gen.ts` (`pnpm generate:api`); verify `go test ./...` (the `openapi_sync_test.go` check) and `pnpm check:api` pass
+- [x] 1.1 In `openapi/openapi.yaml`, remove `email` from `ProfileUpdate`, add `additionalProperties: false` and `maxLength: 100` to `firstName`/`lastName`, drop the `409` response from `PATCH /me`, document the email rejection in the operation description, and document the `fields` reason codes (`read_only`, `unknown`, `invalid_type`, `too_long`, `required`) on `Error.fields`; verify with `pnpm lint:openapi` in `frontend/`
+- [x] 1.2 Copy the source to `backend/openapi.yaml` and regenerate `frontend/src/api/schema.gen.ts` (`pnpm generate:api`); verify `go test ./...` (the `openapi_sync_test.go` check) and `pnpm check:api` pass
 
 ## 2. Backend error writer
 
-- [ ] 2.1 Add `backend/internal/apierror` with `Write(w, status, code, message, fields)` and a `Validation(w, fields)` helper that emit the common error representation with stable codes; verify with unit tests asserting status, `Content-Type`, `code`, and `fields` JSON
+- [x] 2.1 Add `backend/internal/apierror` with `Write(w, status, code, message, fields)` and a `Validation(w, fields)` helper that emit the common error representation with stable codes; verify with unit tests asserting status, `Content-Type`, `code`, and `fields` JSON
 
 ## 3. Backend profile endpoints
 
-- [ ] 3.1 Add `backend/internal/profile` with a `Repository` interface and a pgx store whose `UpdateAccountNames` updates only the supplied names (plus `updated_at`) and returns the account; verify with a store test against `DATABASE_URL` (skipped when unset, as in `db_test.go`) covering a partial update and an empty-string update
-- [ ] 3.2 Implement the `GET /api/v1/me` handler, which returns the context account as `Profile`; verify with a handler test using a fake session context
-- [ ] 3.3 Implement the `PATCH /api/v1/me` body validation per design D3 (16 KiB cap, map decoding, `email`→`read_only`, other keys→`unknown`, non-string→`invalid_type`, trimmed length over 100 runes→`too_long`, no documented member→`required`, all errors collected, no write on failure); verify with table-driven handler tests for every scenario in `specs/api-contract/profile/spec.md`, including that the fake repository is never called on `400`
-- [ ] 3.4 Register both routes in `main.go` behind `authService.RequireSession`; verify with a mux/integration test that an unauthenticated `GET` and `PATCH /api/v1/me` return `401`, and that `/api/v1/me` no longer falls through to `404`
+- [x] 3.1 Add `backend/internal/profile` with a `Repository` interface and a pgx store whose `UpdateAccountNames` updates only the supplied names (plus `updated_at`) and returns the account; verify with a store test against `DATABASE_URL` (skipped when unset, as in `db_test.go`) covering a partial update and an empty-string update
+- [x] 3.2 Implement the `GET /api/v1/me` handler, which returns the context account as `Profile`; verify with a handler test using a fake session context
+- [x] 3.3 Implement the `PATCH /api/v1/me` body validation per design D3 (16 KiB cap, map decoding, `email`→`read_only`, other keys→`unknown`, non-string→`invalid_type`, trimmed length over 100 runes→`too_long`, no documented member→`required`, all errors collected, no write on failure); verify with table-driven handler tests for every scenario in `specs/api-contract/profile/spec.md`, including that the fake repository is never called on `400`
+- [x] 3.4 Register both routes in `main.go` behind `authService.RequireSession`; verify with a mux/integration test that an unauthenticated `GET` and `PATCH /api/v1/me` return `401`, and that `/api/v1/me` no longer falls through to `404`
 
 ## 4. Frontend API client
 

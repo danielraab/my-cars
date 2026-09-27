@@ -145,6 +145,10 @@ paths:
       tags:
       - Profile
       operationId: updateMe
+      description: Updates the caller's first and/or last name. Names are trimmed
+        and may be empty. The email address is read-only; a body containing
+        `email` is rejected with `400` and a `read_only` reason for `email`,
+        and nothing is applied.
       requestBody:
         required: true
         content:
@@ -162,8 +166,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
         default:
           $ref: '#/components/responses/ServerError'
   /cars:
@@ -906,6 +908,12 @@ components:
           type: string
         fields:
           type: object
+          description: Validation details keyed by request member name (`_body`
+            for the request as a whole). Values are machine-readable reasons,
+            such as `read_only` (the member cannot be changed), `unknown` (the
+            member is not part of the request schema), `invalid_type` (wrong
+            JSON type), `too_long` (exceeds the documented maximum length), and
+            `required` (a required member is missing).
           additionalProperties:
             type: string
     Profile:
@@ -928,14 +936,14 @@ components:
     ProfileUpdate:
       type: object
       minProperties: 1
+      additionalProperties: false
       properties:
-        email:
-          type: string
-          format: email
         firstName:
           type: string
+          maxLength: 100
         lastName:
           type: string
+          maxLength: 100
     Session:
       type: object
       required:

@@ -67,9 +67,10 @@ ORDER BY created_at, id
 LIMIT $4 + 1
 ```
 
-Fetching `limit + 1` rows lets the handler detect a next page without a
-second query; the extra row is dropped and its `(created_at, id)` becomes
-`nextCursor`. `limit` absent → `25`; unparsable or outside `[1, 100]` → `400
+Fetching `limit + 1` rows lets the store detect a next page without a
+second query; the extra row is dropped and the `(created_at, id)` of the
+last *returned* row becomes `nextCursor` (using the dropped row's key would
+skip it, because the keyset condition is a strict `>`). `limit` absent → `25`; unparsable or outside `[1, 100]` → `400
 validation_failed` on field `limit`. A cursor that fails to decode (bad
 base64, wrong shape, unparsable timestamp) → `400 validation_failed` on
 field `cursor`. Both reuse the existing `invalid_type` reason rather than
@@ -131,12 +132,24 @@ owner or missing car — both produce the same `404`, per
 `api-contract/common`'s "a resource owned by another account SHALL not be
 disclosed and SHALL produce 404".
 
-### D6. Contract edit: `additionalProperties: false`
+### D6. Contract edits
 
-Mechanical tightening, same rationale as `ProfileUpdate` in
-`profile-management`: an unexpected member should be a localizable `400`,
-not a silent no-op or a `500`. `Error.fields`' description gains the five
-reasons from D4.
+- `additionalProperties: false` on `CarInput` and `CarUpdate`. Same
+  rationale as `ProfileUpdate` in `profile-management`: an unexpected member
+  should be a localizable `400`, not a silent no-op or a `500`.
+  `Error.fields`' description gains the five reasons from D4.
+- `Car` becomes a standalone schema instead of `allOf: [CarInput, …]`.
+  With `additionalProperties: false` on `CarInput`, the `allOf` would make
+  every `Car` carrying `id`/`createdAt`/`updatedAt` schema-invalid. The
+  standalone `Car` requires every member, so the frontend never has to
+  tell "absent" from "null".
+- `fin` and `purchasePrice` become nullable in `CarInput`, `CarUpdate`, and
+  `Car` (a new `NullableDecimal` schema). The columns are nullable and `fin`
+  cannot be `''`, so without this a user could never clear either value
+  and D3's tri-state update would have nothing to express.
+- The `Decimal` pattern (and the refuel `consumption` pattern) was written
+  as `\\.` in a plain YAML scalar, which is a literal backslash, so
+  `"12.50"` did not match. Corrected to `\.`.
 
 ### D7. Frontend: `useInfiniteQuery` list, shared `CarForm`, shared delete button
 

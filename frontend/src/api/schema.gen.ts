@@ -394,11 +394,12 @@ export interface components {
         /** Format: uuid */
         UUID: string;
         Decimal: string;
+        NullableDecimal: string | null;
         Error: {
             /** @example validation_failed */
             code: string;
             message: string;
-            /** @description Validation details keyed by request member name (`_body` for the request as a whole). Values are machine-readable reasons, such as `read_only` (the member cannot be changed), `unknown` (the member is not part of the request schema), `invalid_type` (wrong JSON type), `too_long` (exceeds the documented maximum length), and `required` (a required member is missing). */
+            /** @description Validation details keyed by request member name (`_body` for the request as a whole). Values are machine-readable reasons, such as `read_only` (the member cannot be changed), `unknown` (the member is not part of the request schema), `invalid_type` (wrong JSON type), `too_long` (exceeds the documented maximum length), `required` (a required member is missing), `empty` (a string is blank after trimming), `invalid_enum` (not one of the documented codes), `invalid_date` (not an RFC 3339 full-date), `invalid_decimal` (not a decimal string), and `negative` (below zero). */
             fields?: {
                 [key: string]: string;
             };
@@ -435,12 +436,12 @@ export interface components {
             /** Format: date */
             firstRegistration: string;
             licensePlate: string;
-            fin?: string;
+            fin?: string | null;
             /** @default true */
             isActive: boolean;
             /** Format: date */
             purchaseDate?: string | null;
-            purchasePrice?: components["schemas"]["Decimal"];
+            purchasePrice?: components["schemas"]["NullableDecimal"];
         };
         CarUpdate: {
             type?: string;
@@ -451,14 +452,28 @@ export interface components {
             /** Format: date */
             firstRegistration?: string;
             licensePlate?: string;
-            fin?: string;
+            fin?: string | null;
             isActive?: boolean;
             /** Format: date */
             purchaseDate?: string | null;
-            purchasePrice?: components["schemas"]["Decimal"];
+            purchasePrice?: components["schemas"]["NullableDecimal"];
         };
-        Car: components["schemas"]["CarInput"] & {
+        /** @description A car. Every member is always present; `fin`, `purchaseDate`, and `purchasePrice` are `null` when not recorded. */
+        Car: {
             id: components["schemas"]["UUID"];
+            type: string;
+            make: string;
+            name: string;
+            /** @enum {string} */
+            fuel: "other" | "diesel" | "gasoline" | "electric";
+            /** Format: date */
+            firstRegistration: string;
+            licensePlate: string;
+            fin: string | null;
+            isActive: boolean;
+            /** Format: date */
+            purchaseDate: string | null;
+            purchasePrice: components["schemas"]["NullableDecimal"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

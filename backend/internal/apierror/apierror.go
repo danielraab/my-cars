@@ -13,16 +13,22 @@ import (
 const (
 	CodeValidationFailed = "validation_failed"
 	CodeUnauthorized     = "unauthorized"
+	CodeNotFound         = "not_found"
 	CodeInternal         = "internal_error"
 )
 
 // Field reasons reported in the error's fields map.
 const (
-	ReasonReadOnly    = "read_only"
-	ReasonUnknown     = "unknown"
-	ReasonInvalidType = "invalid_type"
-	ReasonTooLong     = "too_long"
-	ReasonRequired    = "required"
+	ReasonReadOnly       = "read_only"
+	ReasonUnknown        = "unknown"
+	ReasonInvalidType    = "invalid_type"
+	ReasonTooLong        = "too_long"
+	ReasonRequired       = "required"
+	ReasonEmpty          = "empty"
+	ReasonInvalidEnum    = "invalid_enum"
+	ReasonInvalidDate    = "invalid_date"
+	ReasonInvalidDecimal = "invalid_decimal"
+	ReasonNegative       = "negative"
 )
 
 // BodyField is the fields key for a problem with the request body as a whole.
@@ -45,6 +51,12 @@ func Write(w http.ResponseWriter, status int, code, message string, fields map[s
 // Validation sends a 400 validation_failed response carrying field reasons.
 func Validation(w http.ResponseWriter, fields map[string]string) {
 	Write(w, http.StatusBadRequest, CodeValidationFailed, "request validation failed", fields)
+}
+
+// NotFound sends a 404 not_found response. It is also used for resources
+// owned by another account, so their existence is not disclosed.
+func NotFound(w http.ResponseWriter) {
+	Write(w, http.StatusNotFound, CodeNotFound, "resource not found", nil)
 }
 
 // Internal sends a 500 internal_error response without exposing details.

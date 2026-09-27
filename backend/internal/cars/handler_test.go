@@ -1,0 +1,338 @@
+package cars
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"testing/fstest"
+	"time"
+
+	"at.draab/my-car/internal/apierror"
+	"at.draab/my-car/internal/auth"
+	"at.draab/my-car/internal/httpserver"
+)
+
+const (
+	callerID = "11111111-1111-1111-1111-111111111111"
+	carID    = "22222222-2222-2222-2222-222222222222"
+)
+
+var stamp = time.Date(2026, 9, 27, 10, 0, 0, 123456000, time.UTC)
+
+func sampleCar() Car {
+	return Car{ID: carID, Type: "Hatchback", Make: "VW", Name: "Golf", Fuel: "diesel", FirstRegistration: "2019-03-01",
+		LicensePlate: "W-123AB", IsActive: true, CreatedAt: stamp, UpdatedAt: stamp}
+}
+
+type fakeRepository struct {
+	calls   int
+	err     error
+	account string
+	after   *Cursor
+	limit   int
+	input   Input
+	patch   Patch
+	items   []Car
+	next    *Cursor
+}
+
+func (f *fakeRepository) List(_ context.Context, accountID string, after *Cursor, limit int) ([]Car, *Cursor, error) {
+	f.calls++
+	f.account, f.after, f.limit = accountID, after, limit
+	return f.items, f.next, f.err
+}
+
+func (f *fakeRepository) Create(_ context.Context, accountID string, in Input) (Car, error) {
+	f.calls++
+	f.account, f.input = accountID, in
+	if f.err != nil {
+		return Car{}, f.err
+	}
+	c := sampleCar()
+	c.Name, c.Fuel, c.FIN, c.IsActive = in.Name, in.Fuel, in.FIN, in.IsActive
+	return c, nil
+}
+
+func (f *fakeRepository) Get(_ context.Context, accountID, _ string) (Car, error) {
+	f.calls++
+	f.account = accountID
+	if f.err != nil {
+		return Car{}, f.err
+	}
+	return sampleCar(), nil
+}
+
+func (f *fakeRepository) Update(_ context.Context, accountID, _ string, p Patch) (Car, error) {
+	f.calls++
+	f.account, f.patch = accountID, p
+	if f.err != nil {
+		return Car{}, f.err
+	}
+	c := sampleCar()
+	if p.FIN.Set {
+		c.FIN = p.FIN.Value
+	}
+	return c, nil
+}
+
+func (f *fakeRepository) Delete(_ context.Context, accountID, _ string) error {
+	f.calls++
+	f.account = accountID
+	return f.err
+}
+
+func passSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(auth.WithAccount(r.Context(), auth.Account{ID: callerID, Email: "me@example.com"})))
+	})
+}
+
+func serve(t *testing.T, repo Repository, requireSession func(http.Handler) http.Handler, method, target, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	mux := http.NewServeMux()
+	NewHandler(repo).RegisterRoutes(mux, requireSession)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(method, target, strings.NewReader(body)))
+	return rec
+}
+
+func decodeMap(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+	var out map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode %q: %v", rec.Body.String(), err)
+	}
+	return out
+}
+
+const validCreate = `{"type":" Hatchback ","make":"VW","name":"Golf","fuel":"diesel","firstRegistration":"2019-03-01","licensePlate":"W-123AB"}`
+
+func TestCreateCar(t *testing.T) {
+	repo := &fakeRepository{}
+	rec := serve(t, repo, passSession, http.MethodPost, "/api/v1/cars", validCreate)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
+	}
+	if repo.account != callerID || repo.input.Type != "Hatchback" || !repo.input.IsActive || repo.input.FIN != nil {
+		t.Fatalf("store input = %+v for %s", repo.input, repo.account)
+	}
+	body := decodeMap(t, rec)
+	for _, key := range []string{"id", "type", "make", "name", "fuel", "firstRegistration", "licensePlate", "fin", "isActive", "purchaseDate", "purchasePrice", "createdAt", "updatedAt"} {
+		if _, ok := body[key]; !ok {
+			t.Fatalf("car member %q missing: %v", key, body)
+		}
+	}
+	if body["fin"] != nil || body["createdAt"] != "2026-09-27T10:00:00.123456Z" {
+		t.Fatalf("body = %v", body)
+	}
+}
+
+func TestCreateCarWithOptionalFields(t *testing.T) {
+	repo := &fakeRepository{}
+	body := `{"type":"Hatchback","make":"VW","name":"Golf","fuel":"electric","firstRegistration":"2019-03-01","licensePlate":"W-1","fin":" ABC ","isActive":false,"purchaseDate":"2019-04-15","purchasePrice":"18500.50"}`
+	rec := serve(t, repo, passSession, http.MethodPost, "/api/v1/cars", body)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
+	}
+	in := repo.input
+	if in.IsActive || *in.FIN != "ABC" || *in.PurchaseDate != "2019-04-15" || *in.PurchasePrice != "18500.50" || in.Fuel != "electric" {
+		t.Fatalf("store input = %+v", in)
+	}
+}
+
+func TestCarValidation(t *testing.T) {
+	cases := []struct {
+		name, method, body string
+		want               map[string]string
+	}{
+		{"unsupported fuel", http.MethodPost, strings.Replace(validCreate, `"diesel"`, `"petrol"`, 1), map[string]string{"fuel": apierror.ReasonInvalidEnum}},
+		{"unsupported fuel on update", http.MethodPatch, `{"fuel":"petrol"}`, map[string]string{"fuel": apierror.ReasonInvalidEnum}},
+		{"undocumented member on create", http.MethodPost, strings.Replace(validCreate, `{`, `{"owner":"x",`, 1), map[string]string{"owner": apierror.ReasonUnknown}},
+		{"undocumented member on update", http.MethodPatch, `{"name":"Golf","id":"x"}`, map[string]string{"id": apierror.ReasonUnknown}},
+		{"missing required members", http.MethodPost, `{"type":"Hatchback"}`, map[string]string{"make": apierror.ReasonRequired, "name": apierror.ReasonRequired, "fuel": apierror.ReasonRequired, "firstRegistration": apierror.ReasonRequired, "licensePlate": apierror.ReasonRequired}},
+		{"blank strings", http.MethodPatch, `{"name":"  ","fin":""}`, map[string]string{"name": apierror.ReasonEmpty, "fin": apierror.ReasonEmpty}},
+		{"null required member", http.MethodPatch, `{"make":null}`, map[string]string{"make": apierror.ReasonInvalidType}},
+		{"wrong types", http.MethodPatch, `{"isActive":"yes","type":3,"purchasePrice":12}`, map[string]string{"isActive": apierror.ReasonInvalidType, "type": apierror.ReasonInvalidType, "purchasePrice": apierror.ReasonInvalidType}},
+		{"invalid dates", http.MethodPatch, `{"firstRegistration":"2019-02-30","purchaseDate":"15.04.2019"}`, map[string]string{"firstRegistration": apierror.ReasonInvalidDate, "purchaseDate": apierror.ReasonInvalidDate}},
+		{"invalid decimal", http.MethodPatch, `{"purchasePrice":"12,50"}`, map[string]string{"purchasePrice": apierror.ReasonInvalidDecimal}},
+		{"negative price", http.MethodPatch, `{"purchasePrice":"-0.01"}`, map[string]string{"purchasePrice": apierror.ReasonNegative}},
+		{"empty update", http.MethodPatch, `{}`, map[string]string{apierror.BodyField: apierror.ReasonRequired}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &fakeRepository{}
+			target := "/api/v1/cars"
+			if tc.method == http.MethodPatch {
+				target += "/" + carID
+			}
+			rec := serve(t, repo, passSession, tc.method, target, tc.body)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
+			}
+			if repo.calls != 0 {
+				t.Fatalf("store called %d times on a rejected request", repo.calls)
+			}
+			body := decodeMap(t, rec)
+			fields, _ := body["fields"].(map[string]any)
+			if body["code"] != apierror.CodeValidationFailed || len(fields) != len(tc.want) {
+				t.Fatalf("body = %v, want fields %v", body, tc.want)
+			}
+			for k, v := range tc.want {
+				if fields[k] != v {
+					t.Fatalf("fields[%q] = %v, want %q (all: %v)", k, fields[k], v, fields)
+				}
+			}
+		})
+	}
+}
+
+func TestMalformedBodyIsRejected(t *testing.T) {
+	for _, body := range []string{`not json`, `[]`, `null`} {
+		repo := &fakeRepository{}
+		rec := serve(t, repo, passSession, http.MethodPost, "/api/v1/cars", body)
+		if rec.Code != http.StatusBadRequest || repo.calls != 0 {
+			t.Fatalf("%q: status = %d, calls = %d", body, rec.Code, repo.calls)
+		}
+	}
+}
+
+func TestUpdateClearsOptionalField(t *testing.T) {
+	repo := &fakeRepository{}
+	rec := serve(t, repo, passSession, http.MethodPatch, "/api/v1/cars/"+carID, `{"fin":null,"purchasePrice":"100"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
+	}
+	p := repo.patch
+	if !p.FIN.Set || p.FIN.Value != nil || !p.PurchasePrice.Set || *p.PurchasePrice.Value != "100" || p.PurchaseDate.Set || p.Name != nil {
+		t.Fatalf("patch = %+v", p)
+	}
+	if body := decodeMap(t, rec); body["fin"] != nil {
+		t.Fatalf("body = %v", body)
+	}
+}
+
+func TestGetCar(t *testing.T) {
+	repo := &fakeRepository{}
+	rec := serve(t, repo, passSession, http.MethodGet, "/api/v1/cars/"+carID, "")
+	if rec.Code != http.StatusOK || repo.account != callerID {
+		t.Fatalf("status = %d, account = %s", rec.Code, repo.account)
+	}
+	if body := decodeMap(t, rec); body["id"] != carID || body["licensePlate"] != "W-123AB" {
+		t.Fatalf("body = %v", body)
+	}
+}
+
+func TestDeleteCar(t *testing.T) {
+	repo := &fakeRepository{}
+	rec := serve(t, repo, passSession, http.MethodDelete, "/api/v1/cars/"+carID, "")
+	if rec.Code != http.StatusNoContent || rec.Body.Len() != 0 || repo.calls != 1 {
+		t.Fatalf("status = %d, body = %q, calls = %d", rec.Code, rec.Body, repo.calls)
+	}
+}
+
+func TestUnownedOrMissingCarIsNotFound(t *testing.T) {
+	for _, tc := range []struct{ method, body string }{
+		{http.MethodGet, ""},
+		{http.MethodPatch, `{"name":"x"}`},
+		{http.MethodDelete, ""},
+	} {
+		repo := &fakeRepository{err: ErrNotFound}
+		rec := serve(t, repo, passSession, tc.method, "/api/v1/cars/"+carID, tc.body)
+		if rec.Code != http.StatusNotFound || decodeMap(t, rec)["code"] != apierror.CodeNotFound {
+			t.Fatalf("%s: status = %d, body = %s", tc.method, rec.Code, rec.Body)
+		}
+
+		repo = &fakeRepository{}
+		rec = serve(t, repo, passSession, tc.method, "/api/v1/cars/not-a-uuid", tc.body)
+		if rec.Code != http.StatusNotFound || repo.calls != 0 {
+			t.Fatalf("%s invalid id: status = %d, calls = %d", tc.method, rec.Code, repo.calls)
+		}
+	}
+}
+
+func TestStoreFailureIsInternalError(t *testing.T) {
+	repo := &fakeRepository{err: errors.New("boom")}
+	rec := serve(t, repo, passSession, http.MethodGet, "/api/v1/cars/"+carID, "")
+	if rec.Code != http.StatusInternalServerError || strings.Contains(rec.Body.String(), "boom") {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
+	}
+}
+
+func TestListCars(t *testing.T) {
+	next := &Cursor{CreatedAt: stamp, ID: carID}
+	repo := &fakeRepository{items: []Car{sampleCar()}, next: next}
+	rec := serve(t, repo, passSession, http.MethodGet, "/api/v1/cars", "")
+	if rec.Code != http.StatusOK || repo.limit != defaultLimit || repo.after != nil || repo.account != callerID {
+		t.Fatalf("status = %d, limit = %d, after = %v", rec.Code, repo.limit, repo.after)
+	}
+	body := decodeMap(t, rec)
+	items, _ := body["items"].([]any)
+	if len(items) != 1 || body["nextCursor"] != next.Encode() {
+		t.Fatalf("body = %v", body)
+	}
+
+	repo = &fakeRepository{}
+	rec = serve(t, repo, passSession, http.MethodGet, "/api/v1/cars?limit=100&cursor="+next.Encode(), "")
+	if rec.Code != http.StatusOK || repo.limit != 100 || repo.after == nil || repo.after.ID != carID || !repo.after.CreatedAt.Equal(stamp) {
+		t.Fatalf("status = %d, limit = %d, after = %v", rec.Code, repo.limit, repo.after)
+	}
+	body = decodeMap(t, rec)
+	if items, ok := body["items"].([]any); !ok || len(items) != 0 || body["nextCursor"] != nil {
+		t.Fatalf("empty page body = %v", body)
+	}
+}
+
+func TestListRejectsBadPaging(t *testing.T) {
+	for _, query := range []string{"limit=0", "limit=101", "limit=ten", "cursor=%21%21", "cursor=" + (Cursor{CreatedAt: stamp, ID: "x"}).Encode()} {
+		repo := &fakeRepository{}
+		rec := serve(t, repo, passSession, http.MethodGet, "/api/v1/cars?"+query, "")
+		if rec.Code != http.StatusBadRequest || repo.calls != 0 {
+			t.Fatalf("%s: status = %d, calls = %d", query, rec.Code, repo.calls)
+		}
+	}
+}
+
+// noSessionRepository satisfies auth.Repository for a service whose session
+// lookup always fails; no other method is reached by these requests.
+type noSessionRepository struct{ auth.Repository }
+
+func (noSessionRepository) Session(context.Context, []byte, time.Time) (auth.Session, error) {
+	return auth.Session{}, auth.ErrInvalidCredential
+}
+
+type okPinger struct{}
+
+func (okPinger) Ping(context.Context) error { return nil }
+
+// Mounted on the top-level mux with the real session middleware, every car
+// route answers 401 rather than the /api/ 404 fallback.
+func TestCarsRequireSessionOnTopLevelMux(t *testing.T) {
+	requireSession := auth.NewService(noSessionRepository{}, nil, nil, "http://localhost").RequireSession
+	repo := &fakeRepository{}
+	mux := httpserver.NewMux(okPinger{}, nil, fstest.MapFS{"index.html": {Data: []byte("<html></html>")}}, func(mux *http.ServeMux) {
+		NewHandler(repo).RegisterRoutes(mux, requireSession)
+	})
+	for _, tc := range []struct{ method, target string }{
+		{http.MethodGet, "/api/v1/cars"},
+		{http.MethodPost, "/api/v1/cars"},
+		{http.MethodGet, "/api/v1/cars/" + carID},
+		{http.MethodPatch, "/api/v1/cars/" + carID},
+		{http.MethodDelete, "/api/v1/cars/" + carID},
+	} {
+		for _, cookie := range []bool{false, true} {
+			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(validCreate))
+			if cookie {
+				req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "stale"})
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusUnauthorized || repo.calls != 0 {
+				t.Fatalf("%s %s cookie=%v: status = %d, calls = %d", tc.method, tc.target, cookie, rec.Code, repo.calls)
+			}
+		}
+	}
+}

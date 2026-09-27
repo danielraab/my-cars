@@ -2,38 +2,40 @@
 
 ## 1. API contract
 
-- [ ] 1.1 In `openapi/openapi.yaml`, add `additionalProperties: false` to
-  `CarInput` and `CarUpdate`, and document the new `empty`, `invalid_enum`,
+- [x] 1.1 In `openapi/openapi.yaml`, add `additionalProperties: false` to
+  `CarInput` and `CarUpdate`, make `Car` standalone with every member
+  required, make `fin`/`purchasePrice` nullable, fix the `Decimal` pattern
+  escaping (design D6), and document the new `empty`, `invalid_enum`,
   `invalid_date`, `invalid_decimal`, and `negative` reasons (alongside the
   existing ones) in `Error.fields`'s description; verify with
   `pnpm lint:openapi` in `frontend/`
-- [ ] 1.2 Copy the source to `backend/openapi.yaml` and regenerate
+- [x] 1.2 Copy the source to `backend/openapi.yaml` and regenerate
   `frontend/src/api/schema.gen.ts` (`pnpm generate:api`); verify `go test
   ./...` (`openapi_sync_test.go`) and `pnpm check:api` pass
 
 ## 2. Backend error writer
 
-- [ ] 2.1 In `backend/internal/apierror`, add `CodeNotFound` +
+- [x] 2.1 In `backend/internal/apierror`, add `CodeNotFound` +
   `NotFound(w)` (404, no fields) and the five new `Reason*` constants from
   design D4; verify with unit tests asserting status, `code`, and empty
   `fields` for `NotFound`
 
 ## 3. Backend cars package
 
-- [ ] 3.1 Add `backend/internal/cars` with a `Repository` interface
+- [x] 3.1 Add `backend/internal/cars` with a `Repository` interface
   (`List`, `Create`, `Get`, `Update`, `Delete`, all scoped by `accountID`)
   and a pgx `Store`; the `List` query implements the `(created_at, id)`
   keyset from design D2 (fetch `limit+1`, drop the extra row, encode
   `nextCursor`); verify with a store test against `DATABASE_URL` (skipped
   when unset, as in `db_test.go`) covering: first page, following a cursor,
   the last page (`nextCursor` is `null`), create, get, update, and delete
-- [ ] 3.2 Implement `Update` per design D3: a `CarPatch` with a `(value,
+- [x] 3.2 Implement `Update` per design D3: a `CarPatch` with a `(value,
   isSet)` pair for each nullable column (`fin`, `purchase_date`,
   `purchase_price`) and a plain pointer for the rest, applied in one
   `UPDATE ... CASE WHEN ... COALESCE(...)` statement; verify with a store
   test that clears `fin` to `null`, leaves `purchaseDate` untouched when
   absent, and sets `purchasePrice` to a new value in the same call
-- [ ] 3.3 Implement the five HTTP handlers (`GET/POST /api/v1/cars`,
+- [x] 3.3 Implement the five HTTP handlers (`GET/POST /api/v1/cars`,
   `GET/PATCH/DELETE /api/v1/cars/{carId}`) with the validation from design
   D2/D4: `limit`/`cursor` parsing, required-field checks and per-field
   reason codes on create, unknown-member rejection and the tri-state decode
@@ -41,7 +43,7 @@
   `GET`/`PATCH`/`DELETE`; verify with table-driven handler tests covering
   every scenario in `specs/api-contract/cars/spec.md`, including that the
   store is never called on a `400`
-- [ ] 3.4 Register all five routes in `main.go` behind
+- [x] 3.4 Register all five routes in `main.go` behind
   `authService.RequireSession`; verify with a mux/integration test that an
   unauthenticated request to each route returns `401` and that
   `/api/v1/cars` no longer falls through to `404`

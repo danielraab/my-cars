@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Caller can manage owned cars
-The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GET /api/v1/cars/{carId}`, `PATCH /api/v1/cars/{carId}`, and `DELETE /api/v1/cars/{carId}` operations. Car representations SHALL cover the legacy parity fields: type, make, name, fuel, first registration, license plate, FIN, active state, purchase date, and purchase price. The car fuel field SHALL accept only the stable codes `other`, `diesel`, `gasoline`, and `electric`. `CarInput` and `CarUpdate` SHALL reject any request member outside their documented properties with `400` and the common validation error representation identifying the offending member.
+The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GET /api/v1/cars/{carId}`, `PATCH /api/v1/cars/{carId}`, and `DELETE /api/v1/cars/{carId}` operations. Car representations SHALL cover the legacy parity fields: type, make, name, fuel, first registration, license plate, FIN, active state, purchase date, and purchase price. The car fuel field SHALL accept only the stable codes `other`, `diesel`, `gasoline`, and `electric`. `CarInput` and `CarUpdate` SHALL reject any request member outside their documented properties with `400` and the common validation error representation identifying the offending member. FIN, purchase date, and purchase price SHALL be optional and SHALL be clearable by an update that sets them to `null`. A car representation SHALL always contain every documented member, using `null` for an optional value that is not recorded.
 
 #### Scenario: Caller creates a car
 - **WHEN** an authenticated caller submits a valid car creation request
@@ -19,6 +19,11 @@ The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GE
   with a member outside `CarInput`/`CarUpdate`'s documented properties
 - **THEN** the response is `400` with the common validation error
   representation identifying that member, and no car is created or changed
+
+#### Scenario: Caller clears an optional car field
+- **WHEN** an authenticated caller updates one of their cars with `fin`,
+  `purchaseDate`, or `purchasePrice` set to `null`
+- **THEN** the response is `200` and that member is `null` in the returned car
 
 #### Scenario: Caller deletes a car
 - **WHEN** an authenticated caller deletes one of their cars

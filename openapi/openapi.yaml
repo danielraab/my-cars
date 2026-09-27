@@ -894,7 +894,12 @@ components:
       format: uuid
     Decimal:
       type: string
-      pattern: ^-?[0-9]+(\\.[0-9]+)?$
+      pattern: ^-?[0-9]+(\.[0-9]+)?$
+    NullableDecimal:
+      type:
+      - string
+      - 'null'
+      pattern: ^-?[0-9]+(\.[0-9]+)?$
     Error:
       type: object
       required:
@@ -912,8 +917,12 @@ components:
             for the request as a whole). Values are machine-readable reasons,
             such as `read_only` (the member cannot be changed), `unknown` (the
             member is not part of the request schema), `invalid_type` (wrong
-            JSON type), `too_long` (exceeds the documented maximum length), and
-            `required` (a required member is missing).
+            JSON type), `too_long` (exceeds the documented maximum length),
+            `required` (a required member is missing), `empty` (a string is
+            blank after trimming), `invalid_enum` (not one of the documented
+            codes), `invalid_date` (not an RFC 3339 full-date),
+            `invalid_decimal` (not a decimal string), and `negative` (below
+            zero).
           additionalProperties:
             type: string
     Profile:
@@ -978,6 +987,7 @@ components:
           format: uri-reference
     CarInput:
       type: object
+      additionalProperties: false
       required:
       - type
       - make
@@ -1005,7 +1015,9 @@ components:
         licensePlate:
           type: string
         fin:
-          type: string
+          type:
+          - string
+          - 'null'
         isActive:
           type: boolean
           default: true
@@ -1015,9 +1027,10 @@ components:
           - 'null'
           format: date
         purchasePrice:
-          $ref: '#/components/schemas/Decimal'
+          $ref: '#/components/schemas/NullableDecimal'
     CarUpdate:
       type: object
+      additionalProperties: false
       minProperties: 1
       properties:
         type:
@@ -1039,7 +1052,9 @@ components:
         licensePlate:
           type: string
         fin:
-          type: string
+          type:
+          - string
+          - 'null'
         isActive:
           type: boolean
         purchaseDate:
@@ -1048,24 +1063,65 @@ components:
           - 'null'
           format: date
         purchasePrice:
-          $ref: '#/components/schemas/Decimal'
+          $ref: '#/components/schemas/NullableDecimal'
     Car:
-      allOf:
-      - $ref: '#/components/schemas/CarInput'
-      - type: object
-        required:
-        - id
-        - createdAt
-        - updatedAt
-        properties:
-          id:
-            $ref: '#/components/schemas/UUID'
-          createdAt:
-            type: string
-            format: date-time
-          updatedAt:
-            type: string
-            format: date-time
+      type: object
+      description: A car. Every member is always present; `fin`,
+        `purchaseDate`, and `purchasePrice` are `null` when not recorded.
+      required:
+      - id
+      - type
+      - make
+      - name
+      - fuel
+      - firstRegistration
+      - licensePlate
+      - fin
+      - isActive
+      - purchaseDate
+      - purchasePrice
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        type:
+          type: string
+        make:
+          type: string
+        name:
+          type: string
+        fuel:
+          type: string
+          enum:
+          - other
+          - diesel
+          - gasoline
+          - electric
+        firstRegistration:
+          type: string
+          format: date
+        licensePlate:
+          type: string
+        fin:
+          type:
+          - string
+          - 'null'
+        isActive:
+          type: boolean
+        purchaseDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        purchasePrice:
+          $ref: '#/components/schemas/NullableDecimal'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     CarPage:
       type: object
       required:
@@ -1172,7 +1228,7 @@ components:
             type:
             - string
             - 'null'
-            pattern: ^[0-9]+(\\.[0-9]+)?$
+            pattern: ^[0-9]+(\.[0-9]+)?$
     RepairInput:
       type: object
       required:

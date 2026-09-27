@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"at.draab/my-car/internal/auth"
+	"at.draab/my-car/internal/cars"
 	"at.draab/my-car/internal/config"
 	"at.draab/my-car/internal/db"
 	"at.draab/my-car/internal/healthcheck"
@@ -97,8 +98,10 @@ func runServer() {
 	mailer := auth.NewSMTPMailer(cfg.SMTPFrom, cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPTLS, cfg.SMTPUser, cfg.SMTPPassword)
 	authService := auth.NewService(store, mailer, oidcClient, cfg.AuthBaseURL)
 	profileHandler := profile.NewHandler(profile.NewStore(pool))
+	carsHandler := cars.NewHandler(cars.NewStore(pool))
 	mux := httpserver.NewMux(pool, openapiDoc, staticOut, authService.RegisterRoutes, func(mux *http.ServeMux) {
 		profileHandler.RegisterRoutes(mux, authService.RequireSession)
+		carsHandler.RegisterRoutes(mux, authService.RequireSession)
 	})
 
 	log.Printf("listening on :%s", cfg.Port)

@@ -917,3 +917,161 @@ select:focus-visible {
   font-size: 0.88rem;
   font-weight: 650;
 }
+
+.list-page {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+}
+
+.page-action {
+  flex: none;
+  margin-left: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  column-gap: 1.1rem;
+}
+
+/* Label, input, hint and error share rows across columns, so a wrapped
+   label does not push its input below its neighbour's. */
+.form-grid .form-field {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+}
+
+.form-grid .form-field label {
+  align-self: end;
+}
+
+.field-optional {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.input-wrap select {
+  width: 100%;
+  min-width: 0;
+  height: 3rem;
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.form-actions,
+.delete-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: 1.2rem 1.5rem;
+  margin: 0 0 1.6rem;
+}
+
+.detail-list dt {
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.detail-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.data-table th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-link {
+  font-weight: 750;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-dark);
+  text-underline-offset: 0.2em;
+}
+
+.list-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.2rem;
+}
+
+.danger-zone {
+  margin-top: 1.4rem;
+}
+
+.button-danger {
+  color: var(--danger);
+  background: white;
+  border-color: rgb(173 46 36 / 35%);
+}
+
+.button-danger-solid {
+  color: white;
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.delete-confirm {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.delete-confirm legend {
+  padding: 0;
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .list-page .form-page-header {
+    flex-wrap: wrap;
+  }
+
+  .page-action {
+    width: 100%;
+  }
+}

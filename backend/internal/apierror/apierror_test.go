@@ -49,3 +49,18 @@ func TestWriteOmitsEmptyFields(t *testing.T) {
 		t.Fatalf("fields present: %v", body)
 	}
 }
+
+func TestNotFoundHasNoFields(t *testing.T) {
+	rec := httptest.NewRecorder()
+	NotFound(rec)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	body := decode(t, rec)
+	if body["code"] != CodeNotFound || body["message"] == "" {
+		t.Fatalf("body = %v", body)
+	}
+	if _, present := body["fields"]; present {
+		t.Fatalf("fields present: %v", body)
+	}
+}

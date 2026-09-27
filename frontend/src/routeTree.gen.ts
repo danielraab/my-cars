@@ -11,13 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedCarsRouteImport } from './routes/_authenticated.cars'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated.home'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated.profile'
 import { Route as AuthenticatedRefuelsRouteImport } from './routes/_authenticated.refuels'
 import { Route as AuthenticatedRepairsRouteImport } from './routes/_authenticated.repairs'
 import { Route as AuthenticatedTicketsRouteImport } from './routes/_authenticated.tickets'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthenticatedCarsIndexRouteImport } from './routes/_authenticated.cars.index'
+import { Route as AuthenticatedCarsCreateRouteImport } from './routes/_authenticated.cars.create'
+import { Route as AuthenticatedCarsCarIdIndexRouteImport } from './routes/_authenticated.cars.$carId.index'
+import { Route as AuthenticatedCarsCarIdEditRouteImport } from './routes/_authenticated.cars.$carId.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -27,11 +30,6 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedCarsRoute = AuthenticatedCarsRouteImport.update({
-  id: '/cars',
-  path: '/cars',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
@@ -63,71 +61,111 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCarsIndexRoute = AuthenticatedCarsIndexRouteImport.update({
+  id: '/cars/',
+  path: '/cars/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCarsCreateRoute = AuthenticatedCarsCreateRouteImport.update({
+  id: '/cars/create',
+  path: '/cars/create',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCarsCarIdIndexRoute =
+  AuthenticatedCarsCarIdIndexRouteImport.update({
+    id: '/cars/$carId/',
+    path: '/cars/$carId/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCarsCarIdEditRoute =
+  AuthenticatedCarsCarIdEditRouteImport.update({
+    id: '/cars/$carId/edit',
+    path: '/cars/$carId/edit',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/cars': typeof AuthenticatedCarsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refuels': typeof AuthenticatedRefuelsRoute
   '/repairs': typeof AuthenticatedRepairsRoute
   '/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
+  '/cars/create': typeof AuthenticatedCarsCreateRoute
+  '/cars/': typeof AuthenticatedCarsIndexRoute
+  '/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
+  '/cars/$carId/': typeof AuthenticatedCarsCarIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/cars': typeof AuthenticatedCarsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refuels': typeof AuthenticatedRefuelsRoute
   '/repairs': typeof AuthenticatedRepairsRoute
   '/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
+  '/cars/create': typeof AuthenticatedCarsCreateRoute
+  '/cars': typeof AuthenticatedCarsIndexRoute
+  '/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
+  '/cars/$carId': typeof AuthenticatedCarsCarIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/_authenticated/cars': typeof AuthenticatedCarsRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/refuels': typeof AuthenticatedRefuelsRoute
   '/_authenticated/repairs': typeof AuthenticatedRepairsRoute
   '/_authenticated/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
+  '/_authenticated/cars/create': typeof AuthenticatedCarsCreateRoute
+  '/_authenticated/cars/': typeof AuthenticatedCarsIndexRoute
+  '/_authenticated/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
+  '/_authenticated/cars/$carId/': typeof AuthenticatedCarsCarIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/cars'
     | '/home'
     | '/profile'
     | '/refuels'
     | '/repairs'
     | '/tickets'
     | '/auth/login'
+    | '/cars/create'
+    | '/cars/'
+    | '/cars/$carId/edit'
+    | '/cars/$carId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/cars'
     | '/home'
     | '/profile'
     | '/refuels'
     | '/repairs'
     | '/tickets'
     | '/auth/login'
+    | '/cars/create'
+    | '/cars'
+    | '/cars/$carId/edit'
+    | '/cars/$carId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/_authenticated/cars'
     | '/_authenticated/home'
     | '/_authenticated/profile'
     | '/_authenticated/refuels'
     | '/_authenticated/repairs'
     | '/_authenticated/tickets'
     | '/auth/login'
+    | '/_authenticated/cars/create'
+    | '/_authenticated/cars/'
+    | '/_authenticated/cars/$carId/edit'
+    | '/_authenticated/cars/$carId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,13 +189,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/cars': {
-      id: '/_authenticated/cars'
-      path: '/cars'
-      fullPath: '/cars'
-      preLoaderRoute: typeof AuthenticatedCarsRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/home': {
       id: '/_authenticated/home'
@@ -201,25 +232,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/cars/': {
+      id: '/_authenticated/cars/'
+      path: '/cars'
+      fullPath: '/cars/'
+      preLoaderRoute: typeof AuthenticatedCarsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cars/create': {
+      id: '/_authenticated/cars/create'
+      path: '/cars/create'
+      fullPath: '/cars/create'
+      preLoaderRoute: typeof AuthenticatedCarsCreateRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cars/$carId/': {
+      id: '/_authenticated/cars/$carId/'
+      path: '/cars/$carId'
+      fullPath: '/cars/$carId/'
+      preLoaderRoute: typeof AuthenticatedCarsCarIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cars/$carId/edit': {
+      id: '/_authenticated/cars/$carId/edit'
+      path: '/cars/$carId/edit'
+      fullPath: '/cars/$carId/edit'
+      preLoaderRoute: typeof AuthenticatedCarsCarIdEditRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedCarsRoute: typeof AuthenticatedCarsRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRefuelsRoute: typeof AuthenticatedRefuelsRoute
   AuthenticatedRepairsRoute: typeof AuthenticatedRepairsRoute
   AuthenticatedTicketsRoute: typeof AuthenticatedTicketsRoute
+  AuthenticatedCarsCreateRoute: typeof AuthenticatedCarsCreateRoute
+  AuthenticatedCarsIndexRoute: typeof AuthenticatedCarsIndexRoute
+  AuthenticatedCarsCarIdEditRoute: typeof AuthenticatedCarsCarIdEditRoute
+  AuthenticatedCarsCarIdIndexRoute: typeof AuthenticatedCarsCarIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedCarsRoute: AuthenticatedCarsRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRefuelsRoute: AuthenticatedRefuelsRoute,
   AuthenticatedRepairsRoute: AuthenticatedRepairsRoute,
   AuthenticatedTicketsRoute: AuthenticatedTicketsRoute,
+  AuthenticatedCarsCreateRoute: AuthenticatedCarsCreateRoute,
+  AuthenticatedCarsIndexRoute: AuthenticatedCarsIndexRoute,
+  AuthenticatedCarsCarIdEditRoute: AuthenticatedCarsCarIdEditRoute,
+  AuthenticatedCarsCarIdIndexRoute: AuthenticatedCarsCarIdIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

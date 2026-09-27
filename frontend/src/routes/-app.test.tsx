@@ -158,14 +158,13 @@ describe('protected routes', () => {
       await screen.findByRole('heading', { name: 'Sign in to my-car' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByText('Cars is not available yet'),
+      screen.queryByRole('heading', { name: 'Cars' }),
     ).not.toBeInTheDocument()
     expect(router.state.location.search).toEqual({ returnTo: '/cars' })
   })
 
   it.each([
     ['/home', 'Dashboard'],
-    ['/cars', 'Cars'],
     ['/refuels', 'Refuels'],
     ['/repairs', 'Repairs'],
     ['/tickets', 'Tickets'],

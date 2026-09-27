@@ -1,7 +1,7 @@
 import { Construction } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-type Feature = 'dashboard' | 'cars' | 'refuels' | 'repairs' | 'tickets'
+type Feature = 'dashboard' | 'refuels' | 'repairs' | 'tickets'
 
 export function DeferredPage({ feature }: { feature: Feature }) {
   const { t } = useTranslation()

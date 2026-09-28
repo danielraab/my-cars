@@ -29,6 +29,7 @@ const (
 	ReasonInvalidDate    = "invalid_date"
 	ReasonInvalidDecimal = "invalid_decimal"
 	ReasonNegative       = "negative"
+	ReasonNonPositive    = "non_positive"
 )
 
 // BodyField is the fields key for a problem with the request body as a whole.

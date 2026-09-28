@@ -1,0 +1,341 @@
+// Package repairs serves the caller's repairs (/api/v1/repairs), per
+// specs/api-contract/expenses.
+package repairs
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"at.draab/my-car/internal/apierror"
+	"at.draab/my-car/internal/auth"
+)
+
+const (
+	defaultLimit = 25
+	maxLimit     = 100
+	maxBodyBytes = 16 << 10
+)
+
+var (
+	uuidPattern    = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	decimalPattern = regexp.MustCompile(`^-?[0-9]+(\.[0-9]+)?$`)
+	types          = map[string]bool{"check": true, "service": true, "wearing_part": true, "crash_repair": true}
+)
+
+func isUUID(s string) bool { return uuidPattern.MatchString(s) }
+
+type Repository interface {
+	List(ctx context.Context, accountID string, f Filter, after *Cursor, limit int) ([]Repair, *Cursor, error)
+	Create(ctx context.Context, accountID string, in Input) (Repair, error)
+	Get(ctx context.Context, accountID, repairID string) (Repair, error)
+	Update(ctx context.Context, accountID, repairID string, p Patch) (Repair, error)
+	Delete(ctx context.Context, accountID, repairID string) error
+	Stations(ctx context.Context, accountID string) ([]string, error)
+}
+
+type Handler struct{ store Repository }
+
+func NewHandler(store Repository) *Handler { return &Handler{store: store} }
+
+// RegisterRoutes mounts the repair operations behind requireSession.
+func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireSession func(http.Handler) http.Handler) {
+	mux.Handle("GET /api/v1/repairs", requireSession(h.withAccount(h.list)))
+	mux.Handle("POST /api/v1/repairs", requireSession(h.withAccount(h.create)))
+	mux.Handle("GET /api/v1/repairs/stations", requireSession(h.withAccount(h.stations)))
+	mux.Handle("GET /api/v1/repairs/{repairId}", requireSession(h.withRepair(h.get)))
+	mux.Handle("PATCH /api/v1/repairs/{repairId}", requireSession(h.withRepair(h.update)))
+	mux.Handle("DELETE /api/v1/repairs/{repairId}", requireSession(h.withRepair(h.delete)))
+}
+
+func (h *Handler) withAccount(next func(http.ResponseWriter, *http.Request, string)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		account, ok := auth.AccountFromContext(r.Context())
+		if !ok {
+			apierror.Write(w, http.StatusUnauthorized, apierror.CodeUnauthorized, "authentication required", nil)
+			return
+		}
+		next(w, r, account.ID)
+	})
+}
+
+// withRepair also resolves the path's repair ID; one that is not a UUID
+// cannot name a repair, so it is reported like any other missing repair.
+func (h *Handler) withRepair(next func(http.ResponseWriter, *http.Request, string, string)) http.Handler {
+	return h.withAccount(func(w http.ResponseWriter, r *http.Request, accountID string) {
+		repairID := r.PathValue("repairId")
+		if !isUUID(repairID) {
+			apierror.NotFound(w)
+			return
+		}
+		next(w, r, accountID, repairID)
+	})
+}
+
+type repairBody struct {
+	ID              string `json:"id"`
+	CarID           string `json:"carId"`
+	Date            string `json:"date"`
+	Station         string `json:"station"`
+	OdometerReading *int64 `json:"odometerReading"`
+	Type            string `json:"type"`
+	Amount          string `json:"amount"`
+	Description     string `json:"description"`
+}
+
+func toBody(r Repair) repairBody {
+	return repairBody{
+		ID: r.ID, CarID: r.CarID, Date: r.Date.UTC().Format(time.RFC3339Nano), Station: r.Station,
+		OdometerReading: r.OdometerReading, Type: r.Type, Amount: r.Amount, Description: r.Description,
+	}
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func (h *Handler) fail(w http.ResponseWriter, op string, err error) {
+	if errors.Is(err, ErrNotFound) {
+		apierror.NotFound(w)
+		return
+	}
+	log.Printf("%s repair: %v", op, err)
+	apierror.Internal(w)
+}
+
+func (h *Handler) list(w http.ResponseWriter, r *http.Request, accountID string) {
+	query := r.URL.Query()
+	fields := map[string]string{}
+	limit := defaultLimit
+	if raw := query.Get("limit"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 1 || n > maxLimit {
+			fields["limit"] = apierror.ReasonInvalidType
+		}
+		limit = n
+	}
+	var after *Cursor
+	if raw := query.Get("cursor"); raw != "" {
+		c, ok := DecodeCursor(raw)
+		if !ok {
+			fields["cursor"] = apierror.ReasonInvalidType
+		}
+		after = &c
+	}
+	var f Filter
+	if raw := query.Get("carId"); raw != "" {
+		if !isUUID(raw) {
+			fields["carId"] = apierror.ReasonInvalidType
+		}
+		f.CarID = &raw
+	}
+	for key, target := range map[string]**time.Time{"from": &f.From, "to": &f.To} {
+		if raw := query.Get(key); raw != "" {
+			t, err := time.Parse(time.RFC3339Nano, raw)
+			if err != nil {
+				fields[key] = apierror.ReasonInvalidType
+			}
+			*target = &t
+		}
+	}
+	if len(fields) > 0 {
+		apierror.Validation(w, fields)
+		return
+	}
+	items, next, err := h.store.List(r.Context(), accountID, f, after, limit)
+	if err != nil {
+		h.fail(w, "list", err)
+		return
+	}
+	page := struct {
+		Items      []repairBody `json:"items"`
+		NextCursor *string      `json:"nextCursor"`
+	}{Items: make([]repairBody, 0, len(items))}
+	for _, item := range items {
+		page.Items = append(page.Items, toBody(item))
+	}
+	if next != nil {
+		encoded := next.Encode()
+		page.NextCursor = &encoded
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (h *Handler) stations(w http.ResponseWriter, r *http.Request, accountID string) {
+	stations, err := h.store.Stations(r.Context(), accountID)
+	if err != nil {
+		h.fail(w, "list stations of", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, stations)
+}
+
+func (h *Handler) create(w http.ResponseWriter, r *http.Request, accountID string) {
+	p, carID, fields, ok := decodeBody(w, r, true)
+	if !ok {
+		return
+	}
+	for key, missing := range map[string]bool{
+		"carId": carID == nil, "date": p.Date == nil, "station": p.Station == nil, "type": p.Type == nil, "amount": p.Amount == nil,
+	} {
+		if _, reported := fields[key]; missing && !reported {
+			fields[key] = apierror.ReasonRequired
+		}
+	}
+	if len(fields) > 0 {
+		apierror.Validation(w, fields)
+		return
+	}
+	in := Input{
+		CarID: *carID, Date: *p.Date, Station: *p.Station, OdometerReading: p.OdometerReading.Value,
+		Type: *p.Type, Amount: *p.Amount,
+	}
+	if p.Description != nil {
+		in.Description = *p.Description
+	}
+	created, err := h.store.Create(r.Context(), accountID, in)
+	if err != nil {
+		h.fail(w, "create", err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, toBody(created))
+}
+
+func (h *Handler) get(w http.ResponseWriter, r *http.Request, accountID, repairID string) {
+	found, err := h.store.Get(r.Context(), accountID, repairID)
+	if err != nil {
+		h.fail(w, "get", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toBody(found))
+}
+
+func (h *Handler) update(w http.ResponseWriter, r *http.Request, accountID, repairID string) {
+	p, _, fields, ok := decodeBody(w, r, false)
+	if !ok {
+		return
+	}
+	if len(fields) == 0 && p == (Patch{}) {
+		fields[apierror.BodyField] = apierror.ReasonRequired
+	}
+	if len(fields) > 0 {
+		apierror.Validation(w, fields)
+		return
+	}
+	updated, err := h.store.Update(r.Context(), accountID, repairID, p)
+	if err != nil {
+		h.fail(w, "update", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toBody(updated))
+}
+
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request, accountID, repairID string) {
+	if err := h.store.Delete(r.Context(), accountID, repairID); err != nil {
+		h.fail(w, "delete", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// decodeBody reads a JSON object and validates every member, collecting a
+// reason for each offending one. carId is only a member of the creation
+// request (RepairInput); an update (RepairUpdate) reports it as unknown. A
+// malformed body is answered here and reported as not ok.
+func decodeBody(w http.ResponseWriter, r *http.Request, create bool) (Patch, *string, map[string]string, bool) {
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBodyBytes)).Decode(&raw); err != nil || raw == nil {
+		apierror.Validation(w, nil)
+		return Patch{}, nil, nil, false
+	}
+	var p Patch
+	var carID *string
+	fields := map[string]string{}
+	for key, value := range raw {
+		switch key {
+		case "carId":
+			if !create {
+				fields[key] = apierror.ReasonUnknown
+			} else if s := requiredString(key, value, fields); s != nil {
+				if !isUUID(*s) {
+					fields[key] = apierror.ReasonInvalidType
+				} else {
+					carID = s
+				}
+			}
+		case "date":
+			if s := requiredString(key, value, fields); s != nil {
+				t, err := time.Parse(time.RFC3339Nano, *s)
+				if err != nil {
+					fields[key] = apierror.ReasonInvalidType
+				} else {
+					p.Date = &t
+				}
+			}
+		case "station":
+			p.Station = requiredString(key, value, fields)
+		case "type":
+			if s := requiredString(key, value, fields); s != nil {
+				if !types[*s] {
+					fields[key] = apierror.ReasonInvalidEnum
+				} else {
+					p.Type = s
+				}
+			}
+		case "amount":
+			if s := requiredString(key, value, fields); s != nil {
+				switch {
+				case !decimalPattern.MatchString(*s):
+					fields[key] = apierror.ReasonInvalidDecimal
+				case strings.HasPrefix(*s, "-") && strings.Trim((*s)[1:], "0.") != "":
+					fields[key] = apierror.ReasonNegative
+				default:
+					p.Amount = s
+				}
+			}
+		case "odometerReading":
+			var n *int64
+			if err := json.Unmarshal(value, &n); err != nil {
+				fields[key] = apierror.ReasonInvalidType
+			} else if n != nil && *n < 0 {
+				fields[key] = apierror.ReasonNegative
+			} else {
+				p.OdometerReading = NullableInt{Set: true, Value: n}
+			}
+		case "description":
+			var s *string
+			if err := json.Unmarshal(value, &s); err != nil || s == nil {
+				fields[key] = apierror.ReasonInvalidType
+			} else {
+				trimmed := strings.TrimSpace(*s)
+				p.Description = &trimmed
+			}
+		default:
+			fields[key] = apierror.ReasonUnknown
+		}
+	}
+	return p, carID, fields, true
+}
+
+// requiredString decodes a non-null string, trimmed, that must not be blank.
+func requiredString(key string, value json.RawMessage, fields map[string]string) *string {
+	var s *string
+	if err := json.Unmarshal(value, &s); err != nil || s == nil {
+		fields[key] = apierror.ReasonInvalidType
+		return nil
+	}
+	trimmed := strings.TrimSpace(*s)
+	if trimmed == "" {
+		fields[key] = apierror.ReasonEmpty
+		return nil
+	}
+	return &trimmed
+}

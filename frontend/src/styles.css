@@ -43,7 +43,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -952,6 +953,21 @@ select:focus-visible {
   font-weight: 500;
 }
 
+.input-wrap textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 6rem;
+  padding: 0.75rem 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  resize: vertical;
+}
+
+.form-grid .form-field-wide {
+  grid-column: 1 / -1;
+}
+
 .input-wrap select {
   width: 100%;
   min-width: 0;
@@ -1017,6 +1033,17 @@ select:focus-visible {
 
 .data-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.data-table tfoot td {
+  font-weight: 750;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.data-table .wrap {
+  min-width: 9rem;
+  white-space: normal;
 }
 
 .data-table .numeric {

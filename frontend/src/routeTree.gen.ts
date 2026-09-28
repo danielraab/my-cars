@@ -13,15 +13,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedRefuelsRouteImport } from './routes/_authenticated/refuels'
 import { Route as AuthenticatedTicketsRouteImport } from './routes/_authenticated/tickets'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthenticatedCarsIndexRouteImport } from './routes/_authenticated/cars/index'
 import { Route as AuthenticatedCarsCreateRouteImport } from './routes/_authenticated/cars/create'
+import { Route as AuthenticatedRefuelsIndexRouteImport } from './routes/_authenticated/refuels/index'
+import { Route as AuthenticatedRefuelsCreateRouteImport } from './routes/_authenticated/refuels/create'
 import { Route as AuthenticatedRepairsIndexRouteImport } from './routes/_authenticated/repairs/index'
 import { Route as AuthenticatedRepairsCreateRouteImport } from './routes/_authenticated/repairs/create'
 import { Route as AuthenticatedCarsCarIdIndexRouteImport } from './routes/_authenticated/cars/$carId/index'
 import { Route as AuthenticatedCarsCarIdEditRouteImport } from './routes/_authenticated/cars/$carId/edit'
+import { Route as AuthenticatedRefuelsRefuelIdEditRouteImport } from './routes/_authenticated/refuels/$refuelId/edit'
 import { Route as AuthenticatedRepairsRepairIdEditRouteImport } from './routes/_authenticated/repairs/$repairId/edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,11 +43,6 @@ const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRefuelsRoute = AuthenticatedRefuelsRouteImport.update({
-  id: '/refuels',
-  path: '/refuels',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTicketsRoute = AuthenticatedTicketsRouteImport.update({
@@ -68,6 +65,18 @@ const AuthenticatedCarsCreateRoute = AuthenticatedCarsCreateRouteImport.update({
   path: '/cars/create',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRefuelsIndexRoute =
+  AuthenticatedRefuelsIndexRouteImport.update({
+    id: '/refuels/',
+    path: '/refuels/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRefuelsCreateRoute =
+  AuthenticatedRefuelsCreateRouteImport.update({
+    id: '/refuels/create',
+    path: '/refuels/create',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRepairsIndexRoute =
   AuthenticatedRepairsIndexRouteImport.update({
     id: '/repairs/',
@@ -92,6 +101,12 @@ const AuthenticatedCarsCarIdEditRoute =
     path: '/cars/$carId/edit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRefuelsRefuelIdEditRoute =
+  AuthenticatedRefuelsRefuelIdEditRouteImport.update({
+    id: '/refuels/$refuelId/edit',
+    path: '/refuels/$refuelId/edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRepairsRepairIdEditRoute =
   AuthenticatedRepairsRepairIdEditRouteImport.update({
     id: '/repairs/$repairId/edit',
@@ -103,14 +118,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/home': typeof AuthenticatedHomeRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/refuels': typeof AuthenticatedRefuelsRoute
   '/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
   '/cars/create': typeof AuthenticatedCarsCreateRoute
+  '/refuels/create': typeof AuthenticatedRefuelsCreateRoute
   '/repairs/create': typeof AuthenticatedRepairsCreateRoute
   '/cars/': typeof AuthenticatedCarsIndexRoute
+  '/refuels/': typeof AuthenticatedRefuelsIndexRoute
   '/repairs/': typeof AuthenticatedRepairsIndexRoute
   '/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
+  '/refuels/$refuelId/edit': typeof AuthenticatedRefuelsRefuelIdEditRoute
   '/repairs/$repairId/edit': typeof AuthenticatedRepairsRepairIdEditRoute
   '/cars/$carId/': typeof AuthenticatedCarsCarIdIndexRoute
 }
@@ -118,14 +135,16 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/home': typeof AuthenticatedHomeRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/refuels': typeof AuthenticatedRefuelsRoute
   '/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
   '/cars/create': typeof AuthenticatedCarsCreateRoute
+  '/refuels/create': typeof AuthenticatedRefuelsCreateRoute
   '/repairs/create': typeof AuthenticatedRepairsCreateRoute
   '/cars': typeof AuthenticatedCarsIndexRoute
+  '/refuels': typeof AuthenticatedRefuelsIndexRoute
   '/repairs': typeof AuthenticatedRepairsIndexRoute
   '/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
+  '/refuels/$refuelId/edit': typeof AuthenticatedRefuelsRefuelIdEditRoute
   '/repairs/$repairId/edit': typeof AuthenticatedRepairsRepairIdEditRoute
   '/cars/$carId': typeof AuthenticatedCarsCarIdIndexRoute
 }
@@ -135,14 +154,16 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
-  '/_authenticated/refuels': typeof AuthenticatedRefuelsRoute
   '/_authenticated/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
   '/_authenticated/cars/create': typeof AuthenticatedCarsCreateRoute
+  '/_authenticated/refuels/create': typeof AuthenticatedRefuelsCreateRoute
   '/_authenticated/repairs/create': typeof AuthenticatedRepairsCreateRoute
   '/_authenticated/cars/': typeof AuthenticatedCarsIndexRoute
+  '/_authenticated/refuels/': typeof AuthenticatedRefuelsIndexRoute
   '/_authenticated/repairs/': typeof AuthenticatedRepairsIndexRoute
   '/_authenticated/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
+  '/_authenticated/refuels/$refuelId/edit': typeof AuthenticatedRefuelsRefuelIdEditRoute
   '/_authenticated/repairs/$repairId/edit': typeof AuthenticatedRepairsRepairIdEditRoute
   '/_authenticated/cars/$carId/': typeof AuthenticatedCarsCarIdIndexRoute
 }
@@ -152,14 +173,16 @@ export interface FileRouteTypes {
     | '/'
     | '/home'
     | '/profile'
-    | '/refuels'
     | '/tickets'
     | '/auth/login'
     | '/cars/create'
+    | '/refuels/create'
     | '/repairs/create'
     | '/cars/'
+    | '/refuels/'
     | '/repairs/'
     | '/cars/$carId/edit'
+    | '/refuels/$refuelId/edit'
     | '/repairs/$repairId/edit'
     | '/cars/$carId/'
   fileRoutesByTo: FileRoutesByTo
@@ -167,14 +190,16 @@ export interface FileRouteTypes {
     | '/'
     | '/home'
     | '/profile'
-    | '/refuels'
     | '/tickets'
     | '/auth/login'
     | '/cars/create'
+    | '/refuels/create'
     | '/repairs/create'
     | '/cars'
+    | '/refuels'
     | '/repairs'
     | '/cars/$carId/edit'
+    | '/refuels/$refuelId/edit'
     | '/repairs/$repairId/edit'
     | '/cars/$carId'
   id:
@@ -183,14 +208,16 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/home'
     | '/_authenticated/profile'
-    | '/_authenticated/refuels'
     | '/_authenticated/tickets'
     | '/auth/login'
     | '/_authenticated/cars/create'
+    | '/_authenticated/refuels/create'
     | '/_authenticated/repairs/create'
     | '/_authenticated/cars/'
+    | '/_authenticated/refuels/'
     | '/_authenticated/repairs/'
     | '/_authenticated/cars/$carId/edit'
+    | '/_authenticated/refuels/$refuelId/edit'
     | '/_authenticated/repairs/$repairId/edit'
     | '/_authenticated/cars/$carId/'
   fileRoutesById: FileRoutesById
@@ -231,13 +258,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/refuels': {
-      id: '/_authenticated/refuels'
-      path: '/refuels'
-      fullPath: '/refuels'
-      preLoaderRoute: typeof AuthenticatedRefuelsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/tickets': {
       id: '/_authenticated/tickets'
       path: '/tickets'
@@ -264,6 +284,20 @@ declare module '@tanstack/react-router' {
       path: '/cars/create'
       fullPath: '/cars/create'
       preLoaderRoute: typeof AuthenticatedCarsCreateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/refuels/': {
+      id: '/_authenticated/refuels/'
+      path: '/refuels'
+      fullPath: '/refuels/'
+      preLoaderRoute: typeof AuthenticatedRefuelsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/refuels/create': {
+      id: '/_authenticated/refuels/create'
+      path: '/refuels/create'
+      fullPath: '/refuels/create'
+      preLoaderRoute: typeof AuthenticatedRefuelsCreateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/repairs/': {
@@ -294,6 +328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCarsCarIdEditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/refuels/$refuelId/edit': {
+      id: '/_authenticated/refuels/$refuelId/edit'
+      path: '/refuels/$refuelId/edit'
+      fullPath: '/refuels/$refuelId/edit'
+      preLoaderRoute: typeof AuthenticatedRefuelsRefuelIdEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/repairs/$repairId/edit': {
       id: '/_authenticated/repairs/$repairId/edit'
       path: '/repairs/$repairId/edit'
@@ -307,13 +348,15 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
-  AuthenticatedRefuelsRoute: typeof AuthenticatedRefuelsRoute
   AuthenticatedTicketsRoute: typeof AuthenticatedTicketsRoute
   AuthenticatedCarsCreateRoute: typeof AuthenticatedCarsCreateRoute
+  AuthenticatedRefuelsCreateRoute: typeof AuthenticatedRefuelsCreateRoute
   AuthenticatedRepairsCreateRoute: typeof AuthenticatedRepairsCreateRoute
   AuthenticatedCarsIndexRoute: typeof AuthenticatedCarsIndexRoute
+  AuthenticatedRefuelsIndexRoute: typeof AuthenticatedRefuelsIndexRoute
   AuthenticatedRepairsIndexRoute: typeof AuthenticatedRepairsIndexRoute
   AuthenticatedCarsCarIdEditRoute: typeof AuthenticatedCarsCarIdEditRoute
+  AuthenticatedRefuelsRefuelIdEditRoute: typeof AuthenticatedRefuelsRefuelIdEditRoute
   AuthenticatedRepairsRepairIdEditRoute: typeof AuthenticatedRepairsRepairIdEditRoute
   AuthenticatedCarsCarIdIndexRoute: typeof AuthenticatedCarsCarIdIndexRoute
 }
@@ -321,13 +364,15 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
-  AuthenticatedRefuelsRoute: AuthenticatedRefuelsRoute,
   AuthenticatedTicketsRoute: AuthenticatedTicketsRoute,
   AuthenticatedCarsCreateRoute: AuthenticatedCarsCreateRoute,
+  AuthenticatedRefuelsCreateRoute: AuthenticatedRefuelsCreateRoute,
   AuthenticatedRepairsCreateRoute: AuthenticatedRepairsCreateRoute,
   AuthenticatedCarsIndexRoute: AuthenticatedCarsIndexRoute,
+  AuthenticatedRefuelsIndexRoute: AuthenticatedRefuelsIndexRoute,
   AuthenticatedRepairsIndexRoute: AuthenticatedRepairsIndexRoute,
   AuthenticatedCarsCarIdEditRoute: AuthenticatedCarsCarIdEditRoute,
+  AuthenticatedRefuelsRefuelIdEditRoute: AuthenticatedRefuelsRefuelIdEditRoute,
   AuthenticatedRepairsRepairIdEditRoute: AuthenticatedRepairsRepairIdEditRoute,
   AuthenticatedCarsCarIdIndexRoute: AuthenticatedCarsCarIdIndexRoute,
 }

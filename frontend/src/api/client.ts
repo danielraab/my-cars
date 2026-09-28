@@ -21,6 +21,13 @@ export type RepairType = Repair['type']
 export type RepairInput = components['schemas']['RepairInput']
 export type RepairUpdate = components['schemas']['RepairUpdate']
 export type RepairPage = components['schemas']['RepairPage']
+export type Refuel = components['schemas']['Refuel']
+export type RefuelInput = components['schemas']['RefuelInput']
+export type RefuelUpdate = components['schemas']['RefuelUpdate']
+export type RefuelPage = components['schemas']['RefuelPage']
+export type RefuelChart = components['schemas']['RefuelChart']
+export type RefuelFuel = Refuel['fuel']
+export const refuelFuels: readonly RefuelFuel[] = ['normal', 'special', 'other']
 
 export const repairTypes: readonly RepairType[] = [
   'check',
@@ -125,6 +132,42 @@ function isRepairPage(value: unknown): value is RepairPage {
     Array.isArray(value.items) &&
     value.items.every(isRepair) &&
     isNullableString(value.nextCursor)
+  )
+}
+
+function isRefuel(value: unknown): value is Refuel {
+  if (!isRecord(value)) return false
+  const nullableNumber = (v: unknown) =>
+    v === null || (typeof v === 'number' && Number.isInteger(v))
+  return (
+    [
+      value.id,
+      value.carId,
+      value.date,
+      value.station,
+      value.liters,
+      value.amount,
+      value.perLiter,
+    ].every((v) => typeof v === 'string') &&
+    refuelFuels.some((fuel) => fuel === value.fuel) &&
+    nullableNumber(value.odometerReading) &&
+    nullableNumber(value.distance) &&
+    isNullableString(value.consumption)
+  )
+}
+
+function isRefuelPage(value: unknown): value is RefuelPage {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.items) &&
+    value.items.every(isRefuel) &&
+    isNullableString(value.nextCursor)
+  )
+}
+
+function isRefuelChart(value: unknown): value is RefuelChart {
+  return (
+    isRecord(value) && Array.isArray(value.items) && value.items.every(isRefuel)
   )
 }
 
@@ -381,6 +424,70 @@ export async function deleteRepair(repairId: string): Promise<void> {
       'The server response is invalid',
     )
   }
+}
+
+function refuelPath(id: string) {
+  return `/api/v1/refuels/${encodeURIComponent(id)}`
+}
+export async function getRefuels(
+  options: { cursor?: string | null; limit?: number; carId?: string } = {},
+): Promise<RefuelPage> {
+  const q = new URLSearchParams()
+  if (options.cursor) q.set('cursor', options.cursor)
+  if (options.limit) q.set('limit', String(options.limit))
+  if (options.carId) q.set('carId', options.carId)
+  return decoded(
+    await fetchApi(`/api/v1/refuels${q.size ? `?${q}` : ''}`),
+    isRefuelPage,
+  )
+}
+export async function getRefuel(id: string): Promise<Refuel> {
+  return decoded(await fetchApi(refuelPath(id)), isRefuel)
+}
+export async function getRefuelStations(): Promise<string[]> {
+  return decoded(await fetchApi('/api/v1/refuels/stations'), isStringList)
+}
+export async function getRefuelChart(carId?: string): Promise<RefuelChart> {
+  const q = new URLSearchParams()
+  if (carId) q.set('carId', carId)
+  return decoded(
+    await fetchApi(`/api/v1/refuels/chart${q.size ? `?${q}` : ''}`),
+    isRefuelChart,
+  )
+}
+export async function createRefuel(input: RefuelInput): Promise<Refuel> {
+  return decoded(
+    await fetchApi('/api/v1/refuels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+    isRefuel,
+  )
+}
+export async function updateRefuel(
+  id: string,
+  input: RefuelUpdate,
+): Promise<Refuel> {
+  return decoded(
+    await fetchApi(refuelPath(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+    isRefuel,
+  )
+}
+export async function deleteRefuel(id: string): Promise<void> {
+  const response = await fetchApi(refuelPath(id), { method: 'DELETE' })
+  if (response.status === 401) throw new UnauthorizedError()
+  if (!response.ok) throw await errorFrom(response)
+  if (response.status !== 204)
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
 }
 
 export async function requestMagicLink(input: MagicLinkRequest): Promise<void> {

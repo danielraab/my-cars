@@ -294,8 +294,27 @@ paths:
     - $ref: '#/components/parameters/CarId'
   /refuels:
     get:
-      $ref: '#/components/pathItems/ExpenseCollection/get'
+      tags:
+      - Expenses
+      operationId: listRefuels
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/CarFilter'
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
       responses:
+        '200':
+          description: The caller's refuels ordered by date then ID. A `carId`
+            that names no car of the caller's yields an empty page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefuelPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/ServerError'
     post:
@@ -323,8 +342,20 @@ paths:
           $ref: '#/components/responses/ServerError'
   /refuels/stations:
     get:
-      $ref: '#/components/pathItems/StationSuggestions/get'
+      tags:
+      - Expenses
+      operationId: listRefuelStations
       responses:
+        '200':
+          description: Distinct station names from the caller's refuels, in ascending order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/ServerError'
   /refuels/chart:
@@ -888,7 +919,6 @@ components:
       get:
         tags:
         - Expenses
-        operationId: listRefuelStations
         responses:
           '200':
             description: Distinct caller-owned station names.
@@ -1187,6 +1217,7 @@ components:
           $ref: '#/components/schemas/Decimal'
     RefuelInput:
       type: object
+      additionalProperties: false
       required:
       - carId
       - date
@@ -1219,6 +1250,7 @@ components:
           $ref: '#/components/schemas/Decimal'
     RefuelUpdate:
       type: object
+      additionalProperties: false
       minProperties: 1
       properties:
         date:
@@ -1242,25 +1274,63 @@ components:
         amount:
           $ref: '#/components/schemas/Decimal'
     Refuel:
-      allOf:
-      - $ref: '#/components/schemas/ExpenseBase'
-      - $ref: '#/components/schemas/RefuelInput'
-      - type: object
-        required:
-        - perLiter
-        properties:
-          perLiter:
-            $ref: '#/components/schemas/Decimal'
-          distance:
-            type:
-            - integer
-            - 'null'
-            minimum: 0
-          consumption:
-            type:
-            - string
-            - 'null'
-            pattern: ^[0-9]+(\.[0-9]+)?$
+      type: object
+      required:
+      - id
+      - carId
+      - date
+      - station
+      - odometerReading
+      - fuel
+      - liters
+      - amount
+      - perLiter
+      - distance
+      - consumption
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        carId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date-time
+        station:
+          type: string
+        odometerReading:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+        fuel:
+          type: string
+          enum: [normal, special, other]
+        liters:
+          $ref: '#/components/schemas/Decimal'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        perLiter:
+          $ref: '#/components/schemas/Decimal'
+        distance:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+        consumption:
+          type:
+          - string
+          - 'null'
+          pattern: ^[0-9]+(\.[0-9]+)?$
+    RefuelPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refuel'
+        nextCursor:
+          type: [string, 'null']
     RepairInput:
       type: object
       additionalProperties: false

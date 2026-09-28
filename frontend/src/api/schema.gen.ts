@@ -212,7 +212,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: components["pathItems"]["ExpenseCollection"]["get"];
+        get: operations["listRefuels"];
         put?: never;
         post: components["pathItems"]["RefuelCreate"]["post"];
         delete?: never;
@@ -246,7 +246,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: components["pathItems"]["StationSuggestions"]["get"];
+        get: operations["listRefuelStations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -511,10 +511,24 @@ export interface components {
             liters?: components["schemas"]["Decimal"];
             amount?: components["schemas"]["Decimal"];
         };
-        Refuel: components["schemas"]["ExpenseBase"] & components["schemas"]["RefuelInput"] & {
+        Refuel: {
+            id: components["schemas"]["UUID"];
+            carId: components["schemas"]["UUID"];
+            /** Format: date-time */
+            date: string;
+            station: string;
+            odometerReading: number | null;
+            /** @enum {string} */
+            fuel: "normal" | "special" | "other";
+            liters: components["schemas"]["Decimal"];
+            amount: components["schemas"]["Decimal"];
             perLiter: components["schemas"]["Decimal"];
-            distance?: number | null;
-            consumption?: string | null;
+            distance: number | null;
+            consumption: string | null;
+        };
+        RefuelPage: {
+            items: components["schemas"]["Refuel"][];
+            nextCursor: string | null;
         };
         RepairInput: {
             carId: components["schemas"]["UUID"];
@@ -803,7 +817,28 @@ export interface components {
                 path?: never;
                 cookie?: never;
             };
-            get: operations["listRefuelStations"];
+            get: {
+                parameters: {
+                    query?: never;
+                    header?: never;
+                    path?: never;
+                    cookie?: never;
+                };
+                requestBody?: never;
+                responses: {
+                    /** @description Distinct caller-owned station names. */
+                    200: {
+                        headers: {
+                            [name: string]: unknown;
+                        };
+                        content: {
+                            "application/json": string[];
+                        };
+                    };
+                    401: components["responses"]["Unauthorized"];
+                    default: components["responses"]["ServerError"];
+                };
+            };
             put?: never;
             post?: never;
             delete?: never;
@@ -1142,6 +1177,58 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    listRefuels: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from nextCursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                carId?: components["parameters"]["CarFilter"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's refuels ordered by date then ID. A `carId` that names no car of the caller's yields an empty page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefuelPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    listRefuelStations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct station names from the caller's refuels, in ascending order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             default: components["responses"]["ServerError"];
         };
     };
@@ -1604,28 +1691,6 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            default: components["responses"]["ServerError"];
-        };
-    };
-    listRefuelStations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Distinct caller-owned station names. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
             default: components["responses"]["ServerError"];
         };
     };

@@ -16,6 +16,19 @@ export type CarInput = Omit<GeneratedCarInput, 'isActive'> &
 export type CarUpdate = components['schemas']['CarUpdate']
 export type CarPage = components['schemas']['CarPage']
 
+export type Repair = components['schemas']['Repair']
+export type RepairType = Repair['type']
+export type RepairInput = components['schemas']['RepairInput']
+export type RepairUpdate = components['schemas']['RepairUpdate']
+export type RepairPage = components['schemas']['RepairPage']
+
+export const repairTypes: readonly RepairType[] = [
+  'check',
+  'service',
+  'wearing_part',
+  'crash_repair',
+]
+
 export const carFuels: readonly CarFuel[] = [
   'gasoline',
   'diesel',
@@ -85,6 +98,38 @@ function isCarPage(value: unknown): value is CarPage {
     value.items.every(isCar) &&
     isNullableString(value.nextCursor)
   )
+}
+
+function isRepair(value: unknown): value is Repair {
+  if (!isRecord(value)) return false
+  const { odometerReading } = value
+  return (
+    [
+      value.id,
+      value.carId,
+      value.date,
+      value.station,
+      value.amount,
+      value.description,
+    ].every((field) => typeof field === 'string') &&
+    repairTypes.some((type) => type === value.type) &&
+    (odometerReading === null ||
+      (typeof odometerReading === 'number' &&
+        Number.isInteger(odometerReading)))
+  )
+}
+
+function isRepairPage(value: unknown): value is RepairPage {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.items) &&
+    value.items.every(isRepair) &&
+    isNullableString(value.nextCursor)
+  )
+}
+
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
 function isSession(value: unknown): value is Session {
@@ -267,6 +312,66 @@ export async function updateCar(carId: string, input: CarUpdate): Promise<Car> {
 
 export async function deleteCar(carId: string): Promise<void> {
   const response = await fetchApi(carPath(carId), { method: 'DELETE' })
+  if (response.status === 401) throw new UnauthorizedError()
+  if (!response.ok) throw await errorFrom(response)
+  if (response.status !== 204) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+}
+
+function repairPath(repairId: string): string {
+  return `/api/v1/repairs/${encodeURIComponent(repairId)}`
+}
+
+export async function getRepairs(
+  options: { cursor?: string | null; limit?: number; carId?: string } = {},
+): Promise<RepairPage> {
+  const query = new URLSearchParams()
+  if (options.cursor) query.set('cursor', options.cursor)
+  if (options.limit !== undefined) query.set('limit', String(options.limit))
+  if (options.carId) query.set('carId', options.carId)
+  const search = query.toString()
+  return decoded(
+    await fetchApi(`/api/v1/repairs${search ? `?${search}` : ''}`),
+    isRepairPage,
+  )
+}
+
+export async function getRepair(repairId: string): Promise<Repair> {
+  return decoded(await fetchApi(repairPath(repairId)), isRepair)
+}
+
+export async function getRepairStations(): Promise<string[]> {
+  return decoded(await fetchApi('/api/v1/repairs/stations'), isStringList)
+}
+
+export async function createRepair(input: RepairInput): Promise<Repair> {
+  const response = await fetchApi('/api/v1/repairs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return decoded(response, isRepair)
+}
+
+export async function updateRepair(
+  repairId: string,
+  input: RepairUpdate,
+): Promise<Repair> {
+  const response = await fetchApi(repairPath(repairId), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return decoded(response, isRepair)
+}
+
+export async function deleteRepair(repairId: string): Promise<void> {
+  const response = await fetchApi(repairPath(repairId), { method: 'DELETE' })
   if (response.status === 401) throw new UnauthorizedError()
   if (!response.ok) throw await errorFrom(response)
   if (response.status !== 204) {

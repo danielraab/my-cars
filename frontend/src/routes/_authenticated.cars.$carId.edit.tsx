@@ -8,6 +8,7 @@ import { CarForm } from '#/cars/car-form'
 import { CarStatus } from '#/cars/car-status'
 import { carQueryKey, carQueryOptions, carsListQueryKey } from '#/cars/queries'
 import { TwoStepDeleteButton } from '#/components/two-step-delete-button'
+import { repairsQueryKey } from '#/repairs/queries'
 
 export const Route = createFileRoute('/_authenticated/cars/$carId/edit')({
   component: EditCarPage,
@@ -43,6 +44,8 @@ function EditCar({ car }: { car: Car }) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: carQueryKey(car.id) })
       queryClient.removeQueries({ queryKey: carsListQueryKey })
+      // Deleting a car also deletes its repairs.
+      queryClient.removeQueries({ queryKey: repairsQueryKey })
       void navigate({ to: '/cars' })
     },
   })

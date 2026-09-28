@@ -1,53 +1,73 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Fuel } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
 import { createRefuel } from '#/api/client'
 import { allCarsQueryOptions } from '#/cars/queries'
 import { refuelStationsQueryOptions, refuelsQueryKey } from '#/refuels/queries'
 import { RefuelForm } from '#/refuels/refuel-form'
+import { CarsStatus } from '#/repairs/cars-status'
+
 export const Route = createFileRoute('/_authenticated/refuels/create')({
-  validateSearch: (s: Record<string, unknown>): { carId?: string } =>
-    typeof s.carId === 'string' ? { carId: s.carId } : {},
-  component: Page,
+  validateSearch: (search: Record<string, unknown>): { carId?: string } =>
+    typeof search.carId === 'string' ? { carId: search.carId } : {},
+  component: CreateRefuelPage,
 })
-function Page() {
+
+function CreateRefuelPage() {
   const { t } = useTranslation()
   const { carId } = Route.useSearch()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const cars = useQuery(allCarsQueryOptions)
   const stations = useQuery(refuelStationsQueryOptions)
-  const qc = useQueryClient()
-  const nav = useNavigate()
-  const mutation = useMutation({
+  const create = useMutation({
     mutationFn: createRefuel,
     onSuccess: () => {
-      qc.removeQueries({ queryKey: refuelsQueryKey })
-      void nav({ to: '/refuels' })
+      queryClient.removeQueries({ queryKey: refuelsQueryKey })
+      void navigate({ to: '/refuels' })
     },
   })
-  const list = cars.data?.items ?? []
-  const initial =
-    list.find((c) => c.id === carId)?.id ??
-    (list.length === 1 ? list[0].id : '')
+  const carList = cars.data?.items ?? []
+  const initialCarId =
+    carList.find((car) => car.id === carId)?.id ??
+    (carList.length === 1 ? carList[0].id : '')
+
   return (
-    <section className="form-page">
-      <h1>{t('refuels.create.title')}</h1>
-      {list.length ? (
+    <section className="form-page" aria-labelledby="create-refuel-title">
+      <header className="form-page-header">
+        <div className="status-icon">
+          <Fuel aria-hidden="true" size={24} />
+        </div>
+        <div>
+          <p className="eyebrow">{t('refuels.create.eyebrow')}</p>
+          <h1 id="create-refuel-title">{t('refuels.create.title')}</h1>
+          <p>{t('refuels.create.description')}</p>
+        </div>
+      </header>
+
+      {carList.length > 0 ? (
         <RefuelForm
-          cars={list}
-          initialCarId={initial}
+          cars={carList}
+          initialCarId={initialCarId}
           stations={stations.data ?? []}
-          pending={mutation.isPending}
-          error={mutation.error}
-          onSubmit={(x) => mutation.mutate(x)}
-          onEdit={() => mutation.reset()}
+          submitLabel={t('refuels.create.submit')}
+          submittingLabel={t('refuels.create.submitting')}
+          pending={create.isPending}
+          error={create.error}
+          onSubmit={(input) => create.mutate(input)}
+          onEdit={() => {
+            if (create.isError) create.reset()
+          }}
           secondaryAction={
-            <Link className="button" to="/refuels">
-              {t('refuels.cancel')}
+            <Link className="button button-secondary" to="/refuels">
+              {t('refuels.create.cancel')}
             </Link>
           }
         />
       ) : (
-        <p>{t('refuels.noCars')}</p>
+        <CarsStatus cars={cars} namespace="refuels" />
       )}
     </section>
   )

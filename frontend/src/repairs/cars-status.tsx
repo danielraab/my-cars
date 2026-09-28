@@ -5,16 +5,23 @@ import { useTranslation } from 'react-i18next'
 
 import type { CarPage } from '#/api/client'
 
-// What the repair form shows instead of itself while the car picker's cars
-// load, fail to load, or do not exist yet.
-export function CarsStatus({ cars }: { cars: UseQueryResult<CarPage> }) {
+// What an expense form (repair or refuel, picked by namespace) shows instead
+// of itself while the car picker's cars load, fail to load, or do not exist
+// yet.
+export function CarsStatus({
+  cars,
+  namespace = 'repairs',
+}: {
+  cars: UseQueryResult<CarPage>
+  namespace?: 'repairs' | 'refuels'
+}) {
   const { t } = useTranslation()
 
   if (cars.isPending) {
     return (
       <output className="form-status">
         <LoaderCircle className="spin" aria-hidden="true" size={25} />
-        <p>{t('repairs.carsLoading')}</p>
+        <p>{t(`${namespace}.carsLoading`)}</p>
       </output>
     )
   }
@@ -23,14 +30,14 @@ export function CarsStatus({ cars }: { cars: UseQueryResult<CarPage> }) {
     return (
       <div className="form-status" role="alert">
         <RefreshCw aria-hidden="true" size={25} />
-        <p>{t('repairs.carsLoadError')}</p>
+        <p>{t(`${namespace}.carsLoadError`)}</p>
         <button
           className="button button-primary"
           type="button"
           onClick={() => cars.refetch()}
         >
           <RefreshCw aria-hidden="true" size={17} />
-          {t('repairs.retry')}
+          {t(`${namespace}.retry`)}
         </button>
       </div>
     )
@@ -39,11 +46,11 @@ export function CarsStatus({ cars }: { cars: UseQueryResult<CarPage> }) {
   return (
     <div className="form-status">
       <CarFront aria-hidden="true" size={25} />
-      <h2>{t('repairs.noCarsTitle')}</h2>
-      <p>{t('repairs.noCars')}</p>
+      <h2>{t(`${namespace}.noCarsTitle`)}</h2>
+      <p>{t(`${namespace}.noCars`)}</p>
       <Link className="button button-primary" to="/cars/create">
         <Plus aria-hidden="true" size={17} />
-        {t('repairs.addCar')}
+        {t(`${namespace}.addCar`)}
       </Link>
     </div>
   )

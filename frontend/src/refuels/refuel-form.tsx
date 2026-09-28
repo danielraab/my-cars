@@ -1,5 +1,7 @@
+import { LoaderCircle, Save } from 'lucide-react'
 import { type FormEvent, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import {
   ApiError,
   type Car,
@@ -19,184 +21,300 @@ type Values = {
   liters: string
   amount: string
 }
-type Name = keyof Values
-const decimal = (v: string) => v.trim().replace(',', '.')
+
+type FieldName = keyof Values
+
+const fieldNames: FieldName[] = [
+  'carId',
+  'date',
+  'station',
+  'odometerReading',
+  'fuel',
+  'liters',
+  'amount',
+]
+
+const knownReasons = new Set([
+  'required',
+  'empty',
+  'invalid_enum',
+  'invalid_decimal',
+  'negative',
+  'non_positive',
+  'invalid_type',
+])
+
+function initialValues(refuel: Refuel | undefined, carId: string): Values {
+  return {
+    carId: refuel?.carId ?? carId,
+    date: toLocalInput(refuel ? new Date(refuel.date) : new Date()),
+    station: refuel?.station ?? '',
+    odometerReading:
+      refuel?.odometerReading == null ? '' : String(refuel.odometerReading),
+    fuel: refuel?.fuel ?? refuelFuels[0],
+    liters: refuel?.liters ?? '',
+    amount: refuel?.amount ?? '',
+  }
+}
+
+// Accept a decimal comma ("42,5"), as German users write amounts.
+function decimal(value: string): string {
+  const trimmed = value.trim()
+  return /^-?\d+,\d+$/.test(trimmed) ? trimmed.replace(',', '.') : trimmed
+}
+
+// A whole number is sent as one (the backend reports a negative one); any
+// other non-empty text cannot be sent as an integer and is rejected here.
+function odometer(value: string): number | null | 'invalid' {
+  const trimmed = value.trim()
+  if (trimmed === '') return null
+  return /^-?\d+$/.test(trimmed) ? Number(trimmed) : 'invalid'
+}
+
+type RefuelFormProps = {
+  refuel?: Refuel
+  cars: Car[]
+  initialCarId?: string
+  stations: string[]
+  submitLabel: string
+  submittingLabel: string
+  pending: boolean
+  error: Error | null
+  onSubmit: (input: RefuelInput) => void
+  onEdit: () => void
+  secondaryAction?: ReactNode
+}
+
 export function RefuelForm({
   refuel,
   cars,
   initialCarId = '',
   stations,
+  submitLabel,
+  submittingLabel,
   pending,
   error,
   onSubmit,
   onEdit,
   secondaryAction,
-}: {
-  refuel?: Refuel
-  cars: Car[]
-  initialCarId?: string
-  stations: string[]
-  pending: boolean
-  error: Error | null
-  onSubmit: (v: RefuelInput) => void
-  onEdit: () => void
-  secondaryAction?: ReactNode
-}) {
+}: RefuelFormProps) {
   const { t } = useTranslation()
-  const [v, setV] = useState<Values>(() => ({
-    carId: refuel?.carId ?? initialCarId,
-    date: toLocalInput(refuel ? new Date(refuel.date) : new Date()),
-    station: refuel?.station ?? '',
-    odometerReading:
-      refuel?.odometerReading == null ? '' : String(refuel.odometerReading),
-    fuel: refuel?.fuel ?? 'normal',
-    liters: refuel?.liters ?? '',
-    amount: refuel?.amount ?? '',
-  }))
-  const [local, setLocal] = useState<Record<string, string>>({})
-  const server =
+  const [values, setValues] = useState(() =>
+    initialValues(refuel, initialCarId),
+  )
+  const [localReasons, setLocalReasons] = useState<Record<string, string>>({})
+
+  const serverReasons =
     error instanceof ApiError && error.status === 400
       ? (error.fields ?? {})
       : {}
-  const reasons = { ...server, ...local }
-  const change = (n: Name, value: string) => {
-    setV((x) => ({ ...x, [n]: value }))
-    setLocal(({ [n]: _, ...rest }) => rest)
+  const reasons = { ...serverReasons, ...localReasons }
+  const invalidFields = fieldNames.filter((name) => reasons[name])
+  const formError = error !== null && invalidFields.length === 0
+
+  function change(name: FieldName, value: string) {
+    setValues((current) => ({ ...current, [name]: value }))
+    setLocalReasons(({ [name]: _, ...rest }) => rest)
     onEdit()
   }
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    const odo = v.odometerReading.trim()
-    if (odo !== '' && !/^-?\d+$/.test(odo)) {
-      setLocal({ odometerReading: 'invalid_type' })
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const odometerReading = odometer(values.odometerReading)
+    if (odometerReading === 'invalid') {
+      setLocalReasons({ odometerReading: 'invalid_type' })
       return
     }
     onSubmit({
-      carId: v.carId,
-      date: fromLocalInput(v.date),
-      station: v.station,
-      odometerReading: odo === '' ? null : Number(odo),
-      fuel: v.fuel,
-      liters: decimal(v.liters),
-      amount: decimal(v.amount),
+      carId: values.carId,
+      date: fromLocalInput(values.date),
+      station: values.station,
+      odometerReading,
+      fuel: values.fuel,
+      liters: decimal(values.liters),
+      amount: decimal(values.amount),
     })
   }
-  const field = (n: Name, control: ReactNode) => (
-    <div className="form-field">
-      <label htmlFor={`refuel-${n}`}>
-        {t(`refuels.fields.${n === 'carId' ? 'car' : n}`)}
-      </label>
-      {control}
-      {reasons[n] ? (
-        <p className="field-error" role="alert">
-          {t(`refuels.fieldErrors.${reasons[n]}`)}
-        </p>
-      ) : null}
-    </div>
-  )
+
+  function field(
+    name: FieldName,
+    control: (common: {
+      id: string
+      name: string
+      'aria-invalid': boolean
+      'aria-describedby': string | undefined
+    }) => ReactNode,
+    options: { optional?: boolean; hint?: boolean } = {},
+  ) {
+    const id = `refuel-${name}`
+    const invalid = invalidFields.includes(name)
+    const hintId = options.hint ? `${id}-hint` : undefined
+    const errorId = invalid ? `${id}-error` : undefined
+    const describedBy = [hintId, errorId].filter(Boolean).join(' ')
+    const reason = reasons[name]
+    return (
+      <div className="form-field">
+        <label htmlFor={id}>
+          {t(`refuels.fields.${name === 'carId' ? 'car' : name}`)}
+          {options.optional ? (
+            <span className="field-optional"> ({t('refuels.optional')})</span>
+          ) : null}
+        </label>
+        <div className="input-wrap">
+          {control({
+            id,
+            name,
+            'aria-invalid': invalid,
+            'aria-describedby': describedBy || undefined,
+          })}
+        </div>
+        {hintId ? (
+          <p className="field-hint" id={hintId}>
+            {t(`refuels.hints.${name}`)}
+          </p>
+        ) : null}
+        {errorId ? (
+          <p className="field-error" id={errorId} role="alert">
+            {t(
+              `refuels.fieldErrors.${knownReasons.has(reason) ? reason : 'invalid'}`,
+            )}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <form className="form-card" noValidate onSubmit={submit}>
       <div className="form-grid">
-        {field(
-          'carId',
+        {field('carId', (common) => (
           <select
-            id="refuel-carId"
-            disabled={!!refuel}
+            {...common}
+            disabled={refuel !== undefined}
             required
-            value={v.carId}
-            onChange={(e) => change('carId', e.target.value)}
+            value={values.carId}
+            onChange={(event) => change('carId', event.target.value)}
           >
-            <option value="">{t('refuels.chooseCar')}</option>
-            {cars.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.make} {c.name}
+            {values.carId === '' ? (
+              <option value="">{t('refuels.chooseCar')}</option>
+            ) : null}
+            {cars.map((car) => (
+              <option key={car.id} value={car.id}>
+                {car.make} {car.name}
               </option>
             ))}
-          </select>,
-        )}
-        {field(
-          'date',
+          </select>
+        ))}
+        {field('date', (common) => (
           <input
-            id="refuel-date"
-            type="datetime-local"
+            {...common}
             required
-            value={v.date}
-            onChange={(e) => change('date', e.target.value)}
-          />,
-        )}
+            type="datetime-local"
+            value={values.date}
+            onChange={(event) => change('date', event.target.value)}
+          />
+        ))}
         {field(
           'station',
-          <>
-            <input
-              id="refuel-station"
-              list="refuel-stations"
-              required
-              value={v.station}
-              onChange={(e) => change('station', e.target.value)}
-            />
-            <datalist id="refuel-stations">
-              {stations.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          </>,
+          (common) => (
+            <>
+              <input
+                {...common}
+                autoComplete="off"
+                list="refuel-stations"
+                required
+                type="text"
+                value={values.station}
+                onChange={(event) => change('station', event.target.value)}
+              />
+              <datalist id="refuel-stations">
+                {stations.map((station) => (
+                  <option key={station} value={station} />
+                ))}
+              </datalist>
+            </>
+          ),
+          { hint: true },
         )}
         {field(
           'odometerReading',
-          <input
-            id="refuel-odometerReading"
-            inputMode="numeric"
-            value={v.odometerReading}
-            onChange={(e) => change('odometerReading', e.target.value)}
-          />,
+          (common) => (
+            <input
+              {...common}
+              autoComplete="off"
+              inputMode="numeric"
+              type="text"
+              value={values.odometerReading}
+              onChange={(event) =>
+                change('odometerReading', event.target.value)
+              }
+            />
+          ),
+          { optional: true },
         )}
-        {field(
-          'fuel',
+        {field('fuel', (common) => (
           <select
-            id="refuel-fuel"
-            value={v.fuel}
-            onChange={(e) => change('fuel', e.target.value)}
+            {...common}
+            value={values.fuel}
+            onChange={(event) => change('fuel', event.target.value)}
           >
-            {refuelFuels.map((f) => (
-              <option key={f} value={f}>
-                {t(`refuels.fuels.${f}`)}
+            {refuelFuels.map((fuel) => (
+              <option key={fuel} value={fuel}>
+                {t(`refuels.fuels.${fuel}`)}
               </option>
             ))}
-          </select>,
-        )}
+          </select>
+        ))}
         {field(
           'liters',
-          <input
-            id="refuel-liters"
-            inputMode="decimal"
-            required
-            value={v.liters}
-            onChange={(e) => change('liters', e.target.value)}
-          />,
+          (common) => (
+            <input
+              {...common}
+              autoComplete="off"
+              inputMode="decimal"
+              required
+              type="text"
+              value={values.liters}
+              onChange={(event) => change('liters', event.target.value)}
+            />
+          ),
+          { hint: true },
         )}
         {field(
           'amount',
-          <input
-            id="refuel-amount"
-            inputMode="decimal"
-            required
-            value={v.amount}
-            onChange={(e) => change('amount', e.target.value)}
-          />,
+          (common) => (
+            <input
+              {...common}
+              autoComplete="off"
+              inputMode="decimal"
+              required
+              type="text"
+              value={values.amount}
+              onChange={(event) => change('amount', event.target.value)}
+            />
+          ),
+          { hint: true },
         )}
       </div>
-      {error && Object.keys(reasons).length === 0 ? (
+
+      {formError ? (
         <p className="field-error" role="alert">
           {t('refuels.saveError')}
         </p>
       ) : null}
+
       <div className="form-actions">
         <button
           className="button button-primary"
           disabled={pending}
           type="submit"
         >
-          {pending ? t('refuels.saving') : t('refuels.save')}
+          {pending ? (
+            <LoaderCircle className="spin" aria-hidden="true" size={18} />
+          ) : (
+            <Save aria-hidden="true" size={18} />
+          )}
+          {pending ? submittingLabel : submitLabel}
         </button>
         {secondaryAction}
       </div>

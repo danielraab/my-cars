@@ -106,7 +106,7 @@ describe('refuels', () => {
     await user.type(screen.getByLabelText('Station'), 'Fuel')
     await user.type(screen.getByLabelText('Litres'), '40')
     await user.type(screen.getByLabelText('Amount'), '60')
-    await user.click(screen.getByRole('button', { name: 'Save refuel' }))
+    await user.click(screen.getByRole('button', { name: 'Add refuel' }))
     expect(
       await screen.findByRole('heading', { name: 'Refuels' }),
     ).toBeInTheDocument()

@@ -1064,6 +1064,138 @@ select:focus-visible {
   margin-top: 1.2rem;
 }
 
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.list-toolbar .form-field {
+  width: min(20rem, 100%);
+}
+
+.chart-card {
+  margin-bottom: 1.4rem;
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+}
+
+.chart-card h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+
+.chart-description,
+.chart-empty {
+  margin: 0.3rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.chart-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  color: var(--muted);
+}
+
+.chart-status p {
+  margin: 0;
+}
+
+.fuel-price-chart {
+  margin: 0;
+}
+
+/* Y labels, plot; then X labels under the plot only. */
+.chart-plot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 14rem auto;
+  column-gap: 0.6rem;
+}
+
+.chart-plot svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.chart-x-axis {
+  display: flex;
+  grid-column: 2;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.chart-series polyline {
+  stroke: var(--series);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
+.chart-dot {
+  stroke: var(--series);
+  stroke-width: 7px;
+  stroke-linecap: round;
+}
+
+.chart-normal {
+  --series: #2563eb;
+}
+
+.chart-special {
+  --series: #dc2626;
+}
+
+.chart-other {
+  --series: #64748b;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+  list-style: none;
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chart-legend li::before {
+  width: 0.75rem;
+  height: 0.75rem;
+  content: '';
+  background: var(--series);
+  border-radius: 999px;
+}
+
 .danger-zone {
   margin-top: 1.4rem;
 }

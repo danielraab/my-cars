@@ -33,6 +33,20 @@ cd backend
 go run .
 ```
 
+To replace **all application data** in the configured database with sample
+data, run from `backend/`:
+
+```bash
+DATABASE_URL='postgres://...' go run . seed alice@example.com bob@example.com
+```
+
+At least one email address is required. Addresses are normalized and deduplicated;
+each account gets 4 cars, 500 refuels, 75 repairs, and 90 tickets spread over
+the past five years. The command applies pending migrations and needs only
+`DATABASE_URL` (no SMTP, OIDC, or server settings). It deletes existing accounts,
+expenses, sessions, and pending login state in one transaction. Do not run it
+against a database whose data you want to keep.
+
 The database it will talk to comes from compose:
 
 ```bash

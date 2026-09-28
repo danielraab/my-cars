@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/mail"
 	"os"
+	"strings"
 	"time"
 
 	"at.draab/my-car/internal/auth"
@@ -18,6 +21,7 @@ import (
 	"at.draab/my-car/internal/profile"
 	"at.draab/my-car/internal/refuels"
 	"at.draab/my-car/internal/repairs"
+	"at.draab/my-car/internal/seed"
 )
 
 //go:embed openapi.yaml
@@ -31,7 +35,58 @@ func main() {
 		runHealthcheck()
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		if err := runSeed(os.Args[2:]); err != nil {
+			log.Fatalf("seed: %v", err)
+		}
+		return
+	}
 	runServer()
+}
+
+func seedEmails(args []string) ([]string, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("usage: backend seed <email> [email ...] (replaces all application data)")
+	}
+	var emails []string
+	seen := make(map[string]bool)
+	for _, arg := range args {
+		email := strings.ToLower(strings.TrimSpace(arg))
+		parsed, err := mail.ParseAddress(email)
+		if err != nil || parsed.Address != email || parsed.Name != "" || strings.ContainsAny(email, " \t\n") {
+			return nil, fmt.Errorf("invalid email address: %q", arg)
+		}
+		if !seen[email] {
+			emails = append(emails, email)
+			seen[email] = true
+		}
+	}
+	return emails, nil
+}
+
+func runSeed(args []string) error {
+	emails, err := seedEmails(args)
+	if err != nil {
+		return err
+	}
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if err := db.RunMigrations(databaseURL); err != nil {
+		return fmt.Errorf("run migrations: %w", err)
+	}
+	ctx := context.Background()
+	pool, err := db.NewPool(ctx, databaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	if err := seed.Run(ctx, pool, emails, time.Now()); err != nil {
+		return err
+	}
+	log.Printf("seeded %d accounts: 4 cars, 500 refuels, 75 repairs, 90 tickets each", len(emails))
+	return nil
 }
 
 // isHealthcheckCommand reports whether args (as os.Args) select the

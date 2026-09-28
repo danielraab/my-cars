@@ -1,0 +1,98 @@
+package seed
+
+import (
+	"context"
+	"os"
+	"testing"
+	"time"
+
+	"at.draab/my-car/internal/db"
+)
+
+func TestRun(t *testing.T) {
+	url := os.Getenv("DATABASE_URL")
+	if url == "" {
+		t.Skip("DATABASE_URL not set")
+	}
+	if err := db.RunMigrations(url); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	pool, err := db.NewPool(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock(7242026)"); err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Exec(ctx, "SELECT pg_advisory_unlock(7242026)")
+	defer pool.Exec(ctx, "TRUNCATE TABLE sessions, oidc_identities, oidc_login_attempts, magic_link_challenges, refuels, repairs, tickets, cars, accounts")
+	if _, err := pool.Exec(ctx, "TRUNCATE TABLE sessions, oidc_identities, oidc_login_attempts, magic_link_challenges, refuels, repairs, tickets, cars, accounts"); err != nil {
+		t.Fatal(err)
+	}
+	var oldID string
+	if err := pool.QueryRow(ctx, "INSERT INTO accounts (email) VALUES ('old@example.org') RETURNING id").Scan(&oldID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, "INSERT INTO sessions (token_digest, account_id, expires_at) VALUES (decode(repeat('ab', 32), 'hex'), $1, now() + interval '1 day')", oldID); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	if err := Run(ctx, pool, []string{"one@example.org", "two@example.org"}, now); err != nil {
+		t.Fatal(err)
+	}
+	for table, want := range map[string]int{"accounts": 2, "cars": 8, "refuels": 1000, "repairs": 150, "tickets": 180, "sessions": 0, "oidc_identities": 0, "oidc_login_attempts": 0, "magic_link_challenges": 0} {
+		var count int
+		if err := pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&count); err != nil || count != want {
+			t.Errorf("%s count = %d, error %v; want %d", table, count, err, want)
+		}
+	}
+	var oldAccounts, wrongCarCounts int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM accounts WHERE email = 'old@example.org'").Scan(&oldAccounts); err != nil || oldAccounts != 0 {
+		t.Errorf("old account remains: %d, %v", oldAccounts, err)
+	}
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM (SELECT account_id FROM cars GROUP BY account_id HAVING count(*) <> 4) c").Scan(&wrongCarCounts); err != nil || wrongCarCounts != 0 {
+		t.Errorf("accounts with incorrect car counts: %d, %v", wrongCarCounts, err)
+	}
+	for _, table := range []string{"refuels", "repairs", "tickets"} {
+		rows, err := pool.Query(ctx, "SELECT a.email, count(*), min(e.date), max(e.date) FROM "+table+" e JOIN cars c ON c.id=e.car_id JOIN accounts a ON a.id=c.account_id GROUP BY a.email")
+		if err != nil {
+			t.Fatal(err)
+		}
+		seen := 0
+		for rows.Next() {
+			var email string
+			var count int
+			var earliest, latest time.Time
+			if err := rows.Scan(&email, &count, &earliest, &latest); err != nil {
+				t.Fatal(err)
+			}
+			want := map[string]int{"refuels": 500, "repairs": 75, "tickets": 90}[table]
+			if count != want || earliest.Before(now.AddDate(-5, 0, 0)) || latest.After(now) || latest.Sub(earliest) < 4*365*24*time.Hour {
+				t.Errorf("%s %s: %d records across %s–%s", table, email, count, earliest, latest)
+			}
+			seen++
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil || seen != 2 {
+			t.Errorf("%s: %d accounts, error %v", table, seen, err)
+		}
+	}
+	// A duplicate causes an insert error after TRUNCATE; the old seed must survive.
+	if err := Run(ctx, pool, []string{"duplicate@example.org", "duplicate@example.org"}, now); err == nil {
+		t.Fatal("expected duplicate insert to fail")
+	}
+	var accounts, migrations int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM accounts").Scan(&accounts); err != nil || accounts != 2 {
+		t.Fatalf("rollback lost accounts: %d, %v", accounts, err)
+	}
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM schema_migrations").Scan(&migrations); err != nil || migrations != 1 {
+		t.Fatalf("migration state lost: %d, %v", migrations, err)
+	}
+}

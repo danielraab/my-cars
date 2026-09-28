@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Car, Refuel } from '#/api/client'
 import { i18n } from '#/i18n'
 import { renderApp } from '#/test/render-app'
+
 const profile = {
   id: '11111111-1111-1111-1111-111111111111',
   email: 'driver@example.com',

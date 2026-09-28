@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getRefuels } from './client'
+
 const ok = (body: unknown) =>
   new Response(JSON.stringify(body), {
     status: 200,

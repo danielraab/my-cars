@@ -2,14 +2,14 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { allCarsQueryOptions } from '#/cars/queries'
 import { formatAmount } from '#/cars/format'
-import { formatDateTime } from '#/repairs/format'
+import { allCarsQueryOptions } from '#/cars/queries'
+import { FuelPriceChart } from '#/refuels/fuel-price-chart'
 import {
   refuelChartQueryOptions,
   refuelsListQueryOptions,
 } from '#/refuels/queries'
-import { FuelPriceChart } from '#/refuels/fuel-price-chart'
+import { formatDateTime } from '#/repairs/format'
 export const Route = createFileRoute('/_authenticated/refuels/')({
   component: RefuelsPage,
 })

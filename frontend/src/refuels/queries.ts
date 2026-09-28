@@ -2,8 +2,8 @@ import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 import {
   getRefuel,
   getRefuelChart,
-  getRefuels,
   getRefuelStations,
+  getRefuels,
 } from '#/api/client'
 export const refuelsQueryKey = ['refuels'] as const
 export const refuelQueryKey = (id: string) =>

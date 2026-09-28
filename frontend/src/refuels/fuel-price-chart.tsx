@@ -1,4 +1,5 @@
 import type { Refuel } from '#/api/client'
+
 const colors = {
   normal: '#2563eb',
   special: '#dc2626',

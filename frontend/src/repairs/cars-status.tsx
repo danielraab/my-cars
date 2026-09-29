@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { CarPage } from '#/api/client'
 
-// What an expense form (repair or refuel, picked by namespace) shows instead
+// What an expense form (repair, refuel or ticket, picked by namespace) shows instead
 // of itself while the car picker's cars load, fail to load, or do not exist
 // yet.
 export function CarsStatus({
@@ -13,7 +13,7 @@ export function CarsStatus({
   namespace = 'repairs',
 }: {
   cars: UseQueryResult<CarPage>
-  namespace?: 'repairs' | 'refuels'
+  namespace?: 'repairs' | 'refuels' | 'tickets'
 }) {
   const { t } = useTranslation()
 

@@ -21,6 +21,11 @@ export type RepairType = Repair['type']
 export type RepairInput = components['schemas']['RepairInput']
 export type RepairUpdate = components['schemas']['RepairUpdate']
 export type RepairPage = components['schemas']['RepairPage']
+export type Ticket = components['schemas']['Ticket']
+export type TicketType = Ticket['type']
+export type TicketInput = components['schemas']['TicketInput']
+export type TicketUpdate = components['schemas']['TicketUpdate']
+export type TicketPage = components['schemas']['TicketPage']
 export type Refuel = components['schemas']['Refuel']
 export type RefuelInput = components['schemas']['RefuelInput']
 export type RefuelUpdate = components['schemas']['RefuelUpdate']
@@ -34,6 +39,12 @@ export const repairTypes: readonly RepairType[] = [
   'service',
   'wearing_part',
   'crash_repair',
+]
+
+export const ticketTypes: readonly TicketType[] = [
+  'parking',
+  'velocity',
+  'other',
 ]
 
 export const carFuels: readonly CarFuel[] = [
@@ -131,6 +142,30 @@ function isRepairPage(value: unknown): value is RepairPage {
     isRecord(value) &&
     Array.isArray(value.items) &&
     value.items.every(isRepair) &&
+    isNullableString(value.nextCursor)
+  )
+}
+
+function isTicket(value: unknown): value is Ticket {
+  if (!isRecord(value)) return false
+  return (
+    [
+      value.id,
+      value.carId,
+      value.date,
+      value.location,
+      value.amount,
+      value.description,
+    ].every((field) => typeof field === 'string') &&
+    ticketTypes.some((type) => type === value.type)
+  )
+}
+
+function isTicketPage(value: unknown): value is TicketPage {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.items) &&
+    value.items.every(isTicket) &&
     isNullableString(value.nextCursor)
   )
 }
@@ -415,6 +450,66 @@ export async function updateRepair(
 
 export async function deleteRepair(repairId: string): Promise<void> {
   const response = await fetchApi(repairPath(repairId), { method: 'DELETE' })
+  if (response.status === 401) throw new UnauthorizedError()
+  if (!response.ok) throw await errorFrom(response)
+  if (response.status !== 204) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+}
+
+function ticketPath(ticketId: string): string {
+  return `/api/v1/tickets/${encodeURIComponent(ticketId)}`
+}
+
+export async function getTickets(
+  options: { cursor?: string | null; limit?: number; carId?: string } = {},
+): Promise<TicketPage> {
+  const query = new URLSearchParams()
+  if (options.cursor) query.set('cursor', options.cursor)
+  if (options.limit !== undefined) query.set('limit', String(options.limit))
+  if (options.carId) query.set('carId', options.carId)
+  const search = query.toString()
+  return decoded(
+    await fetchApi(`/api/v1/tickets${search ? `?${search}` : ''}`),
+    isTicketPage,
+  )
+}
+
+export async function getTicket(ticketId: string): Promise<Ticket> {
+  return decoded(await fetchApi(ticketPath(ticketId)), isTicket)
+}
+
+export async function getTicketLocations(): Promise<string[]> {
+  return decoded(await fetchApi('/api/v1/tickets/locations'), isStringList)
+}
+
+export async function createTicket(input: TicketInput): Promise<Ticket> {
+  const response = await fetchApi('/api/v1/tickets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return decoded(response, isTicket)
+}
+
+export async function updateTicket(
+  ticketId: string,
+  input: TicketUpdate,
+): Promise<Ticket> {
+  const response = await fetchApi(ticketPath(ticketId), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return decoded(response, isTicket)
+}
+
+export async function deleteTicket(ticketId: string): Promise<void> {
+  const response = await fetchApi(ticketPath(ticketId), { method: 'DELETE' })
   if (response.status === 401) throw new UnauthorizedError()
   if (!response.ok) throw await errorFrom(response)
   if (response.status !== 204) {

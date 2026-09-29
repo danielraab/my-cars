@@ -328,7 +328,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: components["pathItems"]["ExpenseCollection"]["get"];
+        get: operations["listTickets"];
         put?: never;
         post: components["pathItems"]["TicketCreate"]["post"];
         delete?: never;
@@ -362,7 +362,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: components["pathItems"]["LocationSuggestions"]["get"];
+        get: operations["listTicketLocations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -483,13 +483,6 @@ export interface components {
             items: components["schemas"]["Car"][];
             nextCursor: string | null;
         };
-        ExpenseBase: {
-            id: components["schemas"]["UUID"];
-            carId: components["schemas"]["UUID"];
-            /** Format: date-time */
-            date: string;
-            amount: components["schemas"]["Decimal"];
-        };
         RefuelInput: {
             carId: components["schemas"]["UUID"];
             /** Format: date-time */
@@ -587,7 +580,22 @@ export interface components {
             amount?: components["schemas"]["Decimal"];
             description?: string;
         };
-        Ticket: components["schemas"]["ExpenseBase"] & components["schemas"]["TicketInput"];
+        /** @description A ticket. Every member is always present; `description` is empty when not recorded. */
+        Ticket: {
+            id: components["schemas"]["UUID"];
+            carId: components["schemas"]["UUID"];
+            /** Format: date-time */
+            date: string;
+            /** @enum {string} */
+            type: "parking" | "velocity" | "other";
+            location: string;
+            amount: components["schemas"]["Decimal"];
+            description: string;
+        };
+        TicketPage: {
+            items: components["schemas"]["Ticket"][];
+            nextCursor: string | null;
+        };
         RefuelChart: {
             items: components["schemas"]["Refuel"][];
         };
@@ -698,22 +706,6 @@ export interface components {
             patch?: never;
             trace?: never;
         };
-        ExpenseCollection: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            get: operations["listExpenses"];
-            put?: never;
-            post?: never;
-            delete?: never;
-            options?: never;
-            head?: never;
-            patch?: never;
-            trace?: never;
-        };
         RefuelCreate: {
             parameters: {
                 query?: never;
@@ -808,59 +800,6 @@ export interface components {
             options?: never;
             head?: never;
             patch: operations["updateTicket"];
-            trace?: never;
-        };
-        StationSuggestions: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            get: {
-                parameters: {
-                    query?: never;
-                    header?: never;
-                    path?: never;
-                    cookie?: never;
-                };
-                requestBody?: never;
-                responses: {
-                    /** @description Distinct caller-owned station names. */
-                    200: {
-                        headers: {
-                            [name: string]: unknown;
-                        };
-                        content: {
-                            "application/json": string[];
-                        };
-                    };
-                    401: components["responses"]["Unauthorized"];
-                    default: components["responses"]["ServerError"];
-                };
-            };
-            put?: never;
-            post?: never;
-            delete?: never;
-            options?: never;
-            head?: never;
-            patch?: never;
-            trace?: never;
-        };
-        LocationSuggestions: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            get: operations["listTicketLocations"];
-            put?: never;
-            post?: never;
-            delete?: never;
-            options?: never;
-            head?: never;
-            patch?: never;
             trace?: never;
         };
     };
@@ -1311,6 +1250,58 @@ export interface operations {
             default: components["responses"]["ServerError"];
         };
     };
+    listTickets: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from nextCursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                carId?: components["parameters"]["CarFilter"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's tickets ordered by date then ID. A `carId` that names no car of the caller's yields an empty page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    listTicketLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct locations from the caller's tickets, in ascending order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
     getExpenseStatistics: {
         parameters: {
             query: {
@@ -1363,34 +1354,6 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            default: components["responses"]["ServerError"];
-        };
-    };
-    listExpenses: {
-        parameters: {
-            query?: {
-                /** @description Opaque cursor from nextCursor. */
-                cursor?: components["parameters"]["Cursor"];
-                limit?: components["parameters"]["Limit"];
-                carId?: components["parameters"]["CarFilter"];
-                from?: components["parameters"]["From"];
-                to?: components["parameters"]["To"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated records ordered by date then ID. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
             default: components["responses"]["ServerError"];
         };
     };
@@ -1691,28 +1654,6 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            default: components["responses"]["ServerError"];
-        };
-    };
-    listTicketLocations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Distinct caller-owned locations. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
             default: components["responses"]["ServerError"];
         };
     };

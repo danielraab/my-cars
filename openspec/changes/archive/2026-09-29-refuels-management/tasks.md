@@ -22,4 +22,4 @@
 ## 4. Integration verification
 
 - [x] 4.1 Run `go test ./...` in `backend/`, then `pnpm test`, `pnpm lint`, and `pnpm lint:openapi` in `frontend/`; verify all checks pass.
-- [ ] 4.2 Manually verify an authenticated user can create, filter, edit, and delete a refuel and that its fuel-price chart and consumption data stay correct after loading more table pages.
+- [x] 4.2 Manually verify an authenticated user can create, filter, edit, and delete a refuel and that its fuel-price chart and consumption data stay correct after loading more table pages.

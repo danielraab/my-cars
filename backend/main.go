@@ -22,6 +22,7 @@ import (
 	"at.draab/my-car/internal/refuels"
 	"at.draab/my-car/internal/repairs"
 	"at.draab/my-car/internal/seed"
+	"at.draab/my-car/internal/tickets"
 )
 
 //go:embed openapi.yaml
@@ -158,11 +159,13 @@ func runServer() {
 	carsHandler := cars.NewHandler(cars.NewStore(pool))
 	repairsHandler := repairs.NewHandler(repairs.NewStore(pool))
 	refuelsHandler := refuels.NewHandler(refuels.NewStore(pool))
+	ticketsHandler := tickets.NewHandler(tickets.NewStore(pool))
 	mux := httpserver.NewMux(pool, openapiDoc, staticOut, authService.RegisterRoutes, func(mux *http.ServeMux) {
 		profileHandler.RegisterRoutes(mux, authService.RequireSession)
 		carsHandler.RegisterRoutes(mux, authService.RequireSession)
 		repairsHandler.RegisterRoutes(mux, authService.RequireSession)
 		refuelsHandler.RegisterRoutes(mux, authService.RequireSession)
+		ticketsHandler.RegisterRoutes(mux, authService.RequireSession)
 	})
 
 	log.Printf("listening on :%s", cfg.Port)

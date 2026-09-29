@@ -4,33 +4,24 @@ import { Fuel, LoaderCircle, Plus, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { formatAmount } from '#/cars/format'
 import { allCarsQueryOptions } from '#/cars/queries'
 import { FuelPriceChart } from '#/refuels/fuel-price-chart'
 import {
   refuelChartQueryOptions,
   refuelsListQueryOptions,
 } from '#/refuels/queries'
-import { formatDateTime } from '#/repairs/format'
+import { RefuelTable } from '#/refuels/refuel-table'
 
 export const Route = createFileRoute('/_authenticated/refuels/')({
   component: RefuelsPage,
 })
 
-function formatNumber(value: string, locale: string, fractionDigits: number) {
-  const number = Number(value)
-  if (!Number.isFinite(number)) return value
-  return new Intl.NumberFormat(locale, {
-    maximumFractionDigits: fractionDigits,
-  }).format(number)
-}
-
 function RefuelsPage() {
-  const { t, i18n } = useTranslation()
-  const locale = i18n.resolvedLanguage ?? 'en'
+  const { t } = useTranslation()
   const [carId, setCarId] = useState('')
-  const refuels = useInfiniteQuery(refuelsListQueryOptions(carId || undefined))
-  const chart = useQuery(refuelChartQueryOptions(carId || undefined))
+  const filter = carId ? { carId } : {}
+  const refuels = useInfiniteQuery(refuelsListQueryOptions(filter))
+  const chart = useQuery(refuelChartQueryOptions(filter))
   const cars = useQuery(allCarsQueryOptions)
   const items = refuels.data?.pages.flatMap((page) => page.items) ?? []
   const total = items.reduce((sum, refuel) => sum + Number(refuel.amount), 0)
@@ -134,99 +125,12 @@ function RefuelsPage() {
         </div>
       ) : (
         <>
-          <div className="table-wrap">
-            <table className="data-table">
-              <caption className="sr-only">{t('refuels.tableLabel')}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{t('refuels.fields.date')}</th>
-                  <th scope="col">{t('refuels.fields.car')}</th>
-                  <th scope="col">{t('refuels.fields.station')}</th>
-                  <th scope="col" className="numeric">
-                    {t('refuels.odometerColumn')}
-                  </th>
-                  <th scope="col">{t('refuels.fields.fuel')}</th>
-                  <th scope="col" className="numeric">
-                    {t('refuels.fields.liters')}
-                  </th>
-                  <th scope="col" className="numeric">
-                    {t('refuels.fields.perLiter')}
-                  </th>
-                  <th scope="col" className="numeric">
-                    {t('refuels.fields.amount')}
-                  </th>
-                  <th scope="col" className="numeric">
-                    {t('refuels.fields.consumption')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((refuel) => {
-                  const consumption = derived.get(refuel.id)?.consumption
-                  return (
-                    <tr key={refuel.id}>
-                      <td>
-                        <Link
-                          className="table-link"
-                          to="/refuels/$refuelId/edit"
-                          params={{ refuelId: refuel.id }}
-                        >
-                          {formatDateTime(refuel.date, locale)}
-                        </Link>
-                      </td>
-                      <td>
-                        <Link
-                          to="/cars/$carId"
-                          params={{ carId: refuel.carId }}
-                        >
-                          {carNames.get(refuel.carId) ??
-                            t('refuels.unknownCar')}
-                        </Link>
-                      </td>
-                      <td className="wrap">{refuel.station}</td>
-                      <td className="numeric">
-                        {refuel.odometerReading === null
-                          ? t('refuels.notRecorded')
-                          : t('refuels.odometerValue', {
-                              value: new Intl.NumberFormat(locale).format(
-                                refuel.odometerReading,
-                              ),
-                            })}
-                      </td>
-                      <td>{t(`refuels.fuels.${refuel.fuel}`)}</td>
-                      <td className="numeric">
-                        {t('refuels.litersValue', {
-                          value: formatNumber(refuel.liters, locale, 2),
-                        })}
-                      </td>
-                      <td className="numeric">
-                        {formatNumber(refuel.perLiter, locale, 3)}
-                      </td>
-                      <td className="numeric">
-                        {formatAmount(refuel.amount, locale)}
-                      </td>
-                      <td className="numeric">
-                        {consumption == null
-                          ? '—'
-                          : t('refuels.consumptionValue', {
-                              value: formatNumber(consumption, locale, 2),
-                            })}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={7}>{t('refuels.total')}</td>
-                  <td className="numeric">
-                    {formatAmount(String(total), locale)}
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <RefuelTable
+            items={items}
+            derived={derived}
+            carNames={carNames}
+            total={total}
+          />
 
           {refuels.isFetchNextPageError ? (
             <p className="field-error" role="alert">

@@ -158,19 +158,25 @@ All authenticated endpoints require a `Bearer` JWT access token in the
   `...205846-create-repair.js`, `...210035-create-ticket.js`).
 - **EP-12** — `GET /api/v1/cars/{carId}/refuels`
   (`old/pages/api/v1/cars/[carId]/refuels.ts`). Auth required, scoped by
-  car ownership. Sort: `date ASC`.
+  car ownership. Sort: `date ASC`. Covered in the rewrite by `GET
+  /api/v1/refuels?carId=` (plus `/refuels/chart?carId=`) with an optional
+  `from`/`to` range; there is no per-car path (`car-detail-tabs`).
 - **EP-13** — `POST /api/v1/cars/{carId}/refuels`
   (`old/pages/api/v1/cars/[carId]/refuels.ts`). Same auth + scoping.
   Creates a refuel under that car.
 - **EP-14** — `GET /api/v1/cars/{carId}/repairs`
   (`old/pages/api/v1/cars/[carId]/repairs.ts`). Auth required, scoped by
-  car ownership. Sort: `date ASC`.
+  car ownership. Sort: `date ASC`. Covered in the rewrite by `GET
+  /api/v1/repairs?carId=` with an optional `from`/`to` range; there is no
+  per-car path (`car-detail-tabs`).
 - **EP-15** — `POST /api/v1/cars/{carId}/repairs`
   (`old/pages/api/v1/cars/[carId]/repairs.ts`). Same auth + scoping.
   Creates a repair under that car.
 - **EP-16** — `GET /api/v1/cars/{carId}/tickets`
   (`old/pages/api/v1/cars/[carId]/tickets.ts`). Auth required, scoped by
-  car ownership. Sort: `date ASC`.
+  car ownership. Sort: `date ASC`. Covered in the rewrite by `GET
+  /api/v1/tickets?carId=` with an optional `from`/`to` range; there is no
+  per-car path (`car-detail-tabs`).
 - **EP-17** — `POST /api/v1/cars/{carId}/tickets`
   (`old/pages/api/v1/cars/[carId]/tickets.ts`). Same auth + scoping.
   Creates a ticket under that car.

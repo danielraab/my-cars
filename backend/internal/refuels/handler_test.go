@@ -18,20 +18,21 @@ const refuelID = "33333333-3333-3333-3333-333333333333"
 var stamp = time.Date(2026, 9, 28, 10, 0, 0, 0, time.UTC)
 
 type fakeRepository struct {
-	items  []Refuel
-	input  Input
-	patch  Patch
-	filter Filter
-	err    error
+	items    []Refuel
+	previous map[string]int64
+	input    Input
+	patch    Patch
+	filter   Filter
+	err      error
 }
 
 func (f *fakeRepository) List(_ context.Context, _ string, x Filter, _ *Cursor, _ int) ([]Refuel, *Cursor, error) {
 	f.filter = x
 	return f.items, nil, f.err
 }
-func (f *fakeRepository) Chart(_ context.Context, _ string, x Filter) ([]Refuel, error) {
+func (f *fakeRepository) Chart(_ context.Context, _ string, x Filter) ([]Refuel, map[string]int64, error) {
 	f.filter = x
-	return f.items, f.err
+	return f.items, f.previous, f.err
 }
 func (f *fakeRepository) Create(_ context.Context, _ string, x Input) (Refuel, error) {
 	f.input = x
@@ -98,6 +99,38 @@ func TestChartDerivedValuesAcrossCars(t *testing.T) {
 	}
 	if got.Items[0].PerLiter != "1.5" || got.Items[0].Consumption != nil || got.Items[2].Distance == nil || *got.Items[2].Distance != 500 || *got.Items[2].Consumption != "8" {
 		t.Fatalf("%+v", got.Items)
+	}
+}
+func TestChartSeedsPredecessorBeforeFrom(t *testing.T) {
+	first, second := int64(1500), int64(1900)
+	otherCar := "55555555-5555-5555-5555-555555555555"
+	f := &fakeRepository{
+		items: []Refuel{
+			sample(&first),
+			{ID: "44444444-4444-4444-4444-444444444444", CarID: otherCar, Date: stamp, Station: "X", OdometerReading: &second, Fuel: "special", Liters: "20", Amount: "30"},
+		},
+		// Only carID has a refuel before the range; otherCar's first refuel
+		// in range is its first ever.
+		previous: map[string]int64{carID: 1000},
+	}
+	w := serve(t, f, "GET", "/api/v1/refuels/chart?from=2026-01-01T00:00:00Z", "")
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var got struct {
+		Items []refuelBody `json:"items"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if f.filter.From == nil || !f.filter.From.Equal(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("from = %v", f.filter.From)
+	}
+	if got.Items[0].Distance == nil || *got.Items[0].Distance != 500 || got.Items[0].Consumption == nil || *got.Items[0].Consumption != "8" {
+		t.Fatalf("seeded refuel = %+v", got.Items[0])
+	}
+	if got.Items[1].Distance != nil || got.Items[1].Consumption != nil {
+		t.Fatalf("first-ever refuel = %+v", got.Items[1])
 	}
 }
 func TestCursorRoundTrip(t *testing.T) {

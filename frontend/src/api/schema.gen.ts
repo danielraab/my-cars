@@ -151,60 +151,6 @@ export interface paths {
         patch: operations["updateCar"];
         trace?: never;
     };
-    "/cars/{carId}/refuels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                carId: components["parameters"]["CarId"];
-            };
-            cookie?: never;
-        };
-        get: components["pathItems"]["CarExpenseCollection"]["get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/cars/{carId}/repairs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                carId: components["parameters"]["CarId"];
-            };
-            cookie?: never;
-        };
-        get: components["pathItems"]["CarExpenseCollection"]["get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/cars/{carId}/tickets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                carId: components["parameters"]["CarId"];
-            };
-            cookie?: never;
-        };
-        get: components["pathItems"]["CarExpenseCollection"]["get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/refuels": {
         parameters: {
             query?: never;
@@ -690,22 +636,6 @@ export interface components {
     requestBodies: never;
     headers: never;
     pathItems: {
-        CarExpenseCollection: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            get: operations["listCarExpenses"];
-            put?: never;
-            post?: never;
-            delete?: never;
-            options?: never;
-            head?: never;
-            patch?: never;
-            trace?: never;
-        };
         RefuelCreate: {
             parameters: {
                 query?: never;
@@ -1326,34 +1256,6 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            default: components["responses"]["ServerError"];
-        };
-    };
-    listCarExpenses: {
-        parameters: {
-            query?: {
-                /** @description Opaque cursor from nextCursor. */
-                cursor?: components["parameters"]["Cursor"];
-                limit?: components["parameters"]["Limit"];
-                from?: components["parameters"]["From"];
-                to?: components["parameters"]["To"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated car expense records. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
             default: components["responses"]["ServerError"];
         };
     };

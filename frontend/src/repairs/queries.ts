@@ -1,20 +1,26 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
-import { getRepair, getRepairStations, getRepairs } from '#/api/client'
+import {
+  type ExpenseFilter,
+  getRepair,
+  getRepairStations,
+  getRepairs,
+} from '#/api/client'
 
 export const repairsQueryKey = ['repairs'] as const
-export const repairsListQueryKey = [...repairsQueryKey, 'list'] as const
 
 export function repairQueryKey(repairId: string) {
   return [...repairsQueryKey, 'detail', repairId] as const
 }
 
-export const repairsListQueryOptions = infiniteQueryOptions({
-  queryKey: repairsListQueryKey,
-  queryFn: ({ pageParam }) => getRepairs({ cursor: pageParam }),
-  initialPageParam: null as string | null,
-  getNextPageParam: (lastPage) => lastPage.nextCursor,
-})
+export function repairsListQueryOptions(filter: ExpenseFilter = {}) {
+  return infiniteQueryOptions({
+    queryKey: [...repairsQueryKey, 'list', filter],
+    queryFn: ({ pageParam }) => getRepairs({ cursor: pageParam, ...filter }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  })
+}
 
 export function repairQueryOptions(repairId: string) {
   return queryOptions({

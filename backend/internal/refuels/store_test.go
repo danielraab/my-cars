@@ -239,3 +239,49 @@ func TestStoreStationsAreDistinctSortedAndScoped(t *testing.T) {
 		t.Fatalf("stations = %v, %v", stations, err)
 	}
 }
+
+func TestStoreChartReturnsPredecessorsBeforeFrom(t *testing.T) {
+	s, pool := testStore(t)
+	ctx := context.Background()
+	account, car := testCar(t, pool)
+	secondCar := addCar(t, pool, account)
+	other, otherCar := testCar(t, pool)
+	create := func(accountID, carID string, day int, odometer *int64) Refuel {
+		t.Helper()
+		in := validInput(carID, day, "Station")
+		in.OdometerReading = odometer
+		r, err := s.Create(ctx, accountID, in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	create(account, car, 0, ptr(int64(1000)))
+	// The latest refuel before the range has no reading, so the one before
+	// it is the predecessor.
+	create(account, car, 1, nil)
+	inRange := create(account, car, 3, ptr(int64(1500)))
+	create(account, secondCar, 0, ptr(int64(7000)))
+	create(other, otherCar, 1, ptr(int64(9000)))
+
+	from := base.AddDate(0, 0, 2)
+	items, previous, err := s.Chart(ctx, account, Filter{From: &from})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].ID != inRange.ID {
+		t.Fatalf("items = %v", items)
+	}
+	if len(previous) != 2 || previous[car] != 1000 || previous[secondCar] != 7000 {
+		t.Fatalf("previous = %v", previous)
+	}
+
+	_, previous, err = s.Chart(ctx, account, Filter{CarID: &secondCar, From: &from})
+	if err != nil || len(previous) != 1 || previous[secondCar] != 7000 {
+		t.Fatalf("car-filtered previous = %v, %v", previous, err)
+	}
+	_, previous, err = s.Chart(ctx, account, Filter{})
+	if err != nil || len(previous) != 0 {
+		t.Fatalf("unbounded previous = %v, %v", previous, err)
+	}
+}

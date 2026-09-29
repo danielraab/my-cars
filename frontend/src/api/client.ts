@@ -401,17 +401,27 @@ export async function deleteCar(carId: string): Promise<void> {
   }
 }
 
+// Narrows an expense collection or chart to one of the caller's cars and a
+// date range; `from` is inclusive and `to` exclusive (ISO date-times).
+export type ExpenseFilter = { carId?: string; from?: string; to?: string }
+
+function setFilter(query: URLSearchParams, filter: ExpenseFilter) {
+  if (filter.carId) query.set('carId', filter.carId)
+  if (filter.from) query.set('from', filter.from)
+  if (filter.to) query.set('to', filter.to)
+}
+
 function repairPath(repairId: string): string {
   return `/api/v1/repairs/${encodeURIComponent(repairId)}`
 }
 
 export async function getRepairs(
-  options: { cursor?: string | null; limit?: number; carId?: string } = {},
+  options: { cursor?: string | null; limit?: number } & ExpenseFilter = {},
 ): Promise<RepairPage> {
   const query = new URLSearchParams()
   if (options.cursor) query.set('cursor', options.cursor)
   if (options.limit !== undefined) query.set('limit', String(options.limit))
-  if (options.carId) query.set('carId', options.carId)
+  setFilter(query, options)
   const search = query.toString()
   return decoded(
     await fetchApi(`/api/v1/repairs${search ? `?${search}` : ''}`),
@@ -466,12 +476,12 @@ function ticketPath(ticketId: string): string {
 }
 
 export async function getTickets(
-  options: { cursor?: string | null; limit?: number; carId?: string } = {},
+  options: { cursor?: string | null; limit?: number } & ExpenseFilter = {},
 ): Promise<TicketPage> {
   const query = new URLSearchParams()
   if (options.cursor) query.set('cursor', options.cursor)
   if (options.limit !== undefined) query.set('limit', String(options.limit))
-  if (options.carId) query.set('carId', options.carId)
+  setFilter(query, options)
   const search = query.toString()
   return decoded(
     await fetchApi(`/api/v1/tickets${search ? `?${search}` : ''}`),
@@ -525,12 +535,12 @@ function refuelPath(id: string) {
   return `/api/v1/refuels/${encodeURIComponent(id)}`
 }
 export async function getRefuels(
-  options: { cursor?: string | null; limit?: number; carId?: string } = {},
+  options: { cursor?: string | null; limit?: number } & ExpenseFilter = {},
 ): Promise<RefuelPage> {
   const q = new URLSearchParams()
   if (options.cursor) q.set('cursor', options.cursor)
   if (options.limit) q.set('limit', String(options.limit))
-  if (options.carId) q.set('carId', options.carId)
+  setFilter(q, options)
   return decoded(
     await fetchApi(`/api/v1/refuels${q.size ? `?${q}` : ''}`),
     isRefuelPage,
@@ -542,9 +552,11 @@ export async function getRefuel(id: string): Promise<Refuel> {
 export async function getRefuelStations(): Promise<string[]> {
   return decoded(await fetchApi('/api/v1/refuels/stations'), isStringList)
 }
-export async function getRefuelChart(carId?: string): Promise<RefuelChart> {
+export async function getRefuelChart(
+  filter: ExpenseFilter = {},
+): Promise<RefuelChart> {
   const q = new URLSearchParams()
-  if (carId) q.set('carId', carId)
+  setFilter(q, filter)
   return decoded(
     await fetchApi(`/api/v1/refuels/chart${q.size ? `?${q}` : ''}`),
     isRefuelChart,

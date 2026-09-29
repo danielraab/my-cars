@@ -268,30 +268,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         default:
           $ref: '#/components/responses/ServerError'
-  /cars/{carId}/refuels:
-    get:
-      $ref: '#/components/pathItems/CarExpenseCollection/get'
-      responses:
-        default:
-          $ref: '#/components/responses/ServerError'
-    parameters:
-    - $ref: '#/components/parameters/CarId'
-  /cars/{carId}/repairs:
-    get:
-      $ref: '#/components/pathItems/CarExpenseCollection/get'
-      responses:
-        default:
-          $ref: '#/components/responses/ServerError'
-    parameters:
-    - $ref: '#/components/parameters/CarId'
-  /cars/{carId}/tickets:
-    get:
-      $ref: '#/components/pathItems/CarExpenseCollection/get'
-      responses:
-        default:
-          $ref: '#/components/responses/ServerError'
-    parameters:
-    - $ref: '#/components/parameters/CarId'
   /refuels:
     get:
       tags:
@@ -660,27 +636,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   pathItems:
-    CarExpenseCollection:
-      get:
-        tags:
-        - Expenses
-        operationId: listCarExpenses
-        parameters:
-        - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/From'
-        - $ref: '#/components/parameters/To'
-        responses:
-          '200':
-            description: Paginated car expense records.
-          '400':
-            $ref: '#/components/responses/BadRequest'
-          '401':
-            $ref: '#/components/responses/Unauthorized'
-          '404':
-            $ref: '#/components/responses/NotFound'
-          default:
-            $ref: '#/components/responses/ServerError'
     RefuelCreate:
       post:
         tags:

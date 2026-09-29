@@ -59,12 +59,24 @@
   `repairs.empty` to the range-aware message, in de and en. Verify with a
   route test that the labels and the empty state appear in German.
 
-## 4. Integration
+## 4. `/tickets`: car filter and range in the URL
 
-- [x] 4.1 Run `pnpm check`, `pnpm typecheck` and `pnpm test` in
+- [x] 4.1 Add `validateSearch` (`validateListSearch`) to
+  `routes/_authenticated/tickets/index.tsx`, the car `<select>` and the
+  `DateRangeControl`, and pass `{ carId?, ...dateRangeToInstants(...) }`
+  to `ticketsListQueryOptions`; "add ticket" keeps the selected car.
+  Verify with route tests covering the default range, car selection and
+  an edited range (URL plus inclusive instants), and restore on reload.
+- [x] 4.2 Add `tickets.filter` and `tickets.allCars`, and reword
+  `tickets.empty` to the range-aware message, in de and en. Verify with a
+  route test that the labels and the empty state appear in German.
+
+## 5. Integration
+
+- [x] 5.1 Run `pnpm check`, `pnpm typecheck` and `pnpm test` in
   `frontend/`, and verify they all pass.
-- [x] 4.2 Run the app against seeded data. Verify on `/refuels`, `/repairs`
-  and `/cars/$carId`:
+- [x] 5.2 Run the app against seeded data. Verify on `/refuels`, `/repairs`,
+  `/tickets` and `/cars/$carId`:
   - the range filters the tables and the chart;
   - reloading keeps the car and the range;
   - the toolbar wraps without horizontal scrolling at phone width.

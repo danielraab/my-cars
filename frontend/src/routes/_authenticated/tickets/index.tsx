@@ -4,16 +4,38 @@ import { LoaderCircle, Plus, ReceiptText, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { allCarsQueryOptions } from '#/cars/queries'
+import { DateRangeControl } from '#/components/date-range-control'
+import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
+import { type ListSearch, validateListSearch } from '#/lib/list-search'
 import { ticketsListQueryOptions } from '#/tickets/queries'
 import { TicketTable } from '#/tickets/ticket-table'
 
 export const Route = createFileRoute('/_authenticated/tickets/')({
+  validateSearch: validateListSearch,
   component: TicketsPage,
 })
 
 function TicketsPage() {
   const { t } = useTranslation()
-  const tickets = useInfiniteQuery(ticketsListQueryOptions())
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const carId = search.carId ?? ''
+  // The default is not written into the URL, so a link without a range
+  // always means the last six months.
+  const from = search.from ?? defaultFrom()
+  // Filter changes replace the history entry instead of adding one per
+  // selection or keystroke.
+  const update = (change: ListSearch) =>
+    navigate({
+      replace: true,
+      search: (previous) => ({ ...previous, ...change }),
+    })
+  const tickets = useInfiniteQuery(
+    ticketsListQueryOptions({
+      ...(carId ? { carId } : {}),
+      ...dateRangeToInstants(from, search.to),
+    }),
+  )
   const cars = useQuery(allCarsQueryOptions)
   const items = tickets.data?.pages.flatMap((page) => page.items) ?? []
   const total = items.reduce((sum, ticket) => sum + Number(ticket.amount), 0)
@@ -35,11 +57,35 @@ function TicketsPage() {
         <Link
           className="button button-primary page-action"
           to="/tickets/create"
+          search={carId ? { carId } : {}}
         >
           <Plus aria-hidden="true" size={18} />
           {t('tickets.add')}
         </Link>
       </header>
+
+      <div className="list-toolbar">
+        <div className="form-field">
+          <label htmlFor="ticket-filter">{t('tickets.filter')}</label>
+          <div className="input-wrap">
+            <select
+              id="ticket-filter"
+              value={carId}
+              onChange={(event) =>
+                update({ carId: event.target.value || undefined })
+              }
+            >
+              <option value="">{t('tickets.allCars')}</option>
+              {cars.data?.items.map((car) => (
+                <option key={car.id} value={car.id}>
+                  {car.make} {car.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <DateRangeControl from={from} to={search.to} onChange={update} />
+      </div>
 
       {tickets.isPending ? (
         <output className="form-status">

@@ -1109,7 +1109,7 @@ select:focus-visible {
   margin: 0;
 }
 
-.fuel-price-chart {
+.line-chart {
   margin: 0;
 }
 
@@ -1172,6 +1172,10 @@ select:focus-visible {
   --series: #64748b;
 }
 
+.chart-consumption {
+  --series: #0f766e;
+}
+
 .chart-legend {
   display: flex;
   flex-wrap: wrap;
@@ -1225,9 +1229,112 @@ select:focus-visible {
   line-height: 1.5;
 }
 
+/* Car detail: tabs on the left, the shared date range on the right. */
+.car-tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.8rem 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.car-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.car-tab {
+  padding: 0.55rem 1.1rem;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.car-tab:hover {
+  color: var(--ink);
+}
+
+.car-tab[data-selected] {
+  color: var(--navy);
+  background: var(--accent);
+}
+
+.car-tab[data-focus] {
+  outline: 3px solid rgb(145 194 12 / 45%);
+  outline-offset: 2px;
+}
+
+.date-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.date-range label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.date-range input {
+  height: 2.6rem;
+  padding: 0 0.7rem;
+  font: inherit;
+  font-weight: 500;
+  background: #f8faf7;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+}
+
+/* A single shrinkable column, so a wide table scrolls inside its wrapper
+   instead of widening the page. */
+.car-expenses {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.4rem;
+}
+
+.expense-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.expense-section-header h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+
 @media (max-width: 600px) {
   .list-page .form-page-header {
     flex-wrap: wrap;
+  }
+
+  .car-tabs {
+    width: 100%;
+  }
+
+  .car-tab {
+    flex: 1;
+    padding-inline: 0.5rem;
   }
 
   .page-action {

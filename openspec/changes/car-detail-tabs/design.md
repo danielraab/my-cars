@@ -80,9 +80,10 @@ not-found and error states render instead of the `TabGroup`.
 `useCarDateRange()` (next to the route) resolves the search params to
 `{ from: string; to?: string }` as `YYYY-MM-DD`:
 
-- A missing `from` becomes today minus six calendar months in local time,
-  using `Date#setMonth`. For example, 31 March becomes 30 or 31 September,
-  depending on the month length; that clamping is acceptable.
+- A missing `from` becomes the same day six calendar months earlier in
+  local time, clamped to the last day of a shorter month (31 August
+  becomes 28 February). `Date#setMonth` alone would roll over into the
+  next month instead.
 - The default is *not* written into the URL, so a bookmark without `from`
   always means "the last six months".
 
@@ -160,11 +161,12 @@ It owns everything `FuelPriceChart` draws today:
 - the stretched viewBox;
 - polylines and dot segments;
 - the y and x axis labels (with the locale's medium date format);
-- the legend, shown only when there is more than one series.
+- the legend, shown when the caller passes `showLegend`. `/refuels` shows
+  it even with a single fuel, so it can't depend on the number of series.
 
 It leaves out points whose `time` or `value` is not finite. When no series
-has points, it returns `null`, and each wrapper shows its own localized
-empty text.
+has points, it renders the `empty` node the wrapper passes in, so the
+finite-point check lives in one place.
 
 The existing `.chart-*` CSS moves from `.fuel-price-chart` to a generic
 `.line-chart` class. Per-series colour classes (`chart-normal`, …) stay

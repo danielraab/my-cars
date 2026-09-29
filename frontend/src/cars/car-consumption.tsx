@@ -1,0 +1,50 @@
+import { useQuery } from '@tanstack/react-query'
+import { LoaderCircle, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
+import type { ExpenseFilter } from '#/api/client'
+import { ConsumptionChart } from '#/refuels/consumption-chart'
+import { refuelChartQueryOptions } from '#/refuels/queries'
+
+// The car's consumption over the filter's range, from the complete chart
+// series rather than table pages.
+export function CarConsumption({
+  filter,
+}: {
+  filter: ExpenseFilter & { carId: string }
+}) {
+  const { t } = useTranslation()
+  const chart = useQuery(refuelChartQueryOptions(filter))
+
+  return (
+    <section className="chart-card" aria-labelledby="car-consumption-title">
+      <h2 id="car-consumption-title">{t('cars.detail.consumption.title')}</h2>
+      <p className="chart-description">
+        {t('cars.detail.consumption.description')}
+      </p>
+      {chart.isPending ? (
+        <output className="chart-status">
+          <LoaderCircle className="spin" aria-hidden="true" size={20} />
+          {t('refuels.loading')}
+        </output>
+      ) : chart.isError ? (
+        <div className="chart-status" role="alert">
+          <p>{t('cars.detail.consumption.loadError')}</p>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => chart.refetch()}
+          >
+            <RefreshCw aria-hidden="true" size={17} />
+            {t('refuels.retry')}
+          </button>
+        </div>
+      ) : (
+        <ConsumptionChart
+          items={chart.data.items}
+          label={t('cars.detail.consumption.title')}
+        />
+      )}
+    </section>
+  )
+}

@@ -416,6 +416,15 @@ describe('repairs API client', () => {
     expect(fetchMock.mock.calls[1][0]).toBe(
       `/api/v1/repairs?cursor=a%2Fb&limit=10&carId=${repair.carId}`,
     )
+
+    await getRepairs({
+      carId: repair.carId,
+      from: '2026-01-01T00:00:00.000Z',
+      to: '2026-02-01T00:00:00.000Z',
+    })
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      `/api/v1/repairs?carId=${repair.carId}&from=2026-01-01T00%3A00%3A00.000Z&to=2026-02-01T00%3A00%3A00.000Z`,
+    )
   })
 
   it('creates, reads, updates and deletes a repair', async () => {
@@ -537,6 +546,15 @@ describe('tickets API client', () => {
     await getTickets({ cursor: 'a/b', limit: 10, carId: ticket.carId })
     expect(fetchMock.mock.calls[1][0]).toBe(
       `/api/v1/tickets?cursor=a%2Fb&limit=10&carId=${ticket.carId}`,
+    )
+
+    await getTickets({
+      carId: ticket.carId,
+      from: '2026-01-01T00:00:00.000Z',
+      to: '2026-02-01T00:00:00.000Z',
+    })
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      `/api/v1/tickets?carId=${ticket.carId}&from=2026-01-01T00%3A00%3A00.000Z&to=2026-02-01T00%3A00%3A00.000Z`,
     )
   })
 

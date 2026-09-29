@@ -166,6 +166,33 @@ export const resources = {
           notFound: 'This car does not exist or does not belong to you.',
           back: 'Back to cars',
           edit: 'Edit car',
+          tabsLabel: 'Car sections',
+          tabs: {
+            details: 'Details',
+            expenses: 'Expenses',
+            consumption: 'Consumption',
+          },
+          range: {
+            label: 'Date range',
+            from: 'From',
+            to: 'To',
+          },
+          expensesEmpty: {
+            refuels: 'No refuels in this date range.',
+            repairs: 'No repairs in this date range.',
+            tickets: 'No tickets in this date range.',
+          },
+          expensesLoadError: {
+            refuels: 'The refuels could not be loaded.',
+            repairs: 'The repairs could not be loaded.',
+            tickets: 'The tickets could not be loaded.',
+          },
+          consumption: {
+            title: 'Consumption',
+            description:
+              'Litres per 100 km over time, from refuels with odometer readings.',
+            loadError: 'The consumption history could not be loaded.',
+          },
         },
         edit: {
           eyebrow: 'Edit car',
@@ -195,6 +222,8 @@ export const resources = {
         chart: 'Fuel price history',
         chartDescription: 'Price per litre over time, one line per fuel.',
         chartEmpty: 'There are no refuels to chart yet.',
+        consumptionChartEmpty:
+          'Not enough refuels with odometer readings in this range.',
         chartLoadError: 'The fuel price history could not be loaded.',
         loading: 'Loading your refuels…',
         loadErrorTitle: 'Refuels unavailable',
@@ -639,6 +668,33 @@ export const resources = {
           notFound: 'Dieses Auto existiert nicht oder gehört nicht dir.',
           back: 'Zurück zu den Autos',
           edit: 'Auto bearbeiten',
+          tabsLabel: 'Bereiche des Autos',
+          tabs: {
+            details: 'Details',
+            expenses: 'Ausgaben',
+            consumption: 'Verbrauch',
+          },
+          range: {
+            label: 'Zeitraum',
+            from: 'Von',
+            to: 'Bis',
+          },
+          expensesEmpty: {
+            refuels: 'Keine Tankvorgänge in diesem Zeitraum.',
+            repairs: 'Keine Reparaturen in diesem Zeitraum.',
+            tickets: 'Keine Strafzettel in diesem Zeitraum.',
+          },
+          expensesLoadError: {
+            refuels: 'Die Tankvorgänge konnten nicht geladen werden.',
+            repairs: 'Die Reparaturen konnten nicht geladen werden.',
+            tickets: 'Die Strafzettel konnten nicht geladen werden.',
+          },
+          consumption: {
+            title: 'Verbrauch',
+            description:
+              'Liter pro 100 km im Zeitverlauf, aus Tankvorgängen mit Kilometerstand.',
+            loadError: 'Der Verbrauchsverlauf konnte nicht geladen werden.',
+          },
         },
         edit: {
           eyebrow: 'Auto bearbeiten',
@@ -670,6 +726,8 @@ export const resources = {
         chartDescription:
           'Preis pro Liter im Zeitverlauf, eine Linie pro Kraftstoff.',
         chartEmpty: 'Es gibt noch keine Tankvorgänge für das Diagramm.',
+        consumptionChartEmpty:
+          'Nicht genug Tankvorgänge mit Kilometerstand in diesem Zeitraum.',
         chartLoadError:
           'Der Kraftstoffpreisverlauf konnte nicht geladen werden.',
         loading: 'Deine Tankvorgänge werden geladen…',

@@ -39,7 +39,7 @@ type Repository interface {
 	Update(ctx context.Context, accountID, refuelID string, p Patch) (Refuel, error)
 	Delete(ctx context.Context, accountID, refuelID string) error
 	Stations(ctx context.Context, accountID string) ([]string, error)
-	Chart(ctx context.Context, accountID string, f Filter) ([]Refuel, error)
+	Chart(ctx context.Context, accountID string, f Filter) ([]Refuel, map[string]int64, error)
 }
 
 type Handler struct{ store Repository }
@@ -225,13 +225,15 @@ func (h *Handler) chart(w http.ResponseWriter, r *http.Request, accountID string
 		apierror.Validation(w, fields)
 		return
 	}
-	items, err := h.store.Chart(r.Context(), accountID, f)
+	items, previous, err := h.store.Chart(r.Context(), accountID, f)
 	if err != nil {
 		h.fail(w, "chart", err)
 		return
 	}
+	if previous == nil {
+		previous = map[string]int64{}
+	}
 	bodies := make([]refuelBody, 0, len(items))
-	previous := map[string]int64{}
 	for _, item := range items {
 		body := toBody(item)
 		if item.OdometerReading != nil {

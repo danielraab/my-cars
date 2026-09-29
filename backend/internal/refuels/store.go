@@ -174,26 +174,52 @@ RETURNING `+columns,
 		accountID, refuelID, p.Date, p.Station, p.Fuel, p.Liters, p.Amount, p.OdometerReading.Set, p.OdometerReading.Value))
 }
 
-// Chart returns every matching refuel in deterministic order.
-func (s *Store) Chart(ctx context.Context, accountID string, f Filter) ([]Refuel, error) {
+// Chart returns every matching refuel in deterministic order, and for each
+// car the last odometer reading dated before f.From, so the first refuel in
+// the range can be measured against its actual predecessor.
+func (s *Store) Chart(ctx context.Context, accountID string, f Filter) ([]Refuel, map[string]int64, error) {
 	rows, err := s.pool.Query(ctx, `SELECT `+columns+` FROM refuels WHERE `+owned+`
   AND ($2::uuid IS NULL OR car_id = $2::uuid)
   AND ($3::timestamptz IS NULL OR date >= $3)
   AND ($4::timestamptz IS NULL OR date < $4)
 ORDER BY date, id`, accountID, f.CarID, f.From, f.To)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 	items := []Refuel{}
 	for rows.Next() {
 		item, err := scanRefuel(rows)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		items = append(items, item)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	previous := map[string]int64{}
+	if f.From == nil {
+		return items, previous, nil
+	}
+	rows, err = s.pool.Query(ctx, `SELECT DISTINCT ON (car_id) car_id, odometer_reading FROM refuels
+WHERE `+owned+`
+  AND ($2::uuid IS NULL OR car_id = $2::uuid)
+  AND date < $3 AND odometer_reading IS NOT NULL
+ORDER BY car_id, date DESC, id DESC`, accountID, f.CarID, f.From)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var carID string
+		var reading int64
+		if err := rows.Scan(&carID, &reading); err != nil {
+			return nil, nil, err
+		}
+		previous[carID] = reading
+	}
+	return items, previous, rows.Err()
 }
 func (s *Store) Delete(ctx context.Context, accountID, refuelID string) error {
 	tag, err := s.pool.Exec(ctx, `DELETE FROM refuels WHERE `+owned+` AND id = $2`, accountID, refuelID)

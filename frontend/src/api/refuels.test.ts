@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getRefuels } from './client'
+import { getRefuelChart, getRefuels } from './client'
 
 const ok = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -44,5 +44,27 @@ describe('refuel client guards', () => {
       status: 502,
       code: 'invalid_response',
     })
+  })
+})
+describe('refuel client filters', () => {
+  it('sends only the supplied car and range parameters', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async () => ok({ items: [], nextCursor: null }))
+    vi.stubGlobal('fetch', fetchMock)
+    await getRefuels({ carId: item.carId, from: '2026-01-01T00:00:00.000Z' })
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `/api/v1/refuels?carId=${item.carId}&from=2026-01-01T00%3A00%3A00.000Z`,
+    )
+    await getRefuelChart()
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/refuels/chart')
+    await getRefuelChart({
+      carId: item.carId,
+      from: '2026-01-01T00:00:00.000Z',
+      to: '2026-02-01T00:00:00.000Z',
+    })
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      `/api/v1/refuels/chart?carId=${item.carId}&from=2026-01-01T00%3A00%3A00.000Z&to=2026-02-01T00%3A00%3A00.000Z`,
+    )
   })
 })

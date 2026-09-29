@@ -3,19 +3,17 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { LoaderCircle, Plus, RefreshCw, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { formatAmount } from '#/cars/format'
 import { allCarsQueryOptions } from '#/cars/queries'
-import { formatDateTime } from '#/repairs/format'
 import { repairsListQueryOptions } from '#/repairs/queries'
+import { RepairTable } from '#/repairs/repair-table'
 
 export const Route = createFileRoute('/_authenticated/repairs/')({
   component: RepairsPage,
 })
 
 function RepairsPage() {
-  const { t, i18n } = useTranslation()
-  const locale = i18n.resolvedLanguage ?? 'en'
-  const repairs = useInfiniteQuery(repairsListQueryOptions)
+  const { t } = useTranslation()
+  const repairs = useInfiniteQuery(repairsListQueryOptions())
   const cars = useQuery(allCarsQueryOptions)
   const items = repairs.data?.pages.flatMap((page) => page.items) ?? []
   const total = items.reduce((sum, repair) => sum + Number(repair.amount), 0)
@@ -68,67 +66,7 @@ function RepairsPage() {
         </div>
       ) : (
         <>
-          <div className="table-wrap">
-            <table className="data-table">
-              <caption className="sr-only">{t('repairs.tableLabel')}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{t('repairs.fields.date')}</th>
-                  <th scope="col">{t('repairs.fields.car')}</th>
-                  <th scope="col">{t('repairs.fields.station')}</th>
-                  <th scope="col" className="numeric">
-                    {t('repairs.odometerColumn')}
-                  </th>
-                  <th scope="col">{t('repairs.fields.type')}</th>
-                  <th scope="col" className="numeric">
-                    {t('repairs.fields.amount')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((repair) => (
-                  <tr key={repair.id}>
-                    <td>
-                      <Link
-                        className="table-link"
-                        to="/repairs/$repairId/edit"
-                        params={{ repairId: repair.id }}
-                      >
-                        {formatDateTime(repair.date, locale)}
-                      </Link>
-                    </td>
-                    <td>
-                      <Link to="/cars/$carId" params={{ carId: repair.carId }}>
-                        {carNames.get(repair.carId) ?? t('repairs.unknownCar')}
-                      </Link>
-                    </td>
-                    <td className="wrap">{repair.station}</td>
-                    <td className="numeric">
-                      {repair.odometerReading === null
-                        ? t('repairs.notRecorded')
-                        : t('repairs.odometerValue', {
-                            value: new Intl.NumberFormat(locale).format(
-                              repair.odometerReading,
-                            ),
-                          })}
-                    </td>
-                    <td>{t(`repairs.types.${repair.type}`)}</td>
-                    <td className="numeric">
-                      {formatAmount(repair.amount, locale)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={5}>{t('repairs.total')}</td>
-                  <td className="numeric">
-                    {formatAmount(String(total), locale)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <RepairTable items={items} carNames={carNames} total={total} />
 
           {repairs.isFetchNextPageError ? (
             <p className="field-error" role="alert">

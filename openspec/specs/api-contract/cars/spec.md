@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines ownership-scoped car management and per-car expense collections needed by the car list, detail, edit, and create frontend screens.
+Defines ownership-scoped car management needed by the car list, detail, edit, and create frontend screens. A car's expenses are read through the car-filtered expense collections (see `api-contract/expenses`).
 
 ## Requirements
 
@@ -38,10 +38,3 @@ The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GE
   owned by a different account, or one that does not exist
 - **THEN** the response is `404` with the common error representation, with
   no distinction between the two cases
-
-### Requirement: Caller can retrieve a car's paginated expenses
-The system SHALL document paginated, date-ordered `GET` operations for `/api/v1/cars/{carId}/refuels`, `/repairs`, and `/tickets`. Each operation SHALL accept the common cursor parameters and optional documented date-range filters.
-
-#### Scenario: Caller views a car's recent refuels
-- **WHEN** an authenticated caller requests a date range of an owned car's refuels
-- **THEN** the response contains only matching refuels in deterministic date order

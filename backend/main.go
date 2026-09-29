@@ -22,6 +22,7 @@ import (
 	"at.draab/my-car/internal/refuels"
 	"at.draab/my-car/internal/repairs"
 	"at.draab/my-car/internal/seed"
+	"at.draab/my-car/internal/stats"
 	"at.draab/my-car/internal/tickets"
 )
 
@@ -160,12 +161,14 @@ func runServer() {
 	repairsHandler := repairs.NewHandler(repairs.NewStore(pool))
 	refuelsHandler := refuels.NewHandler(refuels.NewStore(pool))
 	ticketsHandler := tickets.NewHandler(tickets.NewStore(pool))
+	statsHandler := stats.NewHandler(stats.NewStore(pool))
 	mux := httpserver.NewMux(pool, openapiDoc, staticOut, authService.RegisterRoutes, func(mux *http.ServeMux) {
 		profileHandler.RegisterRoutes(mux, authService.RequireSession)
 		carsHandler.RegisterRoutes(mux, authService.RequireSession)
 		repairsHandler.RegisterRoutes(mux, authService.RequireSession)
 		refuelsHandler.RegisterRoutes(mux, authService.RequireSession)
 		ticketsHandler.RegisterRoutes(mux, authService.RequireSession)
+		statsHandler.RegisterRoutes(mux, authService.RequireSession)
 	})
 
 	log.Printf("listening on :%s", cfg.Port)

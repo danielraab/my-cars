@@ -66,3 +66,12 @@ export function dateRangeToInstants(
   }
   return result
 }
+
+// A whole local calendar year: from the start of 1 January to the start of
+// the following 1 January, which the API treats as exclusive.
+export function yearToInstants(year: number): { from: string; to: string } {
+  return {
+    from: new Date(year, 0, 1).toISOString(),
+    to: new Date(year + 1, 0, 1).toISOString(),
+  }
+}

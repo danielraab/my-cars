@@ -11,6 +11,7 @@ import {
   getAuthenticationMethods,
   getCar,
   getCars,
+  getExpenseStatistics,
   getMe,
   getRepair,
   getRepairStations,
@@ -633,6 +634,58 @@ describe('tickets API client', () => {
   ])('rejects malformed ticket pages %#', async (body) => {
     stub(200, body)
     await expect(getTickets()).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_response',
+    })
+  })
+})
+
+describe('expense statistics API client', () => {
+  const carId = '9b0a5f0e-5d8f-4a55-9d59-0b8f1f3c2a10'
+  const range = {
+    from: '2025-12-31T23:00:00.000Z',
+    to: '2026-12-31T23:00:00.000Z',
+  }
+  const statistics = {
+    items: [
+      { date: '2026-03-31T22:30:00Z', kind: 'refuel', amount: '61.234' },
+      { date: '2026-05-01T08:00:00Z', kind: 'ticket', amount: '30' },
+    ],
+  }
+
+  function stub(status: number, body?: unknown) {
+    const fetchMock = vi.fn(
+      async (_path: string, _init?: RequestInit) =>
+        new Response(body === undefined ? null : JSON.stringify(body), {
+          status,
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('passes the range and the optional car filter', async () => {
+    const fetchMock = stub(200, statistics)
+
+    await expect(getExpenseStatistics(range)).resolves.toEqual(statistics)
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/stats/expenses?from=2025-12-31T23%3A00%3A00.000Z&to=2026-12-31T23%3A00%3A00.000Z',
+    )
+
+    await getExpenseStatistics({ ...range, carId })
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      `/api/v1/stats/expenses?carId=${carId}&from=2025-12-31T23%3A00%3A00.000Z&to=2026-12-31T23%3A00%3A00.000Z`,
+    )
+  })
+
+  it.each([
+    { items: [{ ...statistics.items[0], kind: 'toll' }] },
+    { items: [{ ...statistics.items[0], amount: 61.234 }] },
+    { items: [{ kind: 'refuel', amount: '1' }] },
+    statistics.items,
+  ])('rejects malformed statistics %#', async (body) => {
+    stub(200, body)
+    await expect(getExpenseStatistics(range)).rejects.toMatchObject({
       status: 502,
       code: 'invalid_response',
     })

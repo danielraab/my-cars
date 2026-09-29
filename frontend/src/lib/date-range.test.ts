@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { dateRangeToInstants, defaultFrom, isCalendarDate } from './date-range'
+import {
+  dateRangeToInstants,
+  defaultFrom,
+  isCalendarDate,
+  yearToInstants,
+} from './date-range'
 
 // A zone with daylight-saving time, so local midnight differs from UTC and
 // one day in March is only 23 hours long.
@@ -59,5 +64,14 @@ describe('defaultFrom', () => {
 
   it('clamps to the end of a shorter month', () => {
     expect(defaultFrom(new Date(2026, 7, 31))).toBe('2026-02-28')
+  })
+})
+
+describe('yearToInstants', () => {
+  it('spans local midnight on 1 January to the next 1 January', () => {
+    expect(yearToInstants(2026)).toEqual({
+      from: '2025-12-31T23:00:00.000Z',
+      to: '2026-12-31T23:00:00.000Z',
+    })
   })
 })

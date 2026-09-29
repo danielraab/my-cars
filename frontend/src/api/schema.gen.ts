@@ -547,11 +547,11 @@ export interface components {
         };
         ExpenseStatistics: {
             items: {
-                /** Format: date */
+                /** Format: date-time */
                 date: string;
-                refuels: components["schemas"]["Decimal"];
-                repairs: components["schemas"]["Decimal"];
-                tickets: components["schemas"]["Decimal"];
+                /** @enum {string} */
+                kind: "refuel" | "repair" | "ticket";
+                amount: components["schemas"]["Decimal"];
             }[];
         };
     };
@@ -629,7 +629,9 @@ export interface components {
         CarFilter: components["schemas"]["UUID"];
         From: string;
         To: string;
+        /** @description Inclusive start of the range. */
         FromRequired: string;
+        /** @description Exclusive end of the range. */
         ToRequired: string;
         ReturnTo: string;
     };
@@ -1235,7 +1237,9 @@ export interface operations {
     getExpenseStatistics: {
         parameters: {
             query: {
+                /** @description Inclusive start of the range. */
                 from: components["parameters"]["FromRequired"];
+                /** @description Exclusive end of the range. */
                 to: components["parameters"]["ToRequired"];
                 carId?: components["parameters"]["CarFilter"];
             };
@@ -1245,7 +1249,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Categorized daily expense totals. */
+            /** @description The caller's refuels, repairs and tickets dated on or after `from` and before `to`, ordered by date, unpaged. They are not grouped into days or months, because only the client knows the viewer's time zone. A `carId` that names no car of the caller's yields no rows. */
             200: {
                 headers: {
                     [name: string]: unknown;

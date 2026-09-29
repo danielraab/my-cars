@@ -163,16 +163,12 @@ describe('protected routes', () => {
     expect(router.state.location.search).toEqual({ returnTo: '/cars' })
   })
 
-  it.each([
-    ['/home', 'Dashboard'],
-  ])('renders the authenticated %s placeholder inside the shell', async (path, label) => {
+  it('renders the dashboard inside the shell', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, session)))
-    renderApp(path)
+    renderApp('/home')
 
     expect(
-      await screen.findByRole('heading', {
-        name: `${label} is not available yet`,
-      }),
+      await screen.findByRole('heading', { name: 'Dashboard', level: 1 }),
     ).toBeInTheDocument()
     expect(
       screen.getByText('Signed in as driver@example.com'),
@@ -200,9 +196,7 @@ describe('protected routes', () => {
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('heading', {
-        name: 'Dashboard is not available yet',
-      }),
+      await screen.findByRole('heading', { name: 'Dashboard', level: 1 }),
     ).toBeInTheDocument()
     consoleError.mockRestore()
     consoleWarn.mockRestore()
@@ -212,9 +206,7 @@ describe('protected routes', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, session)))
     const user = userEvent.setup()
     renderApp('/home')
-    await screen.findByRole('heading', {
-      name: 'Dashboard is not available yet',
-    })
+    await screen.findByRole('heading', { name: 'Dashboard', level: 1 })
 
     await user.click(screen.getByRole('button', { name: 'Open navigation' }))
     const dialog = screen.getByRole('dialog')
@@ -259,11 +251,17 @@ describe('logout', () => {
     renderApp('/home')
 
     await user.click(await screen.findByRole('button', { name: 'Sign out' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Sign-out failed',
+    // The stubbed backend answers every request with the session, so the
+    // dashboard's own statistics request fails and raises an alert too.
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('alert')
+          .some((alert) => alert.textContent?.includes('Sign-out failed')),
+      ).toBe(true),
     )
     expect(
-      screen.getByRole('heading', { name: 'Dashboard is not available yet' }),
+      screen.getByRole('heading', { name: 'Dashboard', level: 1 }),
     ).toBeInTheDocument()
   })
 })

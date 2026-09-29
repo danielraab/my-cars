@@ -32,7 +32,10 @@ and tasks should cite ids rather than restating the items below.
 - **SCR-02** — `/home` (`old/pages/home.tsx`). Authenticated dashboard.
   Shows a car-cards summary, buttons to add a new refuel/repair/ticket, and
   an overall-expenses stacked bar chart (fed by `EP-28`) or a "no expenses"
-  message if the caller has none.
+  message if the caller has none. The rewrite charts one calendar year at a
+  time (January to December in the viewer's time zone) with previous/next
+  year navigation and a car filter, instead of the whole history
+  (`dashboard`).
 - **SCR-03** — `/profile` (`old/pages/profile.tsx`). Shows a form to edit
   the caller's own user info (email, firstname, lastname; backed by
   `EP-34`/`EP-35`) and a read-only dump of the decoded JWT's claims
@@ -219,6 +222,9 @@ All authenticated endpoints require a `Bearer` JWT access token in the
   caller's cars via join. Optional `from`/`to` query params (`date >=
   from`, `date < to`). Returns `{ refuels, repairs, tickets }`, each an
   array of `{ id, date, amount, CarId }`. Sort: `date ASC` per list.
+  Covered in the rewrite by `GET /api/v1/stats/expenses`, which requires a
+  `from`/`to` instant range and returns one `{ date, kind, amount }` row per
+  expense; the browser groups the rows into local months (`dashboard`).
 - **EP-29** — `GET /api/v1/tickets` (`old/pages/api/v1/tickets/index.ts`).
   Same pattern as `EP-18`/`EP-23` for tickets. Sort: `date ASC`.
 - **EP-30** — `GET /api/v1/tickets/{ticketId}`

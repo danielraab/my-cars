@@ -4,6 +4,7 @@ import { LoaderCircle, Plus, ReceiptText, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { allCarsQueryOptions } from '#/cars/queries'
+import { CarSelect } from '#/components/car-select'
 import { DateRangeControl } from '#/components/date-range-control'
 import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
 import { type ListSearch, validateListSearch } from '#/lib/list-search'
@@ -65,25 +66,13 @@ function TicketsPage() {
       </header>
 
       <div className="list-toolbar">
-        <div className="form-field">
-          <label htmlFor="ticket-filter">{t('tickets.filter')}</label>
-          <div className="input-wrap">
-            <select
-              id="ticket-filter"
-              value={carId}
-              onChange={(event) =>
-                update({ carId: event.target.value || undefined })
-              }
-            >
-              <option value="">{t('tickets.allCars')}</option>
-              {cars.data?.items.map((car) => (
-                <option key={car.id} value={car.id}>
-                  {car.make} {car.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <CarSelect
+          id="ticket-filter"
+          label={t('tickets.filter')}
+          allLabel={t('tickets.allCars')}
+          value={search.carId}
+          onChange={(carId) => update({ carId })}
+        />
         <DateRangeControl from={from} to={search.to} onChange={update} />
       </div>
 

@@ -4,6 +4,7 @@ import { LoaderCircle, Plus, RefreshCw, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { allCarsQueryOptions } from '#/cars/queries'
+import { CarSelect } from '#/components/car-select'
 import { DateRangeControl } from '#/components/date-range-control'
 import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
 import { type ListSearch, validateListSearch } from '#/lib/list-search'
@@ -65,25 +66,13 @@ function RepairsPage() {
       </header>
 
       <div className="list-toolbar">
-        <div className="form-field">
-          <label htmlFor="repair-filter">{t('repairs.filter')}</label>
-          <div className="input-wrap">
-            <select
-              id="repair-filter"
-              value={carId}
-              onChange={(event) =>
-                update({ carId: event.target.value || undefined })
-              }
-            >
-              <option value="">{t('repairs.allCars')}</option>
-              {cars.data?.items.map((car) => (
-                <option key={car.id} value={car.id}>
-                  {car.make} {car.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <CarSelect
+          id="repair-filter"
+          label={t('repairs.filter')}
+          allLabel={t('repairs.allCars')}
+          value={search.carId}
+          onChange={(carId) => update({ carId })}
+        />
         <DateRangeControl from={from} to={search.to} onChange={update} />
       </div>
 

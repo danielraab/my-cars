@@ -32,6 +32,14 @@ export type RefuelUpdate = components['schemas']['RefuelUpdate']
 export type RefuelPage = components['schemas']['RefuelPage']
 export type RefuelChart = components['schemas']['RefuelChart']
 export type RefuelFuel = Refuel['fuel']
+export type ExpenseStatistics = components['schemas']['ExpenseStatistics']
+export type ExpenseRow = ExpenseStatistics['items'][number]
+export type ExpenseKind = ExpenseRow['kind']
+export const expenseKinds: readonly ExpenseKind[] = [
+  'refuel',
+  'repair',
+  'ticket',
+]
 export const refuelFuels: readonly RefuelFuel[] = ['normal', 'special', 'other']
 
 export const repairTypes: readonly RepairType[] = [
@@ -203,6 +211,20 @@ function isRefuelPage(value: unknown): value is RefuelPage {
 function isRefuelChart(value: unknown): value is RefuelChart {
   return (
     isRecord(value) && Array.isArray(value.items) && value.items.every(isRefuel)
+  )
+}
+
+function isExpenseStatistics(value: unknown): value is ExpenseStatistics {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.items) &&
+    value.items.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.date === 'string' &&
+        typeof item.amount === 'string' &&
+        expenseKinds.some((kind) => kind === item.kind),
+    )
   )
 }
 
@@ -560,6 +582,18 @@ export async function getRefuelChart(
   return decoded(
     await fetchApi(`/api/v1/refuels/chart${q.size ? `?${q}` : ''}`),
     isRefuelChart,
+  )
+}
+// Every expense of the caller's in [from, to), optionally for one car, as
+// rows the client groups itself: only it knows the viewer's time zone.
+export async function getExpenseStatistics(
+  filter: ExpenseFilter & { from: string; to: string },
+): Promise<ExpenseStatistics> {
+  const q = new URLSearchParams()
+  setFilter(q, filter)
+  return decoded(
+    await fetchApi(`/api/v1/stats/expenses?${q}`),
+    isExpenseStatistics,
   )
 }
 export async function createRefuel(input: RefuelInput): Promise<Refuel> {

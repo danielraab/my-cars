@@ -4,6 +4,7 @@ import { Fuel, LoaderCircle, Plus, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { allCarsQueryOptions } from '#/cars/queries'
+import { CarSelect } from '#/components/car-select'
 import { DateRangeControl } from '#/components/date-range-control'
 import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
 import { type ListSearch, validateListSearch } from '#/lib/list-search'
@@ -74,25 +75,13 @@ function RefuelsPage() {
       </header>
 
       <div className="list-toolbar">
-        <div className="form-field">
-          <label htmlFor="refuel-filter">{t('refuels.filter')}</label>
-          <div className="input-wrap">
-            <select
-              id="refuel-filter"
-              value={carId}
-              onChange={(event) =>
-                update({ carId: event.target.value || undefined })
-              }
-            >
-              <option value="">{t('refuels.allCars')}</option>
-              {cars.data?.items.map((car) => (
-                <option key={car.id} value={car.id}>
-                  {car.make} {car.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <CarSelect
+          id="refuel-filter"
+          label={t('refuels.filter')}
+          allLabel={t('refuels.allCars')}
+          value={search.carId}
+          onChange={(carId) => update({ carId })}
+        />
         <DateRangeControl from={from} to={search.to} onChange={update} />
       </div>
 

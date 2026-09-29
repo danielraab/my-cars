@@ -550,8 +550,7 @@ select:focus-visible {
   place-items: center;
 }
 
-.status-card,
-.deferred-page {
+.status-card {
   width: min(560px, 100%);
   padding: clamp(1.5rem, 5vw, 3rem);
   background: white;
@@ -560,16 +559,14 @@ select:focus-visible {
   box-shadow: 0 22px 60px rgb(28 48 41 / 10%);
 }
 
-.status-card h1,
-.deferred-page h1 {
+.status-card h1 {
   margin: 0.8rem 0;
   font-size: clamp(1.8rem, 4vw, 3rem);
   letter-spacing: -0.05em;
   line-height: 1;
 }
 
-.status-card > p:not(.eyebrow),
-.deferred-page > p:not(.eyebrow) {
+.status-card > p:not(.eyebrow) {
   margin: 0 0 1.5rem;
   color: var(--muted);
   line-height: 1.6;
@@ -651,14 +648,6 @@ select:focus-visible {
   min-height: 100vh;
   margin-left: 265px;
   padding: clamp(2rem, 7vw, 6rem);
-}
-
-.deferred-page {
-  margin: min(12vh, 7rem) auto 0;
-}
-
-.deferred-page .status-icon {
-  margin-bottom: 1.4rem;
 }
 
 .mobile-header,
@@ -1186,6 +1175,112 @@ select:focus-visible {
 
 .chart-consumption {
   --series: #0f766e;
+}
+
+.chart-refuel {
+  --series: #2563eb;
+}
+
+.chart-repair {
+  --series: #0f766e;
+}
+
+.chart-ticket {
+  --series: #dc2626;
+}
+
+.bar-chart {
+  margin: 0;
+}
+
+.dashboard-cars ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-cars a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  height: 100%;
+  padding: 0.9rem 1rem;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  overflow-wrap: anywhere;
+  transition: border-color 160ms ease;
+}
+
+.dashboard-cars a:hover {
+  border-color: var(--navy);
+}
+
+.dashboard-cars svg {
+  flex: none;
+  color: var(--navy);
+}
+
+.dashboard-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1.4rem;
+  padding: 0;
+  list-style: none;
+}
+
+.year-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.year-stepper output {
+  min-width: 3.5rem;
+  color: var(--navy);
+  font-size: 1.15rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.chart-bar {
+  fill: var(--series);
+}
+
+/* One label per bar, centred under its slot. */
+.bar-chart-x-axis {
+  display: grid;
+  text-align: center;
+}
+
+.bar-chart-x-axis > span {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.axis-label-narrow {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .axis-label-wide {
+    display: none;
+  }
+
+  .axis-label-narrow {
+    display: inline;
+  }
 }
 
 .chart-legend {

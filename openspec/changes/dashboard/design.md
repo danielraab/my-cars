@@ -115,7 +115,8 @@
 ### D4. Grouping lives in a pure helper
 
 - `dashboard/monthly-expenses.ts` exports
-  `monthlyExpenses(items): MonthTotals[12]`. Each month holds a
+  `monthlyExpenses(items, year): MonthTotals[]` (twelve entries, rows
+  outside the local year ignored). Each month holds a
   `refuel`/`repair`/`ticket` total, computed with `sumDecimals` and
   bucketed by local month.
 - It is unit-tested with the process time zone set to one ahead of UTC,
@@ -126,7 +127,9 @@
 ### D5. `StackedBarChart` beside `LineChart`
 
 - `components/stacked-bar-chart.tsx` takes
-  `{ categories: string[], series: { key, className, label, values: number[] }[], formatValue, label, empty }`.
+  `{ categories: string[], series: { key, className, label, values: string[] }[], formatValue, label, categoryLabel, totalLabel, empty }`.
+  Values are decimal strings, so the table's per-category totals are exact
+  sums (`sumDecimals`); only the bar geometry uses `Number`.
 - It draws in the same stretched 100×100 SVG: one `<rect>` per non-zero
   segment, stacked upward from the baseline, with categories evenly
   spaced. The y-axis runs from 0 to the largest stacked total, and there
@@ -140,6 +143,12 @@
   Tests query that table instead of SVG geometry.
 - When every value is zero it renders `empty`, the same as `LineChart`.
 - Month labels come from `Intl.DateTimeFormat(locale, { month: 'short' })`.
+  Below 600px the axis switches to optional `narrowCategories` (`month:
+  'narrow'`, e.g. "J F M"), because twelve short names don't fit a phone.
+  The table keeps the short names.
+- The hidden table sits in an `.sr-only` wrapper rather than carrying the
+  class itself: a table ignores the 1px width and grows to its content,
+  which scrolled the page sideways at phone width.
 - *Alternative: add a chart library.* Rejected: the project has kept
   charts dependency-free, and one stacked bar layout is small.
 
@@ -177,13 +186,13 @@
 
 - The header matches the other screens: icon, eyebrow, title and
   description.
-- **Car cards:** a wrapping grid of links (`Link to="/cars/$carId"`) with a
+- **Car cards:** a labelled section holding a wrapping grid of links (`Link to="/cars/$carId"`) with a
   lucide icon picked case-insensitively from the type (`car` → `CarFront`,
   `truck` → `Truck`, `bike`/`motorcycle` → `Bike`, otherwise `Car`) and
   `make name`. The cards come from `allCarsQueryOptions`, the same query
   `CarSelect` uses, so there is one request. If loading the cars fails,
   the cards area is left out; the chart has its own error state.
-- **Shortcuts:** three `Link`s to `/refuels/create`, `/repairs/create` and
+- **Shortcuts:** a labelled list of three `Link`s to `/refuels/create`, `/repairs/create` and
   `/tickets/create`, each with `search={carId ? { carId } : {}}`.
 - **Toolbar:** a `.list-toolbar` holding `CarSelect` and the year stepper
   (`‹ 2026 ›`), then the chart card with its loading, error and empty

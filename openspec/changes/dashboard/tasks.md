@@ -43,37 +43,37 @@
 
 ## 3. Frontend building blocks
 
-- [ ] 3.1 Add `getExpenseStatistics({ from, to, carId? })` to
+- [x] 3.1 Add `getExpenseStatistics({ from, to, carId? })` to
   `api/client.ts` and `expenseStatisticsQueryOptions` in
   `dashboard/queries.ts`, keyed by the filter. Verify with a client test
   that the query string carries all three parameters and that a missing
   `carId` is left out.
-- [ ] 3.2 Add `lib/decimal.ts` with `sumDecimals` (D3). Verify with unit
+- [x] 3.2 Add `lib/decimal.ts` with `sumDecimals` (D3). Verify with unit
   tests: `0.1 + 0.2` gives `0.3`, mixed scales (`1.5 + 2.25 + 3`), three
   fraction digits kept, an empty list gives `0`.
-- [ ] 3.3 Add `yearToInstants(year)` to `lib/date-range.ts` (D7). Verify
+- [x] 3.3 Add `yearToInstants(year)` to `lib/date-range.ts` (D7). Verify
   with a unit test that it returns local midnight on 1 January of the year
   and of the following year, as ISO instants.
-- [ ] 3.4 Add `dashboard/monthly-expenses.ts` with `monthlyExpenses` (D4).
+- [x] 3.4 Add `dashboard/monthly-expenses.ts` with `monthlyExpenses` (D4).
   Verify with unit tests run in a time zone ahead of UTC (for example
   `Europe/Vienna`):
   - an expense at 00:30 local time on 1 April counts in April;
   - the totals per kind use exact sums;
   - months without expenses are zero;
   - a daylight-saving day is handled correctly.
-- [ ] 3.5 Add `components/stacked-bar-chart.tsx` and the `.chart-refuel`,
+- [x] 3.5 Add `components/stacked-bar-chart.tsx` and the `.chart-refuel`,
   `.chart-repair` and `.chart-ticket` series styles (D5). Verify with a
   component test:
   - it renders the SVG with its label and a legend naming the series;
   - the hidden table lists every category with its formatted values and
     sum;
   - all-zero input renders `empty`.
-- [ ] 3.6 Extract `components/car-select.tsx` (D6) and switch `/refuels`,
+- [x] 3.6 Extract `components/car-select.tsx` (D6) and switch `/refuels`,
   `/repairs` and `/tickets` to it with their existing ids and labels.
   Verify that no `<select` bound to a car filter is left in those three
   route files, and that the existing refuels, repairs and tickets route
   tests pass unchanged.
-- [ ] 3.7 Add `dashboard/search.ts` with `validateDashboardSearch`,
+- [x] 3.7 Add `dashboard/search.ts` with `validateDashboardSearch`,
   exporting the UUID pattern from `lib/list-search.ts` instead of copying
   it (D7). Verify with unit tests: a valid year as string and as number,
   `abc`/`20245`/missing → `undefined`, a valid and a malformed `carId`,
@@ -81,7 +81,7 @@
 
 ## 4. Dashboard route
 
-- [ ] 4.1 Replace `routes/_authenticated/home.tsx` with the dashboard
+- [x] 4.1 Replace `routes/_authenticated/home.tsx` with the dashboard
   (D7, D8): header, car cards, the three create shortcuts, the toolbar with
   `CarSelect` and the year stepper, and the chart card with loading,
   retryable error and empty states. It requests `yearToInstants(year)`
@@ -97,12 +97,12 @@
   - car cards link to `/cars/$carId`;
   - an empty year shows the empty state, and a failing request shows the
     error, whose retry refetches.
-- [ ] 4.2 Add the `dashboard.*` messages in de and en: eyebrow, title,
+- [x] 4.2 Add the `dashboard.*` messages in de and en: eyebrow, title,
   description, shortcuts, filter labels, previous/next year labels, chart
   label, series names, table headers, and the loading, empty and error
   states. Verify with a route test that the dashboard renders in German,
   including German month names.
-- [ ] 4.3 Delete `components/deferred-page.tsx`, its `.deferred-page`
+- [x] 4.3 Delete `components/deferred-page.tsx`, its `.deferred-page`
   styles and the `unavailable.*` messages. Replace the `/home` case of the
   placeholder test in `routes/-app.test.tsx` with a check that `/home`
   renders the dashboard inside the shell. Verify that
@@ -111,7 +111,7 @@
 
 ## 5. Parity checklist
 
-- [ ] 5.1 Update `SCR-02` and `EP-28` in `docs/parity-checklist.md` to say
+- [x] 5.1 Update `SCR-02` and `EP-28` in `docs/parity-checklist.md` to say
   how the rewrite covers them:
   - one calendar year at a time with previous/next navigation, plus a car
     filter;
@@ -123,10 +123,10 @@
 
 ## 6. Integration
 
-- [ ] 6.1 Run `pnpm check`, `pnpm typecheck`, `pnpm test` and
+- [x] 6.1 Run `pnpm check`, `pnpm typecheck`, `pnpm test` and
   `pnpm check:api` in `frontend/`, and `go vet ./...` and `go test ./...`
   in `backend/`. Verify that they all pass.
-- [ ] 6.2 Run the app against seeded data and open `/home`. Verify:
+- [x] 6.2 Run the app against seeded data and open `/home`. Verify:
   - the bars match the `/refuels`, `/repairs` and `/tickets` totals for
     the same car and year;
   - previous/next and the car filter survive a reload;

@@ -102,6 +102,11 @@ export const resources = {
           invalid: 'Check this value.',
         },
       },
+      dateRange: {
+        label: 'Date range',
+        from: 'From',
+        to: 'To',
+      },
       cars: {
         eyebrow: 'Your garage',
         title: 'Cars',
@@ -172,11 +177,6 @@ export const resources = {
             expenses: 'Expenses',
             consumption: 'Consumption',
           },
-          range: {
-            label: 'Date range',
-            from: 'From',
-            to: 'To',
-          },
           expensesEmpty: {
             refuels: 'No refuels in this date range.',
             repairs: 'No repairs in this date range.',
@@ -229,7 +229,7 @@ export const resources = {
         loadErrorTitle: 'Refuels unavailable',
         loadError: 'We could not load your refuels. Please try again.',
         retry: 'Try again',
-        empty: 'You have not recorded a refuel yet.',
+        empty: 'No refuels in this date range.',
         tableLabel: 'Your refuels',
         loadMore: 'Load more refuels',
         loadingMore: 'Loading more refuels…',
@@ -311,12 +311,14 @@ export const resources = {
         eyebrow: 'Maintenance',
         title: 'Repairs',
         description: 'Services, checks and repairs across all your cars.',
+        filter: 'Filter by car',
+        allCars: 'All cars',
         add: 'Add repair',
         loading: 'Loading your repairs…',
         loadErrorTitle: 'Repairs unavailable',
         loadError: 'We could not load your repairs. Please try again.',
         retry: 'Try again',
-        empty: 'You have not recorded a repair yet.',
+        empty: 'No repairs in this date range.',
         tableLabel: 'Your repairs',
         loadMore: 'Load more repairs',
         loadingMore: 'Loading more repairs…',
@@ -599,6 +601,11 @@ export const resources = {
           invalid: 'Bitte überprüfe diesen Wert.',
         },
       },
+      dateRange: {
+        label: 'Zeitraum',
+        from: 'Von',
+        to: 'Bis',
+      },
       cars: {
         eyebrow: 'Deine Garage',
         title: 'Autos',
@@ -674,11 +681,6 @@ export const resources = {
             expenses: 'Ausgaben',
             consumption: 'Verbrauch',
           },
-          range: {
-            label: 'Zeitraum',
-            from: 'Von',
-            to: 'Bis',
-          },
           expensesEmpty: {
             refuels: 'Keine Tankvorgänge in diesem Zeitraum.',
             repairs: 'Keine Reparaturen in diesem Zeitraum.',
@@ -735,7 +737,7 @@ export const resources = {
         loadError:
           'Deine Tankvorgänge konnten nicht geladen werden. Bitte versuche es erneut.',
         retry: 'Erneut versuchen',
-        empty: 'Du hast noch keinen Tankvorgang erfasst.',
+        empty: 'Keine Tankvorgänge in diesem Zeitraum.',
         tableLabel: 'Deine Tankvorgänge',
         loadMore: 'Weitere Tankvorgänge laden',
         loadingMore: 'Weitere Tankvorgänge werden geladen…',
@@ -827,13 +829,15 @@ export const resources = {
         title: 'Reparaturen',
         description:
           'Services, Überprüfungen und Reparaturen all deiner Autos.',
+        filter: 'Nach Auto filtern',
+        allCars: 'Alle Autos',
         add: 'Reparatur hinzufügen',
         loading: 'Reparaturen werden geladen…',
         loadErrorTitle: 'Reparaturen nicht verfügbar',
         loadError:
           'Deine Reparaturen konnten nicht geladen werden. Bitte versuche es erneut.',
         retry: 'Erneut versuchen',
-        empty: 'Du hast noch keine Reparatur erfasst.',
+        empty: 'Keine Reparaturen in diesem Zeitraum.',
         tableLabel: 'Deine Reparaturen',
         loadMore: 'Weitere Reparaturen laden',
         loadingMore: 'Weitere Reparaturen werden geladen…',

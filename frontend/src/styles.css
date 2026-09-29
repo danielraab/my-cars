@@ -1067,12 +1067,24 @@ select:focus-visible {
 .list-toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: end;
   gap: 1rem;
   margin-bottom: 0.4rem;
 }
 
 .list-toolbar .form-field {
   width: min(20rem, 100%);
+  margin-bottom: 0;
+}
+
+/* Next to a car filter, the date range matches its field size. */
+.list-toolbar .date-range label {
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.list-toolbar .date-range input {
+  height: 3.1rem;
 }
 
 .chart-card {

@@ -1,5 +1,5 @@
-// The car detail screen's date range is kept in the URL as calendar dates
-// (YYYY-MM-DD) in the viewer's time zone, and turned into the instants the
+// Screens that filter by a date range keep it in the URL as calendar dates
+// (YYYY-MM-DD) in the viewer's time zone, and turn it into the instants the
 // API filters by only when a request is made.
 
 const calendarDate = /^(\d{4})-(\d{2})-(\d{2})$/

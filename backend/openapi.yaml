@@ -449,8 +449,27 @@ paths:
           $ref: '#/components/responses/ServerError'
   /tickets:
     get:
-      $ref: '#/components/pathItems/ExpenseCollection/get'
+      tags:
+      - Expenses
+      operationId: listTickets
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/CarFilter'
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/To'
       responses:
+        '200':
+          description: The caller's tickets ordered by date then ID. A `carId`
+            that names no car of the caller's yields an empty page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/ServerError'
     post:
@@ -478,8 +497,21 @@ paths:
           $ref: '#/components/responses/ServerError'
   /tickets/locations:
     get:
-      $ref: '#/components/pathItems/LocationSuggestions/get'
+      tags:
+      - Expenses
+      operationId: listTicketLocations
       responses:
+        '200':
+          description: Distinct locations from the caller's tickets, in
+            ascending order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/ServerError'
   /stats/expenses:
@@ -647,26 +679,6 @@ components:
             $ref: '#/components/responses/Unauthorized'
           '404':
             $ref: '#/components/responses/NotFound'
-          default:
-            $ref: '#/components/responses/ServerError'
-    ExpenseCollection:
-      get:
-        tags:
-        - Expenses
-        operationId: listExpenses
-        parameters:
-        - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/CarFilter'
-        - $ref: '#/components/parameters/From'
-        - $ref: '#/components/parameters/To'
-        responses:
-          '200':
-            description: Paginated records ordered by date then ID.
-          '400':
-            $ref: '#/components/responses/BadRequest'
-          '401':
-            $ref: '#/components/responses/Unauthorized'
           default:
             $ref: '#/components/responses/ServerError'
     RefuelCreate:
@@ -913,41 +925,6 @@ components:
             $ref: '#/components/responses/Unauthorized'
           '404':
             $ref: '#/components/responses/NotFound'
-          default:
-            $ref: '#/components/responses/ServerError'
-    StationSuggestions:
-      get:
-        tags:
-        - Expenses
-        responses:
-          '200':
-            description: Distinct caller-owned station names.
-            content:
-              application/json:
-                schema:
-                  type: array
-                  items:
-                    type: string
-          '401':
-            $ref: '#/components/responses/Unauthorized'
-          default:
-            $ref: '#/components/responses/ServerError'
-    LocationSuggestions:
-      get:
-        tags:
-        - Expenses
-        operationId: listTicketLocations
-        responses:
-          '200':
-            description: Distinct caller-owned locations.
-            content:
-              application/json:
-                schema:
-                  type: array
-                  items:
-                    type: string
-          '401':
-            $ref: '#/components/responses/Unauthorized'
           default:
             $ref: '#/components/responses/ServerError'
   schemas:
@@ -1198,23 +1175,6 @@ components:
           type:
           - string
           - 'null'
-    ExpenseBase:
-      type: object
-      required:
-      - id
-      - carId
-      - date
-      - amount
-      properties:
-        id:
-          $ref: '#/components/schemas/UUID'
-        carId:
-          $ref: '#/components/schemas/UUID'
-        date:
-          type: string
-          format: date-time
-        amount:
-          $ref: '#/components/schemas/Decimal'
     RefuelInput:
       type: object
       additionalProperties: false
@@ -1445,6 +1405,7 @@ components:
           - 'null'
     TicketInput:
       type: object
+      additionalProperties: false
       required:
       - carId
       - date
@@ -1471,6 +1432,7 @@ components:
           type: string
     TicketUpdate:
       type: object
+      additionalProperties: false
       minProperties: 1
       properties:
         date:
@@ -1489,9 +1451,51 @@ components:
         description:
           type: string
     Ticket:
-      allOf:
-      - $ref: '#/components/schemas/ExpenseBase'
-      - $ref: '#/components/schemas/TicketInput'
+      type: object
+      description: A ticket. Every member is always present; `description` is
+        empty when not recorded.
+      required:
+      - id
+      - carId
+      - date
+      - type
+      - location
+      - amount
+      - description
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        carId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+          - parking
+          - velocity
+          - other
+        location:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        description:
+          type: string
+    TicketPage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        nextCursor:
+          type:
+          - string
+          - 'null'
     RefuelChart:
       type: object
       required:

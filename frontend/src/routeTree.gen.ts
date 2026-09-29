@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedTicketsRouteImport } from './routes/_authenticated/tickets'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthenticatedCarsIndexRouteImport } from './routes/_authenticated/cars/index'
 import { Route as AuthenticatedCarsCreateRouteImport } from './routes/_authenticated/cars/create'
@@ -21,10 +20,13 @@ import { Route as AuthenticatedRefuelsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedRefuelsCreateRouteImport } from './routes/_authenticated/refuels/create'
 import { Route as AuthenticatedRepairsIndexRouteImport } from './routes/_authenticated/repairs/index'
 import { Route as AuthenticatedRepairsCreateRouteImport } from './routes/_authenticated/repairs/create'
+import { Route as AuthenticatedTicketsIndexRouteImport } from './routes/_authenticated/tickets/index'
+import { Route as AuthenticatedTicketsCreateRouteImport } from './routes/_authenticated/tickets/create'
 import { Route as AuthenticatedCarsCarIdIndexRouteImport } from './routes/_authenticated/cars/$carId/index'
 import { Route as AuthenticatedCarsCarIdEditRouteImport } from './routes/_authenticated/cars/$carId/edit'
 import { Route as AuthenticatedRefuelsRefuelIdEditRouteImport } from './routes/_authenticated/refuels/$refuelId/edit'
 import { Route as AuthenticatedRepairsRepairIdEditRouteImport } from './routes/_authenticated/repairs/$repairId/edit'
+import { Route as AuthenticatedTicketsTicketIdEditRouteImport } from './routes/_authenticated/tickets/$ticketId/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -43,11 +45,6 @@ const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedTicketsRoute = AuthenticatedTicketsRouteImport.update({
-  id: '/tickets',
-  path: '/tickets',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -89,6 +86,18 @@ const AuthenticatedRepairsCreateRoute =
     path: '/repairs/create',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTicketsIndexRoute =
+  AuthenticatedTicketsIndexRouteImport.update({
+    id: '/tickets/',
+    path: '/tickets/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTicketsCreateRoute =
+  AuthenticatedTicketsCreateRouteImport.update({
+    id: '/tickets/create',
+    path: '/tickets/create',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCarsCarIdIndexRoute =
   AuthenticatedCarsCarIdIndexRouteImport.update({
     id: '/cars/$carId/',
@@ -113,39 +122,49 @@ const AuthenticatedRepairsRepairIdEditRoute =
     path: '/repairs/$repairId/edit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTicketsTicketIdEditRoute =
+  AuthenticatedTicketsTicketIdEditRouteImport.update({
+    id: '/tickets/$ticketId/edit',
+    path: '/tickets/$ticketId/edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/home': typeof AuthenticatedHomeRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
   '/cars/create': typeof AuthenticatedCarsCreateRoute
   '/refuels/create': typeof AuthenticatedRefuelsCreateRoute
   '/repairs/create': typeof AuthenticatedRepairsCreateRoute
+  '/tickets/create': typeof AuthenticatedTicketsCreateRoute
   '/cars/': typeof AuthenticatedCarsIndexRoute
   '/refuels/': typeof AuthenticatedRefuelsIndexRoute
   '/repairs/': typeof AuthenticatedRepairsIndexRoute
+  '/tickets/': typeof AuthenticatedTicketsIndexRoute
   '/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
   '/refuels/$refuelId/edit': typeof AuthenticatedRefuelsRefuelIdEditRoute
   '/repairs/$repairId/edit': typeof AuthenticatedRepairsRepairIdEditRoute
+  '/tickets/$ticketId/edit': typeof AuthenticatedTicketsTicketIdEditRoute
   '/cars/$carId/': typeof AuthenticatedCarsCarIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/home': typeof AuthenticatedHomeRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
   '/cars/create': typeof AuthenticatedCarsCreateRoute
   '/refuels/create': typeof AuthenticatedRefuelsCreateRoute
   '/repairs/create': typeof AuthenticatedRepairsCreateRoute
+  '/tickets/create': typeof AuthenticatedTicketsCreateRoute
   '/cars': typeof AuthenticatedCarsIndexRoute
   '/refuels': typeof AuthenticatedRefuelsIndexRoute
   '/repairs': typeof AuthenticatedRepairsIndexRoute
+  '/tickets': typeof AuthenticatedTicketsIndexRoute
   '/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
   '/refuels/$refuelId/edit': typeof AuthenticatedRefuelsRefuelIdEditRoute
   '/repairs/$repairId/edit': typeof AuthenticatedRepairsRepairIdEditRoute
+  '/tickets/$ticketId/edit': typeof AuthenticatedTicketsTicketIdEditRoute
   '/cars/$carId': typeof AuthenticatedCarsCarIdIndexRoute
 }
 export interface FileRoutesById {
@@ -154,17 +173,19 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
-  '/_authenticated/tickets': typeof AuthenticatedTicketsRoute
   '/auth/login': typeof AuthLoginRoute
   '/_authenticated/cars/create': typeof AuthenticatedCarsCreateRoute
   '/_authenticated/refuels/create': typeof AuthenticatedRefuelsCreateRoute
   '/_authenticated/repairs/create': typeof AuthenticatedRepairsCreateRoute
+  '/_authenticated/tickets/create': typeof AuthenticatedTicketsCreateRoute
   '/_authenticated/cars/': typeof AuthenticatedCarsIndexRoute
   '/_authenticated/refuels/': typeof AuthenticatedRefuelsIndexRoute
   '/_authenticated/repairs/': typeof AuthenticatedRepairsIndexRoute
+  '/_authenticated/tickets/': typeof AuthenticatedTicketsIndexRoute
   '/_authenticated/cars/$carId/edit': typeof AuthenticatedCarsCarIdEditRoute
   '/_authenticated/refuels/$refuelId/edit': typeof AuthenticatedRefuelsRefuelIdEditRoute
   '/_authenticated/repairs/$repairId/edit': typeof AuthenticatedRepairsRepairIdEditRoute
+  '/_authenticated/tickets/$ticketId/edit': typeof AuthenticatedTicketsTicketIdEditRoute
   '/_authenticated/cars/$carId/': typeof AuthenticatedCarsCarIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -173,34 +194,38 @@ export interface FileRouteTypes {
     | '/'
     | '/home'
     | '/profile'
-    | '/tickets'
     | '/auth/login'
     | '/cars/create'
     | '/refuels/create'
     | '/repairs/create'
+    | '/tickets/create'
     | '/cars/'
     | '/refuels/'
     | '/repairs/'
+    | '/tickets/'
     | '/cars/$carId/edit'
     | '/refuels/$refuelId/edit'
     | '/repairs/$repairId/edit'
+    | '/tickets/$ticketId/edit'
     | '/cars/$carId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/home'
     | '/profile'
-    | '/tickets'
     | '/auth/login'
     | '/cars/create'
     | '/refuels/create'
     | '/repairs/create'
+    | '/tickets/create'
     | '/cars'
     | '/refuels'
     | '/repairs'
+    | '/tickets'
     | '/cars/$carId/edit'
     | '/refuels/$refuelId/edit'
     | '/repairs/$repairId/edit'
+    | '/tickets/$ticketId/edit'
     | '/cars/$carId'
   id:
     | '__root__'
@@ -208,17 +233,19 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/home'
     | '/_authenticated/profile'
-    | '/_authenticated/tickets'
     | '/auth/login'
     | '/_authenticated/cars/create'
     | '/_authenticated/refuels/create'
     | '/_authenticated/repairs/create'
+    | '/_authenticated/tickets/create'
     | '/_authenticated/cars/'
     | '/_authenticated/refuels/'
     | '/_authenticated/repairs/'
+    | '/_authenticated/tickets/'
     | '/_authenticated/cars/$carId/edit'
     | '/_authenticated/refuels/$refuelId/edit'
     | '/_authenticated/repairs/$repairId/edit'
+    | '/_authenticated/tickets/$ticketId/edit'
     | '/_authenticated/cars/$carId/'
   fileRoutesById: FileRoutesById
 }
@@ -256,13 +283,6 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/tickets': {
-      id: '/_authenticated/tickets'
-      path: '/tickets'
-      fullPath: '/tickets'
-      preLoaderRoute: typeof AuthenticatedTicketsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/auth/login': {
@@ -314,6 +334,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRepairsCreateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tickets/': {
+      id: '/_authenticated/tickets/'
+      path: '/tickets'
+      fullPath: '/tickets/'
+      preLoaderRoute: typeof AuthenticatedTicketsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tickets/create': {
+      id: '/_authenticated/tickets/create'
+      path: '/tickets/create'
+      fullPath: '/tickets/create'
+      preLoaderRoute: typeof AuthenticatedTicketsCreateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cars/$carId/': {
       id: '/_authenticated/cars/$carId/'
       path: '/cars/$carId'
@@ -342,38 +376,49 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRepairsRepairIdEditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tickets/$ticketId/edit': {
+      id: '/_authenticated/tickets/$ticketId/edit'
+      path: '/tickets/$ticketId/edit'
+      fullPath: '/tickets/$ticketId/edit'
+      preLoaderRoute: typeof AuthenticatedTicketsTicketIdEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
-  AuthenticatedTicketsRoute: typeof AuthenticatedTicketsRoute
   AuthenticatedCarsCreateRoute: typeof AuthenticatedCarsCreateRoute
   AuthenticatedRefuelsCreateRoute: typeof AuthenticatedRefuelsCreateRoute
   AuthenticatedRepairsCreateRoute: typeof AuthenticatedRepairsCreateRoute
+  AuthenticatedTicketsCreateRoute: typeof AuthenticatedTicketsCreateRoute
   AuthenticatedCarsIndexRoute: typeof AuthenticatedCarsIndexRoute
   AuthenticatedRefuelsIndexRoute: typeof AuthenticatedRefuelsIndexRoute
   AuthenticatedRepairsIndexRoute: typeof AuthenticatedRepairsIndexRoute
+  AuthenticatedTicketsIndexRoute: typeof AuthenticatedTicketsIndexRoute
   AuthenticatedCarsCarIdEditRoute: typeof AuthenticatedCarsCarIdEditRoute
   AuthenticatedRefuelsRefuelIdEditRoute: typeof AuthenticatedRefuelsRefuelIdEditRoute
   AuthenticatedRepairsRepairIdEditRoute: typeof AuthenticatedRepairsRepairIdEditRoute
+  AuthenticatedTicketsTicketIdEditRoute: typeof AuthenticatedTicketsTicketIdEditRoute
   AuthenticatedCarsCarIdIndexRoute: typeof AuthenticatedCarsCarIdIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
-  AuthenticatedTicketsRoute: AuthenticatedTicketsRoute,
   AuthenticatedCarsCreateRoute: AuthenticatedCarsCreateRoute,
   AuthenticatedRefuelsCreateRoute: AuthenticatedRefuelsCreateRoute,
   AuthenticatedRepairsCreateRoute: AuthenticatedRepairsCreateRoute,
+  AuthenticatedTicketsCreateRoute: AuthenticatedTicketsCreateRoute,
   AuthenticatedCarsIndexRoute: AuthenticatedCarsIndexRoute,
   AuthenticatedRefuelsIndexRoute: AuthenticatedRefuelsIndexRoute,
   AuthenticatedRepairsIndexRoute: AuthenticatedRepairsIndexRoute,
+  AuthenticatedTicketsIndexRoute: AuthenticatedTicketsIndexRoute,
   AuthenticatedCarsCarIdEditRoute: AuthenticatedCarsCarIdEditRoute,
   AuthenticatedRefuelsRefuelIdEditRoute: AuthenticatedRefuelsRefuelIdEditRoute,
   AuthenticatedRepairsRepairIdEditRoute: AuthenticatedRepairsRepairIdEditRoute,
+  AuthenticatedTicketsTicketIdEditRoute: AuthenticatedTicketsTicketIdEditRoute,
   AuthenticatedCarsCarIdIndexRoute: AuthenticatedCarsCarIdIndexRoute,
 }
 

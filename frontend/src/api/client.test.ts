@@ -4,8 +4,10 @@ import {
   ApiError,
   createCar,
   createRepair,
+  createTicket,
   deleteCar,
   deleteRepair,
+  deleteTicket,
   getAuthenticationMethods,
   getCar,
   getCars,
@@ -14,12 +16,16 @@ import {
   getRepairStations,
   getRepairs,
   getSession,
+  getTicket,
+  getTicketLocations,
+  getTickets,
   logout,
   requestMagicLink,
   UnauthorizedError,
   updateCar,
   updateMe,
   updateRepair,
+  updateTicket,
 } from './client'
 
 const session = {
@@ -494,6 +500,122 @@ describe('repairs API client', () => {
   it('rejects malformed station suggestions', async () => {
     stub(200, ['Alpha', 3])
     await expect(getRepairStations()).rejects.toMatchObject({
+      code: 'invalid_response',
+    })
+  })
+})
+
+describe('tickets API client', () => {
+  const ticket = {
+    id: '5e8d3c2f-9b4a-4d7e-8f1a-2b3c4d5e6f70',
+    carId: '9b0a5f0e-5d8f-4a55-9d59-0b8f1f3c2a10',
+    date: '2026-09-27T10:30:00Z',
+    type: 'parking',
+    location: 'Vienna',
+    amount: '36.00',
+    description: '',
+  }
+
+  function stub(status: number, body?: unknown) {
+    const fetchMock = vi.fn(
+      async (_path: string, _init?: RequestInit) =>
+        new Response(body === undefined ? null : JSON.stringify(body), {
+          status,
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('reads a page of tickets and passes the cursor and car filter', async () => {
+    const page = { items: [ticket], nextCursor: 'next' }
+    const fetchMock = stub(200, page)
+
+    await expect(getTickets()).resolves.toEqual(page)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/tickets')
+
+    await getTickets({ cursor: 'a/b', limit: 10, carId: ticket.carId })
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      `/api/v1/tickets?cursor=a%2Fb&limit=10&carId=${ticket.carId}`,
+    )
+  })
+
+  it('creates, reads, updates and deletes a ticket', async () => {
+    let fetchMock = stub(201, ticket)
+    await expect(
+      createTicket({
+        carId: ticket.carId,
+        date: ticket.date,
+        type: 'parking',
+        location: 'Vienna',
+        amount: '36.00',
+      }),
+    ).resolves.toEqual(ticket)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/tickets')
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('POST')
+
+    fetchMock = stub(200, ticket)
+    await expect(getTicket(ticket.id)).resolves.toEqual(ticket)
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/v1/tickets/${ticket.id}`)
+
+    fetchMock = stub(200, { ...ticket, description: 'Radar' })
+    await expect(
+      updateTicket(ticket.id, { description: 'Radar' }),
+    ).resolves.toMatchObject({ description: 'Radar' })
+    const [path, init] = fetchMock.mock.calls[0]
+    expect(path).toBe(`/api/v1/tickets/${ticket.id}`)
+    expect(init?.method).toBe('PATCH')
+    expect(init?.body).toBe('{"description":"Radar"}')
+
+    fetchMock = stub(204)
+    await expect(deleteTicket(ticket.id)).resolves.toBeUndefined()
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE')
+  })
+
+  it('reads the location suggestions', async () => {
+    const fetchMock = stub(200, ['Graz', 'Vienna'])
+    await expect(getTicketLocations()).resolves.toEqual(['Graz', 'Vienna'])
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/tickets/locations')
+  })
+
+  it('exposes ticket validation field reasons', async () => {
+    stub(400, {
+      code: 'validation_failed',
+      message: 'request validation failed',
+      fields: { location: 'empty' },
+    })
+    await expect(
+      updateTicket(ticket.id, { location: ' ' }),
+    ).rejects.toMatchObject({
+      status: 400,
+      fields: { location: 'empty' },
+    })
+  })
+
+  it('treats a ticket 401 as unauthorized and keeps a 404', async () => {
+    stub(401, { code: 'unauthorized', message: 'authentication required' })
+    await expect(getTickets()).rejects.toBeInstanceOf(UnauthorizedError)
+
+    stub(404, { code: 'not_found', message: 'resource not found' })
+    await expect(getTicket(ticket.id)).rejects.toMatchObject({
+      status: 404,
+      code: 'not_found',
+    })
+    await expect(deleteTicket(ticket.id)).rejects.toMatchObject({
+      status: 404,
+    })
+  })
+
+  it.each([
+    { items: [{ ...ticket, type: 'towing' }], nextCursor: null },
+    { items: [{ ...ticket, location: 3 }], nextCursor: null },
+    { items: [{ ...ticket, description: null }], nextCursor: null },
+    { items: [ticket] },
+    [ticket],
+  ])('rejects malformed ticket pages %#', async (body) => {
+    stub(200, body)
+    await expect(getTickets()).rejects.toMatchObject({
+      status: 502,
       code: 'invalid_response',
     })
   })

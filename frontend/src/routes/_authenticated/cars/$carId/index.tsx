@@ -8,13 +8,14 @@ import type { Car } from '#/api/client'
 import { CarConsumption } from '#/cars/car-consumption'
 import { CarExpenses } from '#/cars/car-expenses'
 import { CarStatus } from '#/cars/car-status'
+import { formatAmount, formatDate } from '#/cars/format'
+import { carQueryOptions } from '#/cars/queries'
+import { DateRangeControl } from '#/components/date-range-control'
 import {
   dateRangeToInstants,
   defaultFrom,
   isCalendarDate,
-} from '#/cars/date-range'
-import { formatAmount, formatDate } from '#/cars/format'
-import { carQueryOptions } from '#/cars/queries'
+} from '#/lib/date-range'
 
 const tabs = ['details', 'expenses', 'consumption'] as const
 type CarTab = (typeof tabs)[number]
@@ -100,7 +101,19 @@ function CarView({ car }: { car: Car }) {
             ))}
           </TabList>
           {tab === 'details' ? null : (
-            <DateRangeControl from={from} to={search.to} />
+            <DateRangeControl
+              from={from}
+              to={search.to}
+              onChange={(range) =>
+                // Typing a date replaces the history entry instead of adding
+                // one per keystroke. A cleared "from" goes back to the
+                // default; a cleared "to" leaves the range open.
+                navigate({
+                  replace: true,
+                  search: (previous) => ({ ...previous, ...range }),
+                })
+              }
+            />
           )}
         </div>
         <TabPanels>
@@ -116,46 +129,6 @@ function CarView({ car }: { car: Car }) {
         </TabPanels>
       </TabGroup>
     </section>
-  )
-}
-
-function DateRangeControl({ from, to }: { from: string; to?: string }) {
-  const { t } = useTranslation()
-  const navigate = Route.useNavigate()
-  // Typing a date replaces the history entry instead of adding one per
-  // keystroke. A cleared "from" goes back to the default; a cleared "to"
-  // leaves the range open.
-  const update = (key: 'from' | 'to', value: string) =>
-    navigate({
-      replace: true,
-      search: (previous) => ({
-        ...previous,
-        [key]: isCalendarDate(value) ? value : undefined,
-      }),
-    })
-
-  return (
-    <fieldset className="date-range">
-      <legend className="sr-only">{t('cars.detail.range.label')}</legend>
-      <label>
-        <span>{t('cars.detail.range.from')}</span>
-        <input
-          type="date"
-          value={from}
-          max={to}
-          onChange={(event) => update('from', event.target.value)}
-        />
-      </label>
-      <label>
-        <span>{t('cars.detail.range.to')}</span>
-        <input
-          type="date"
-          value={to ?? ''}
-          min={from}
-          onChange={(event) => update('to', event.target.value)}
-        />
-      </label>
-    </fieldset>
   )
 }
 

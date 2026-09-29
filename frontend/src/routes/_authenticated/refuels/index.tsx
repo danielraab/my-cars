@@ -1,10 +1,12 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Fuel, LoaderCircle, Plus, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { allCarsQueryOptions } from '#/cars/queries'
+import { DateRangeControl } from '#/components/date-range-control'
+import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
+import { type ListSearch, validateListSearch } from '#/lib/list-search'
 import { FuelPriceChart } from '#/refuels/fuel-price-chart'
 import {
   refuelChartQueryOptions,
@@ -13,13 +15,29 @@ import {
 import { RefuelTable } from '#/refuels/refuel-table'
 
 export const Route = createFileRoute('/_authenticated/refuels/')({
+  validateSearch: validateListSearch,
   component: RefuelsPage,
 })
 
 function RefuelsPage() {
   const { t } = useTranslation()
-  const [carId, setCarId] = useState('')
-  const filter = carId ? { carId } : {}
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const carId = search.carId ?? ''
+  // The default is not written into the URL, so a link without a range
+  // always means the last six months.
+  const from = search.from ?? defaultFrom()
+  const filter = {
+    ...(carId ? { carId } : {}),
+    ...dateRangeToInstants(from, search.to),
+  }
+  // Filter changes replace the history entry instead of adding one per
+  // selection or keystroke.
+  const update = (change: ListSearch) =>
+    navigate({
+      replace: true,
+      search: (previous) => ({ ...previous, ...change }),
+    })
   const refuels = useInfiniteQuery(refuelsListQueryOptions(filter))
   const chart = useQuery(refuelChartQueryOptions(filter))
   const cars = useQuery(allCarsQueryOptions)
@@ -62,7 +80,9 @@ function RefuelsPage() {
             <select
               id="refuel-filter"
               value={carId}
-              onChange={(event) => setCarId(event.target.value)}
+              onChange={(event) =>
+                update({ carId: event.target.value || undefined })
+              }
             >
               <option value="">{t('refuels.allCars')}</option>
               {cars.data?.items.map((car) => (
@@ -73,6 +93,7 @@ function RefuelsPage() {
             </select>
           </div>
         </div>
+        <DateRangeControl from={from} to={search.to} onChange={update} />
       </div>
 
       <section className="chart-card" aria-labelledby="refuels-chart-title">

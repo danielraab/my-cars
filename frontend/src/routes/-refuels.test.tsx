@@ -1,8 +1,9 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Car, Refuel } from '#/api/client'
 import { i18n } from '#/i18n'
+import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
 import { renderApp } from '#/test/render-app'
 
 const profile = {
@@ -44,7 +45,16 @@ const response = (body: unknown, status = 200) =>
     status,
     headers: { 'Content-Type': 'application/json' },
   })
-function backend() {
+// The query of the most recent request to exactly `path`.
+function query(calls: string[], path: string) {
+  const call = calls
+    .filter((candidate) => candidate.split('?')[0] === `GET ${path}`)
+    .at(-1)
+  return call === undefined
+    ? undefined
+    : Object.fromEntries(new URLSearchParams(call.split('?')[1]))
+}
+function backend(refuels: Refuel[] = [refuel]) {
   const calls: string[] = []
   vi.stubGlobal(
     'fetch',
@@ -56,7 +66,7 @@ function backend() {
         return response({ items: [car], nextCursor: null })
       if (path === '/api/v1/refuels/stations') return response([])
       if (path.startsWith('/api/v1/refuels/chart'))
-        return response({ items: [refuel] })
+        return response({ items: refuels })
       if (
         call === 'POST /api/v1/refuels' ||
         call.startsWith('PATCH /api/v1/refuels/')
@@ -66,7 +76,7 @@ function backend() {
         return new Response(null, { status: 204 })
       if (path === `/api/v1/refuels/${refuel.id}`) return response(refuel)
       if (path.startsWith('/api/v1/refuels'))
-        return response({ items: [refuel], nextCursor: null })
+        return response({ items: refuels, nextCursor: null })
       throw new Error(path)
     }),
   )
@@ -80,7 +90,7 @@ describe('refuels', () => {
   it('shows the complete chart, table and total and filters both queries', async () => {
     const calls = backend()
     const user = userEvent.setup()
-    renderApp('/refuels')
+    const rendered = renderApp('/refuels')
     const table = await screen.findByRole('table', { name: 'Your refuels' })
     expect(
       within(table).getByRole('columnheader', { name: 'Fuel' }),
@@ -88,10 +98,82 @@ describe('refuels', () => {
     expect(
       screen.getByRole('img', { name: 'Fuel price history' }),
     ).toBeInTheDocument()
+    const { router } = rendered
     await user.selectOptions(screen.getByLabelText('Filter by car'), car.id)
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ carId: car.id }),
+    )
+    const expected = { carId: car.id, ...dateRangeToInstants(defaultFrom()) }
+    for (const path of ['/api/v1/refuels', '/api/v1/refuels/chart']) {
+      await waitFor(() => expect(query(calls, path)).toEqual(expected))
+    }
+  })
+  it('requests the last six months by default', async () => {
+    const calls = backend()
+    renderApp('/refuels')
     await screen.findByRole('table', { name: 'Your refuels' })
-    expect(calls).toContain(`GET /api/v1/refuels?carId=${car.id}`)
-    expect(calls).toContain(`GET /api/v1/refuels/chart?carId=${car.id}`)
+    expect(screen.getByLabelText('From')).toHaveValue(defaultFrom())
+    expect(screen.getByLabelText('To')).toHaveValue('')
+    const expected = dateRangeToInstants(defaultFrom())
+    for (const path of ['/api/v1/refuels', '/api/v1/refuels/chart']) {
+      await waitFor(() => expect(query(calls, path)).toEqual(expected))
+    }
+  })
+  it('writes an edited range to the URL and requests it', async () => {
+    const calls = backend()
+    const { router } = renderApp('/refuels')
+    await screen.findByRole('table', { name: 'Your refuels' })
+    // A date picker reports the whole date at once.
+    fireEvent.change(screen.getByLabelText('From'), {
+      target: { value: '2026-01-01' },
+    })
+    fireEvent.change(screen.getByLabelText('To'), {
+      target: { value: '2026-01-31' },
+    })
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        from: '2026-01-01',
+        to: '2026-01-31',
+      }),
+    )
+    const expected = dateRangeToInstants('2026-01-01', '2026-01-31')
+    for (const path of ['/api/v1/refuels', '/api/v1/refuels/chart']) {
+      await waitFor(() => expect(query(calls, path)).toEqual(expected))
+    }
+  })
+  it('restores the car and range from the URL', async () => {
+    const calls = backend()
+    renderApp(`/refuels?carId=${car.id}&from=2025-01-01`)
+    await screen.findByRole('table', { name: 'Your refuels' })
+    await waitFor(() =>
+      expect(screen.getByLabelText('Filter by car')).toHaveValue(car.id),
+    )
+    expect(screen.getByLabelText('From')).toHaveValue('2025-01-01')
+    const expected = { carId: car.id, ...dateRangeToInstants('2025-01-01') }
+    for (const path of ['/api/v1/refuels', '/api/v1/refuels/chart']) {
+      expect(query(calls, path)).toEqual(expected)
+    }
+  })
+  it('falls back to the default for a malformed range', async () => {
+    const calls = backend()
+    renderApp('/refuels?from=2026-02-30&to=soon')
+    await screen.findByRole('table', { name: 'Your refuels' })
+    expect(screen.getByLabelText('From')).toHaveValue(defaultFrom())
+    expect(query(calls, '/api/v1/refuels')).toEqual(
+      dateRangeToInstants(defaultFrom()),
+    )
+  })
+  it('says when the range holds no refuels, in both languages', async () => {
+    backend([])
+    const user = userEvent.setup()
+    renderApp('/refuels')
+    expect(
+      await screen.findByText('No refuels in this date range.'),
+    ).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Language'), 'de')
+    expect(
+      await screen.findByText('Keine Tankvorgänge in diesem Zeitraum.'),
+    ).toBeInTheDocument()
   })
   it('preselects a car on creation', async () => {
     backend()

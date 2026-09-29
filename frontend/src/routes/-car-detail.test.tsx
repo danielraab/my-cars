@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Car, Refuel, Repair, Ticket } from '#/api/client'
-import { dateRangeToInstants, defaultFrom } from '#/cars/date-range'
 import { i18n } from '#/i18n'
+import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
 import { renderApp } from '#/test/render-app'
 
 const profile = {

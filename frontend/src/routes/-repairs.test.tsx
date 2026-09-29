@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Car, Repair } from '#/api/client'
 import { i18n } from '#/i18n'
+import { dateRangeToInstants, defaultFrom } from '#/lib/date-range'
 import { renderApp } from '#/test/render-app'
 
 const profile = {
@@ -70,11 +71,22 @@ function response(status: number, body?: unknown) {
 type Handler = (init?: RequestInit) => Response | Promise<Response>
 
 // Routes fetch calls by "METHOD path"; the session is always valid.
+// Routes match without the list's date range, which every list request
+// carries; `url` keeps the full request for the range tests.
+function withoutRange(path: string) {
+  const [pathname, search] = path.split('?')
+  const query = new URLSearchParams(search)
+  query.delete('from')
+  query.delete('to')
+  const rest = query.toString()
+  return rest ? `${pathname}?${rest}` : pathname
+}
+
 function backend(routes: Record<string, Handler | Handler[]>) {
-  const calls: { key: string; init?: RequestInit }[] = []
+  const calls: { key: string; url: string; init?: RequestInit }[] = []
   const fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
-    const key = `${init?.method ?? 'GET'} ${path}`
-    calls.push({ key, init })
+    const key = `${init?.method ?? 'GET'} ${withoutRange(path)}`
+    calls.push({ key, url: path, init })
     if (key === 'GET /api/v1/session') return response(200, { profile })
     const route = routes[key]
     const handler = Array.isArray(route) ? route.shift() : route
@@ -83,6 +95,16 @@ function backend(routes: Record<string, Handler | Handler[]>) {
   })
   vi.stubGlobal('fetch', fetchMock)
   return calls
+}
+
+// The query of the most recent repairs list request.
+function listQuery(calls: ReturnType<typeof backend>) {
+  const call = calls
+    .filter((candidate) => candidate.url.split('?')[0] === '/api/v1/repairs')
+    .at(-1)
+  return call === undefined
+    ? undefined
+    : Object.fromEntries(new URLSearchParams(call.url.split('?')[1]))
 }
 
 function bodyOf(calls: ReturnType<typeof backend>, key: string) {
@@ -236,6 +258,110 @@ describe('repairs list', () => {
     expect(
       screen.getByRole('link', { name: 'Reparatur hinzufügen' }),
     ).toBeInTheDocument()
+  })
+  it('requests the last six months across all cars by default', async () => {
+    const calls = backend({
+      ...allCars,
+      'GET /api/v1/repairs': () =>
+        response(200, { items: [service], nextCursor: null }),
+    })
+    renderApp('/repairs')
+
+    await screen.findByText('Garage Huber')
+    expect(screen.getByLabelText('Filter by car')).toHaveValue('')
+    expect(screen.getByLabelText('From')).toHaveValue(defaultFrom())
+    expect(screen.getByLabelText('To')).toHaveValue('')
+    expect(listQuery(calls)).toEqual(dateRangeToInstants(defaultFrom()))
+  })
+
+  it('filters by car and range and keeps both in the URL', async () => {
+    const calls = backend({
+      ...allCars,
+      'GET /api/v1/repairs': () =>
+        response(200, { items: [service, brakes], nextCursor: null }),
+      [`GET /api/v1/repairs?carId=${golf.id}`]: () =>
+        response(200, { items: [service], nextCursor: null }),
+    })
+    const user = userEvent.setup()
+    const { router } = renderApp('/repairs')
+
+    await screen.findByText('Autohaus Maier')
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Filter by car' }),
+      golf.id,
+    )
+    // A date picker reports the whole date at once.
+    fireEvent.change(screen.getByLabelText('From'), {
+      target: { value: '2026-01-01' },
+    })
+    fireEvent.change(screen.getByLabelText('To'), {
+      target: { value: '2026-01-31' },
+    })
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        carId: golf.id,
+        from: '2026-01-01',
+        to: '2026-01-31',
+      }),
+    )
+    await waitFor(() =>
+      expect(listQuery(calls)).toEqual({
+        carId: golf.id,
+        ...dateRangeToInstants('2026-01-01', '2026-01-31'),
+      }),
+    )
+    await waitFor(() =>
+      expect(screen.queryByText('Autohaus Maier')).not.toBeInTheDocument(),
+    )
+    expect(screen.getByRole('link', { name: 'Add repair' })).toHaveAttribute(
+      'href',
+      `/repairs/create?carId=${golf.id}`,
+    )
+  })
+
+  it('restores the car and range from the URL', async () => {
+    const calls = backend({
+      ...allCars,
+      [`GET /api/v1/repairs?carId=${golf.id}`]: () =>
+        response(200, { items: [service], nextCursor: null }),
+    })
+    renderApp(`/repairs?carId=${golf.id}&from=2025-01-01`)
+
+    await screen.findByText('Garage Huber')
+    await waitFor(() =>
+      expect(screen.getByLabelText('Filter by car')).toHaveValue(golf.id),
+    )
+    expect(screen.getByLabelText('From')).toHaveValue('2025-01-01')
+    expect(listQuery(calls)).toEqual({
+      carId: golf.id,
+      ...dateRangeToInstants('2025-01-01'),
+    })
+  })
+
+  it('says when the range holds no repairs, in both languages', async () => {
+    backend({
+      ...allCars,
+      'GET /api/v1/repairs': () =>
+        response(200, { items: [], nextCursor: null }),
+    })
+    const user = userEvent.setup()
+    renderApp('/repairs')
+
+    expect(
+      await screen.findByText('No repairs in this date range.'),
+    ).toBeInTheDocument()
+    await user.selectOptions(
+      screen.getAllByRole('combobox', { name: 'Language' })[0],
+      'de',
+    )
+    expect(
+      await screen.findByText('Keine Reparaturen in diesem Zeitraum.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('combobox', { name: 'Nach Auto filtern' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Von')).toBeInTheDocument()
   })
 })
 
@@ -474,7 +600,7 @@ describe('repair editing', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, delete repair' }))
 
     expect(
-      await screen.findByText('You have not recorded a repair yet.'),
+      await screen.findByText('No repairs in this date range.'),
     ).toBeInTheDocument()
     await waitFor(() => expect(router.state.location.pathname).toBe('/repairs'))
     expect(

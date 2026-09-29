@@ -60,9 +60,10 @@
   - `amount` is a `Decimal`.
 - The rows are ordered by `date`, then `kind`, then the row's ID, so the
   order is stable. The ID is not part of the response.
-- `from` and `to` reuse the collections' `From`/`To` date-time parameter
-  definitions, but are marked required on this operation. The unused
-  `FromRequired`/`ToRequired` definitions are removed.
+- `from` and `to` are date-times, like the collections' `From`/`To`. A
+  `$ref`'d parameter can't be made required where it is used, so the
+  existing `FromRequired`/`ToRequired` definitions (used only here) change
+  from `date` to `date-time` instead of being removed.
 - The browser turns each row's `date` into a local `Date` and uses
   `getMonth()`. That is correct across time zones and daylight-saving
   changes, because the browser knows the viewer's time zone.
@@ -86,7 +87,7 @@
   `amount` is read as text so the value is passed through exactly.
 - Validation:
   - `from` and `to` are required and must parse as RFC 3339. A problem is
-    reported as `missing` or `invalid_type` in the common validation error.
+    reported as `required` or `invalid_type` in the common validation error.
   - `carId` must be a UUID when present.
   - `to <= from` is not an error; it returns no rows, the same as the
     collections.
@@ -187,8 +188,8 @@
 - **Toolbar:** a `.list-toolbar` holding `CarSelect` and the year stepper
   (`‹ 2026 ›`), then the chart card with its loading, error and empty
   states.
-- `DeferredPage`, its `.deferred-page` styles and its `unavailable.*` messages are deleted.
-  Nothing else uses them.
+- `DeferredPage`, its `.deferred-page` styles and its `unavailable.*`
+  messages are deleted. Nothing else uses them.
 
 ## Risks / Trade-offs
 

@@ -501,7 +501,11 @@ paths:
       - $ref: '#/components/parameters/CarFilter'
       responses:
         '200':
-          description: Categorized daily expense totals.
+          description: The caller's refuels, repairs and tickets dated on or
+            after `from` and before `to`, ordered by date, unpaged. They are
+            not grouped into days or months, because only the client knows
+            the viewer's time zone. A `carId` that names no car of the
+            caller's yields no rows.
           content:
             application/json:
               schema:
@@ -579,16 +583,18 @@ components:
       name: from
       in: query
       required: true
+      description: Inclusive start of the range.
       schema:
         type: string
-        format: date
+        format: date-time
     ToRequired:
       name: to
       in: query
       required: true
+      description: Exclusive end of the range.
       schema:
         type: string
-        format: date
+        format: date-time
     ReturnTo:
       name: returnTo
       in: query
@@ -1471,16 +1477,17 @@ components:
             type: object
             required:
             - date
-            - refuels
-            - repairs
-            - tickets
+            - kind
+            - amount
             properties:
               date:
                 type: string
-                format: date
-              refuels:
-                $ref: '#/components/schemas/Decimal'
-              repairs:
-                $ref: '#/components/schemas/Decimal'
-              tickets:
+                format: date-time
+              kind:
+                type: string
+                enum:
+                - refuel
+                - repair
+                - ticket
+              amount:
                 $ref: '#/components/schemas/Decimal'

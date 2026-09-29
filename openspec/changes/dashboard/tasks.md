@@ -2,23 +2,21 @@
 
 ## 1. Contract
 
-- [ ] 1.1 In `openapi/openapi.yaml`, change `/stats/expenses` to take `From`
-  and `To` as required date-time parameters plus the optional
-  `CarFilter`. Replace `ExpenseStatistics` with
+- [x] 1.1 In `openapi/openapi.yaml`, change the `FromRequired`/`ToRequired`
+  parameters of `/stats/expenses` from `date` to `date-time`, keeping the
+  optional `CarFilter`. Replace `ExpenseStatistics` with
   `{ items: [{ date: date-time, kind: refuel|repair|ticket, amount: Decimal }] }`,
-  all members required and `additionalProperties: false` where the file
-  uses it, and describe the inclusive/exclusive bounds and the unpaged
-  ordering by date. Remove the unused `FromRequired`/`ToRequired`
-  parameters (D1). Verify that `pnpm lint:openapi` passes and that
-  `grep -n "FromRequired\|ToRequired" openapi/openapi.yaml` finds nothing.
-- [ ] 1.2 Copy the spec to `backend/openapi.yaml` and run
+  all members required, and describe the inclusive/exclusive bounds and
+  the unpaged ordering by date (D1). Verify that `pnpm lint:openapi`
+  passes with no new warnings.
+- [x] 1.2 Copy the spec to `backend/openapi.yaml` and run
   `pnpm generate:api` in `frontend/`. Verify that
   `go test ./...` passes `openapi_sync_test.go` and that `pnpm check:api`
   passes.
 
 ## 2. Backend `internal/stats`
 
-- [ ] 2.1 Add `internal/stats` with a `Repository` interface and a `Store`
+- [x] 2.1 Add `internal/stats` with a `Repository` interface and a `Store`
   whose single `UNION ALL` query returns the caller's refuels, repairs and
   tickets within `[from, to)`, optionally for one car, ordered by `date`,
   `kind`, `id`, with `amount` read as text (D2). Verify with a Postgres
@@ -31,14 +29,14 @@
   - another account's expenses excluded, including when their car ID is
     passed as the filter;
   - an amount with three fraction digits returned unchanged.
-- [ ] 2.2 Add the handler: `GET /api/v1/stats/expenses` behind
-  `requireSession`. `from`/`to` are required RFC 3339 values (`missing` or
+- [x] 2.2 Add the handler: `GET /api/v1/stats/expenses` behind
+  `requireSession`. `from`/`to` are required RFC 3339 values (`required` or
   `invalid_type`) and `carId` must be a UUID; the response is
   `{ items: [...] }` with an empty array rather than `null` (D2). Verify with
   handler tests against a fake repository: 401 without a session, 400 for
   a missing `to`, malformed `from` and malformed `carId`, and the response
   shape.
-- [ ] 2.3 Wire `stats.NewHandler(stats.NewStore(pool))` in `main.go` next
+- [x] 2.3 Wire `stats.NewHandler(stats.NewStore(pool))` in `main.go` next
   to the other handlers. Verify that `go vet ./...` and `go test ./...`
   pass, and that with the app running on seeded data,
   `GET /api/v1/stats/expenses?from=…&to=…` returns rows.

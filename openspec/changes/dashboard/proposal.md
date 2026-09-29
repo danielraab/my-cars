@@ -73,10 +73,9 @@ one of them.
 ## Impact
 
 - **API contract:**
-  - `openapi/openapi.yaml`: `/stats/expenses` uses the date-time `From` and
-    `To` parameters (now required there), and `ExpenseStatistics` becomes a
-    list of rows. The now-unused `FromRequired` and `ToRequired` parameters
-    are removed.
+  - `openapi/openapi.yaml`: the required `from`/`to` parameters of
+    `/stats/expenses` become date-times, and `ExpenseStatistics` becomes a
+    list of rows.
   - `backend/openapi.yaml` and `frontend/src/api/schema.gen.ts` are
     regenerated.
 - **Backend:** a new `internal/stats` package (handler and store), wired in

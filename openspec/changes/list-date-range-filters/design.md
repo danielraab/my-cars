@@ -18,7 +18,8 @@
 - **`/refuels`** keeps `carId` in `useState` and passes `{ carId? }` both to
   `refuelsListQueryOptions` and to `refuelChartQueryOptions`. The per-row
   consumption comes from the chart series (the `derived` map).
-- **`/repairs`** has no filter at all. It calls `repairsListQueryOptions()`.
+- **`/repairs`** and **`/tickets`** have no filter at all. They call
+  `repairsListQueryOptions()` and `ticketsListQueryOptions()`.
 - **The backend and API client need nothing new.** `ExpenseFilter` already
   has `carId`, `from` and `to`, and all three operations honour them. The
   chart already seeds each car's predecessor from before `from`.
@@ -29,16 +30,15 @@
 
 **Goals:**
 
-- A single implementation of the date range, shared by three screens: car
-  detail, `/refuels` and `/repairs`. Moving the code, not copying it.
+- A single implementation of the date range, shared by four screens: car
+  detail, `/refuels`, `/repairs` and `/tickets`. Moving the code, not copying it.
 - Keep the whole filter state of each overview in the URL.
 
 **Non-Goals:**
 
 - Keeping the filter across the create and edit round trip. Returning to
-  `/refuels` or `/repairs` from those screens resets the view to the
+  an overview from those screens resets the view to the
   default range.
-- `/tickets`.
 - Presets such as "last year" or "all time", and a "reset" button. Users
   widen the range by editing "from".
 - Changing the chart's x-axis to cover the selected range. It keeps fitting
@@ -77,9 +77,9 @@
 
 ### D3. List search parsing is a small shared helper
 
-- `/refuels` and `/repairs` share the same search shape:
+- `/refuels`, `/repairs` and `/tickets` share the same search shape:
   `{ carId?: string; from?: string; to?: string }`.
-- `lib/list-search.ts` exports a `validateListSearch` that both routes use
+- `lib/list-search.ts` exports a `validateListSearch` that all three routes use
   as `validateSearch`:
   - `carId` is kept only when it is a UUID.
   - The dates go through `isCalendarDate`.
@@ -104,20 +104,22 @@
 
 ### D5. Toolbar layout and messages
 
-- Both overviews render the car `<select>` and the `DateRangeControl` side
+- All three overviews render the car `<select>` and the `DateRangeControl` side
   by side in `.list-toolbar`, which wraps on narrow screens.
 - The `.date-range` styles move from the car-detail tab bar into shared
   styles, with only the minimal CSS needed for the toolbar context.
 - Messages:
   - `cars.detail.range.{label,from,to}` move to a new top-level `dateRange`
     namespace in both locales. The old keys are removed.
-  - `/repairs` gains `repairs.filter` and `repairs.allCars`.
-  - `refuels.empty` and `repairs.empty` are reworded to the range-aware
-    "No refuels/repairs in this date range." (de: "… in diesem Zeitraum.").
+  - `/repairs` and `/tickets` gain `{repairs,tickets}.filter` and
+    `{repairs,tickets}.allCars`.
+  - `refuels.empty`, `repairs.empty` and `tickets.empty` are reworded to
+    the range-aware "No refuels/repairs/tickets in this date range."
+    (de: "… in diesem Zeitraum.").
 
 ## Risks / Trade-offs
 
-- [Users of `/refuels` suddenly don't see older refuels] → This is
+- [Users of the overviews suddenly don't see older records] → This is
   intentional and covered by the proposal. The "from" input is always
   visible and shows the date the default resolves to, so the cutoff is
   explicit.

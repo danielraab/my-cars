@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { type Refuel, refuelFuels } from '#/api/client'
 import { LineChart } from '#/components/line-chart'
+import { formatValueTick } from '#/lib/chart-ticks'
 
 // A line of the per-litre price over time for each fuel present in items,
 // which arrive in date order.
@@ -22,6 +23,7 @@ export function FuelPriceChart({
   return (
     <LineChart
       label={label}
+      formatTick={(value, step) => formatValueTick(value, step, locale)}
       showLegend
       formatValue={(value) => price.format(value)}
       empty={<p className="chart-empty">{t('refuels.chartEmpty')}</p>}

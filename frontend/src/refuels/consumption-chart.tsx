@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { Refuel } from '#/api/client'
 import { LineChart } from '#/components/line-chart'
+import { formatValueTick } from '#/lib/chart-ticks'
 
 // A single line of consumption in l/100 km over time. Refuels without a
 // consumption (a car's first, or one without odometer readings) are left out.
@@ -19,6 +20,7 @@ export function ConsumptionChart({
   return (
     <LineChart
       label={label}
+      formatTick={(value, step) => formatValueTick(value, step, locale)}
       formatValue={(value) =>
         t('refuels.consumptionValue', { value: number.format(value) })
       }

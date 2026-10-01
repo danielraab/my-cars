@@ -480,6 +480,11 @@ export const resources = {
           error: 'The ticket could not be deleted. Please try again.',
         },
       },
+      charts: {
+        keyboardHint:
+          'Use the left and right arrow keys to step through the values.',
+        quarter: 'Q{{quarter}} {{year}}',
+      },
       dashboard: {
         eyebrow: 'Overview',
         title: 'Dashboard',
@@ -1040,6 +1045,11 @@ export const resources = {
           error:
             'Der Strafzettel konnte nicht gelöscht werden. Bitte versuche es erneut.',
         },
+      },
+      charts: {
+        keyboardHint:
+          'Mit den Pfeiltasten links und rechts gehst du die Werte durch.',
+        quarter: 'Q{{quarter}} {{year}}',
       },
       dashboard: {
         eyebrow: 'Überblick',

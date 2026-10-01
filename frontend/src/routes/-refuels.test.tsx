@@ -96,7 +96,7 @@ describe('refuels', () => {
       within(table).getByRole('columnheader', { name: 'Fuel' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('img', { name: 'Fuel price history' }),
+      screen.getByRole('slider', { name: 'Fuel price history' }),
     ).toBeInTheDocument()
     const { router } = rendered
     await user.selectOptions(screen.getByLabelText('Filter by car'), car.id)

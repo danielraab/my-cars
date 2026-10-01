@@ -22,7 +22,7 @@ highlighted while the popover is shown.
 - **THEN** a popover shows that date and "7.12 l/100 km", and that point is highlighted
 
 #### Scenario: Nearest point is chosen in screen distance
-- **WHEN** the plot is rendered much wider than tall and the pointer is horizontally closer to point A but nearer on screen to point B
+- **WHEN** the plot is rendered much wider than tall and the pointer is nearer to point A in the chart's own unstretched proportions but nearer on screen to point B
 - **THEN** the popover shows point B
 
 #### Scenario: Chart with several series

@@ -130,18 +130,25 @@ refuels, so no spatial index is needed. The bar chart only needs
 
 ### 5. Focus and ARIA
 
-- The wrapper gets `tabIndex={0}` and `role="group"`, with
-  `aria-label` set to the chart label and `aria-describedby` pointing to a
-  visually hidden, localized keyboard hint.
-- The SVG keeps `role="img"` with its label, marked `aria-hidden` inside
-  the group to avoid a double announcement.
-- The popover's text is rendered into a visually hidden `aria-live="polite"`
-  region. The visible popover is `aria-hidden`, so a hover doesn't produce
-  duplicate announcements.
-- The focus ring uses the existing `:focus-visible` style from
-  `styles.css`.
-- `onFocus` sets index 0 only when focus came from outside and no value is
-  active yet. A click that focuses the plot keeps the value it picked.
+- The plot area is the WAI-ARIA **slider** pattern: `role="slider"`,
+  `tabIndex={0}`, `aria-label` set to the chart label, and
+  `aria-describedby` pointing to a visually hidden, localized keyboard
+  hint.
+  - ←/→ and Home/End are exactly the slider's keyboard contract.
+  - `aria-valuemin`/`aria-valuemax`/`aria-valuenow` are the 1-based value
+    index.
+  - `aria-valuetext` is the popover's text, so screen readers announce it
+    whenever it changes, with no separate live region.
+- **Why slider and not group.** The first idea, a focusable
+  `role="group"` with an `aria-live` region, is rejected by Biome's a11y
+  rules (`noNoninteractiveTabindex`, `useSemanticElements`). The repo has
+  no lint suppressions. A slider is also the closer semantic match for
+  "one control stepping through ordered values".
+- The SVG is `aria-hidden`, and so is the visible popover. The bar chart's
+  visually hidden table stays.
+- The focus ring copies the existing `:focus-visible` outline.
+- `onFocus` sets index 0 only when focus didn't come from a pointer press
+  and no value is active yet, so a click keeps the value it picked.
 
 ### 6. Ticks
 

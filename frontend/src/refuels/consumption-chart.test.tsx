@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { Refuel } from '#/api/client'
@@ -48,18 +49,49 @@ describe('ConsumptionChart', () => {
     const { container } = render(
       <ConsumptionChart items={items} label="Consumption" />,
     )
-    expect(screen.getByRole('img', { name: 'Consumption' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('slider', { name: 'Consumption' }),
+    ).toBeInTheDocument()
     expect(container.querySelectorAll('.chart-dot')).toHaveLength(2)
     expect(container.querySelectorAll('polyline')).toHaveLength(1)
-    expect(screen.getByText('8 l/100 km')).toBeInTheDocument()
-    expect(screen.getByText('6.67 l/100 km')).toBeInTheDocument()
-    expect(screen.getByText('Feb 10, 2026')).toBeInTheDocument()
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('labels round value ticks and weekly gridlines', () => {
+    const { container } = render(
+      <ConsumptionChart items={items} label="Consumption" />,
+    )
+    const ticks = (axis: string) =>
+      [...container.querySelectorAll(`.${axis} > .chart-tick`)].map(
+        (tick) => tick.textContent,
+      )
+    expect(ticks('chart-y-axis')).toEqual(['6.5', '7.0', '7.5', '8.0'])
+    // Mondays between 10 February and 10 March.
+    expect(ticks('chart-x-axis')).toEqual([
+      'Feb 16',
+      'Feb 23',
+      'Mar 2',
+      'Mar 9',
+    ])
+  })
+
+  it('shows each refuel in a popover from the keyboard', async () => {
+    const user = userEvent.setup()
+    render(<ConsumptionChart items={items} label="Consumption" />)
+    await user.tab()
+    const popover = () => document.querySelector('.chart-popover')
+    expect(popover()).toHaveTextContent('Feb 10, 20268 l/100 km')
+    await user.keyboard('{ArrowRight}')
+    expect(popover()).toHaveTextContent('Mar 10, 20266.67 l/100 km')
+    expect(screen.getByRole('slider')).toHaveAttribute(
+      'aria-valuetext',
+      'Mar 10, 2026 · 6.67 l/100 km',
+    )
   })
 
   it('shows the empty state when no refuel has a consumption', () => {
     render(<ConsumptionChart items={[first]} label="Consumption" />)
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
     expect(
       screen.getByText(
         'Not enough refuels with odometer readings in this range.',
@@ -69,8 +101,20 @@ describe('ConsumptionChart', () => {
 
   it('formats values and dates in German', async () => {
     await i18n.changeLanguage('de')
-    render(<ConsumptionChart items={items} label="Verbrauch" />)
-    expect(screen.getByText('6,67 l/100 km')).toBeInTheDocument()
-    expect(screen.getByText('10.02.2026')).toBeInTheDocument()
+    const user = userEvent.setup()
+    const { container } = render(
+      <ConsumptionChart items={items} label="Verbrauch" />,
+    )
+    expect(
+      container.querySelector('.chart-y-axis > .chart-tick'),
+    ).toHaveTextContent('6,5')
+    await user.tab()
+    await user.keyboard('{End}')
+    expect(document.querySelector('.chart-popover')).toHaveTextContent(
+      '10.03.20266,67 l/100 km',
+    )
+    expect(screen.getByRole('slider')).toHaveAccessibleDescription(
+      'Mit den Pfeiltasten links und rechts gehst du die Werte durch.',
+    )
   })
 })

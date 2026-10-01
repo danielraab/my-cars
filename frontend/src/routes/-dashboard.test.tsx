@@ -108,7 +108,7 @@ describe('dashboard', () => {
     const { router } = renderApp('/home')
 
     expect(
-      await screen.findByRole('img', { name: `Expenses in ${currentYear}` }),
+      await screen.findByRole('slider', { name: `Expenses in ${currentYear}` }),
     ).toBeInTheDocument()
     expect(requests.at(-1)).toEqual(yearToInstants(currentYear))
     expect(router.state.location.search).toEqual({})
@@ -159,7 +159,7 @@ describe('dashboard', () => {
     const user = userEvent.setup()
     const { router } = renderApp('/home')
 
-    await screen.findByRole('img', { name: `Expenses in ${currentYear}` })
+    await screen.findByRole('slider', { name: `Expenses in ${currentYear}` })
     await user.click(
       screen.getByRole('button', {
         name: `Previous year (${currentYear - 1})`,
@@ -169,7 +169,7 @@ describe('dashboard', () => {
       expect(router.state.location.search).toEqual({ year: currentYear - 1 }),
     )
     expect(
-      await screen.findByRole('img', {
+      await screen.findByRole('slider', {
         name: `Expenses in ${currentYear - 1}`,
       }),
     ).toBeInTheDocument()
@@ -196,7 +196,7 @@ describe('dashboard', () => {
     const user = userEvent.setup()
     const { router } = renderApp('/home')
 
-    await screen.findByRole('img', { name: `Expenses in ${currentYear}` })
+    await screen.findByRole('slider', { name: `Expenses in ${currentYear}` })
     await user.selectOptions(
       await screen.findByRole('combobox', { name: 'Filter by car' }),
       honda.id,
@@ -222,7 +222,7 @@ describe('dashboard', () => {
     renderApp(`/home?year=2024&carId=${golf.id}`)
 
     expect(
-      await screen.findByRole('img', { name: 'Expenses in 2024' }),
+      await screen.findByRole('slider', { name: 'Expenses in 2024' }),
     ).toBeInTheDocument()
     await waitFor(() =>
       expect(screen.getByLabelText('Filter by car')).toHaveValue(golf.id),
@@ -235,7 +235,7 @@ describe('dashboard', () => {
     renderApp('/home?year=abc')
 
     expect(
-      await screen.findByRole('img', { name: `Expenses in ${currentYear}` }),
+      await screen.findByRole('slider', { name: `Expenses in ${currentYear}` }),
     ).toBeInTheDocument()
     expect(requests.at(-1)).toEqual(yearToInstants(currentYear))
   })
@@ -245,7 +245,7 @@ describe('dashboard', () => {
     renderApp('/home?year=2019')
 
     expect(await screen.findByText('No expenses in 2019.')).toBeInTheDocument()
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
   })
 
   it('shows a retryable error when the statistics cannot be loaded', async () => {
@@ -260,7 +260,7 @@ describe('dashboard', () => {
     expect(alert).toHaveTextContent('We could not load your expenses.')
     await user.click(within(alert).getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('img', { name: `Expenses in ${currentYear}` }),
+      await screen.findByRole('slider', { name: `Expenses in ${currentYear}` }),
     ).toBeInTheDocument()
   })
 
@@ -269,7 +269,7 @@ describe('dashboard', () => {
     const user = userEvent.setup()
     renderApp('/home?year=2025')
 
-    await screen.findByRole('img', { name: 'Expenses in 2025' })
+    await screen.findByRole('slider', { name: 'Expenses in 2025' })
     await user.selectOptions(
       screen.getAllByRole('combobox', { name: 'Language' })[0],
       'de',
@@ -279,7 +279,7 @@ describe('dashboard', () => {
       await screen.findByRole('heading', { name: 'Übersicht', level: 1 }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('img', { name: 'Ausgaben 2025' }),
+      screen.getByRole('slider', { name: 'Ausgaben 2025' }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Nach Auto filtern')).toBeInTheDocument()
     expect(

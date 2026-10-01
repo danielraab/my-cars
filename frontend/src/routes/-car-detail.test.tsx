@@ -178,7 +178,7 @@ describe('car detail tabs', () => {
       await screen.findByRole('tab', { name: 'Consumption' }),
     ).toHaveAttribute('aria-selected', 'true')
     expect(
-      await screen.findByRole('img', { name: 'Consumption' }),
+      await screen.findByRole('slider', { name: 'Consumption' }),
     ).toBeInTheDocument()
   })
 
@@ -413,7 +413,7 @@ describe('car detail consumption', () => {
     fail = false
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('img', { name: 'Consumption' }),
+      await screen.findByRole('slider', { name: 'Consumption' }),
     ).toBeInTheDocument()
   })
 

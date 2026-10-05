@@ -61,7 +61,10 @@ and tasks should cite ids rather than restating the items below.
   a new car; each row links to the car's detail and edit screens.
 - **SCR-10** — `/cars/create` (`old/pages/cars/create.tsx`). Add-car form
   (type, make, name, fuel, first registration, license plate, FIN, purchase
-  date, purchase price); submits to `EP-08`.
+  date, purchase price); submits to `EP-08`. Only type, make, name and fuel
+  are required: first registration and license plate are optional, as in
+  the legacy model (`old/db/migrations/20221204230207-create-car.js` allows
+  `NULL` for both).
 - **SCR-11** — `/cars/[carId]` (`old/pages/cars/[carId]/index.tsx`). Car
   detail with three tabs: **Details** (all car fields, `DataList`),
   **Expenses** (the car's refuels/repairs/tickets as tables — `EP-12`,

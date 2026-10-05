@@ -82,8 +82,8 @@ type carBody struct {
 	Make              string  `json:"make"`
 	Name              string  `json:"name"`
 	Fuel              string  `json:"fuel"`
-	FirstRegistration string  `json:"firstRegistration"`
-	LicensePlate      string  `json:"licensePlate"`
+	FirstRegistration *string `json:"firstRegistration"`
+	LicensePlate      *string `json:"licensePlate"`
 	FIN               *string `json:"fin"`
 	IsActive          bool    `json:"isActive"`
 	PurchaseDate      *string `json:"purchaseDate"`
@@ -165,7 +165,6 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request, accountID strin
 	}
 	for key, value := range map[string]*string{
 		"type": p.Type, "make": p.Make, "name": p.Name, "fuel": p.Fuel,
-		"firstRegistration": p.FirstRegistration, "licensePlate": p.LicensePlate,
 	} {
 		if value == nil {
 			if _, reported := fields[key]; !reported {
@@ -179,7 +178,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request, accountID strin
 	}
 	in := Input{
 		Type: *p.Type, Make: *p.Make, Name: *p.Name, Fuel: *p.Fuel,
-		FirstRegistration: *p.FirstRegistration, LicensePlate: *p.LicensePlate,
+		FirstRegistration: p.FirstRegistration.Value, LicensePlate: p.LicensePlate.Value,
 		FIN: p.FIN.Value, PurchaseDate: p.PurchaseDate.Value, PurchasePrice: p.PurchasePrice.Value,
 		IsActive: p.IsActive == nil || *p.IsActive,
 	}
@@ -247,8 +246,6 @@ func decodeBody(w http.ResponseWriter, r *http.Request) (Patch, map[string]strin
 			p.Make = requiredString(key, value, fields)
 		case "name":
 			p.Name = requiredString(key, value, fields)
-		case "licensePlate":
-			p.LicensePlate = requiredString(key, value, fields)
 		case "fuel":
 			if s := requiredString(key, value, fields); s != nil {
 				if !fuels[*s] {
@@ -258,13 +255,9 @@ func decodeBody(w http.ResponseWriter, r *http.Request) (Patch, map[string]strin
 				}
 			}
 		case "firstRegistration":
-			if s := requiredString(key, value, fields); s != nil {
-				if !isDate(*s) {
-					fields[key] = apierror.ReasonInvalidDate
-				} else {
-					p.FirstRegistration = s
-				}
-			}
+			p.FirstRegistration = nullableString(key, value, fields, checkDate)
+		case "licensePlate":
+			p.LicensePlate = nullableString(key, value, fields, checkNonBlank)
 		case "isActive":
 			var b *bool
 			if err := json.Unmarshal(value, &b); err != nil || b == nil {
@@ -273,19 +266,9 @@ func decodeBody(w http.ResponseWriter, r *http.Request) (Patch, map[string]strin
 				p.IsActive = b
 			}
 		case "fin":
-			p.FIN = nullableString(key, value, fields, func(s string) (string, string) {
-				if s = strings.TrimSpace(s); s == "" {
-					return "", apierror.ReasonEmpty
-				}
-				return s, ""
-			})
+			p.FIN = nullableString(key, value, fields, checkNonBlank)
 		case "purchaseDate":
-			p.PurchaseDate = nullableString(key, value, fields, func(s string) (string, string) {
-				if !isDate(s) {
-					return "", apierror.ReasonInvalidDate
-				}
-				return s, ""
-			})
+			p.PurchaseDate = nullableString(key, value, fields, checkDate)
 		case "purchasePrice":
 			p.PurchasePrice = nullableString(key, value, fields, func(s string) (string, string) {
 				if !decimalPattern.MatchString(s) {
@@ -335,6 +318,21 @@ func nullableString(key string, value json.RawMessage, fields map[string]string,
 		return Nullable{}
 	}
 	return Nullable{Set: true, Value: &normalized}
+}
+
+// checkNonBlank trims a nullable text member and rejects a blank one.
+func checkNonBlank(s string) (string, string) {
+	if s = strings.TrimSpace(s); s == "" {
+		return "", apierror.ReasonEmpty
+	}
+	return s, ""
+}
+
+func checkDate(s string) (string, string) {
+	if !isDate(s) {
+		return "", apierror.ReasonInvalidDate
+	}
+	return s, ""
 }
 
 func isDate(s string) bool {

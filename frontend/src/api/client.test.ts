@@ -342,6 +342,12 @@ describe('cars API client', () => {
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
   })
 
+  it('accepts a car without registration details', async () => {
+    const bare = { ...car, firstRegistration: null, licensePlate: null }
+    stub(200, bare)
+    await expect(getCar(car.id)).resolves.toEqual(bare)
+  })
+
   it('exposes car validation field reasons', async () => {
     stub(400, {
       code: 'validation_failed',
@@ -371,6 +377,7 @@ describe('cars API client', () => {
   it.each([
     { items: [{ ...car, fuel: 'petrol' }], nextCursor: null },
     { items: [{ ...car, fin: undefined }], nextCursor: null },
+    { items: [{ ...car, licensePlate: undefined }], nextCursor: null },
     { items: [car] },
     [car],
   ])('rejects malformed car pages %#', async (body) => {

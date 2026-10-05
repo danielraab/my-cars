@@ -39,6 +39,15 @@ const zoe: Car = {
   purchasePrice: null,
 }
 
+const ka: Car = {
+  ...golf,
+  id: 'c7d2e0a4-1b3f-4e5a-8c6d-7e8f9a0b1c2d',
+  make: 'Ford',
+  name: 'Ka',
+  firstRegistration: null,
+  licensePlate: null,
+}
+
 function response(status: number, body?: unknown) {
   return new Response(body === undefined ? null : JSON.stringify(body), {
     status,
@@ -117,6 +126,20 @@ describe('cars list', () => {
     expect(
       screen.queryByRole('button', { name: 'Load more cars' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows a placeholder for absent registration details', async () => {
+    backend({
+      'GET /api/v1/cars': () =>
+        response(200, { items: [ka], nextCursor: null }),
+    })
+    renderApp('/cars')
+
+    const table = await screen.findByRole('table', { name: 'Your cars' })
+    const cells = within(within(table).getAllByRole('row')[1])
+      .getAllByRole('cell')
+      .map((cell) => cell.textContent)
+    expect(cells.slice(4, 6)).toEqual(['Not recorded', 'Not recorded'])
   })
 
   it('appends a further page when asked', async () => {
@@ -207,11 +230,11 @@ describe('car creation', () => {
       screen.getByRole('combobox', { name: 'Fuel' }),
       'diesel',
     )
-    fireEvent.change(screen.getByLabelText('First registration'), {
+    fireEvent.change(screen.getByLabelText(/First registration/), {
       target: { value: '2019-03-01' },
     })
     await user.type(
-      screen.getByRole('textbox', { name: 'License plate' }),
+      screen.getByRole('textbox', { name: /License plate/ }),
       'W-123AB',
     )
   }
@@ -249,6 +272,35 @@ describe('car creation', () => {
     expect(screen.queryByLabelText(/Active/)).not.toBeInTheDocument()
   })
 
+  it('sends absent registration details as null', async () => {
+    const calls = backend({
+      'POST /api/v1/cars': () => response(201, ka),
+      [`GET /api/v1/cars/${ka.id}`]: () => response(200, ka),
+    })
+    const user = userEvent.setup()
+    renderApp('/cars/create')
+
+    await user.type(
+      await screen.findByRole('textbox', { name: 'Type' }),
+      'Hatchback',
+    )
+    await user.type(screen.getByRole('textbox', { name: 'Make' }), 'Ford')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Ka')
+    expect(screen.getByLabelText(/First registration/)).not.toBeRequired()
+    expect(
+      screen.getByRole('textbox', { name: /License plate/ }),
+    ).not.toBeRequired()
+    await user.click(screen.getByRole('button', { name: 'Add car' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Ka' }),
+    ).toBeInTheDocument()
+    expect(bodyOf(calls, 'POST /api/v1/cars')).toMatchObject({
+      firstRegistration: null,
+      licensePlate: null,
+    })
+  })
+
   it('shows a backend rejection on the affected field and keeps the input', async () => {
     backend({
       'POST /api/v1/cars': () =>
@@ -264,7 +316,7 @@ describe('car creation', () => {
     await fillRequired(user)
     await user.click(screen.getByRole('button', { name: 'Add car' }))
 
-    const plate = screen.getByRole('textbox', { name: 'License plate' })
+    const plate = screen.getByRole('textbox', { name: /License plate/ })
     expect(await screen.findByText('Fill in this field.')).toHaveAttribute(
       'id',
       'car-licensePlate-error',
@@ -304,6 +356,19 @@ describe('car detail', () => {
       'href',
       `/cars/${golf.id}/edit`,
     )
+  })
+
+  it('shows a placeholder for absent registration details', async () => {
+    backend({ [`GET /api/v1/cars/${ka.id}`]: () => response(200, ka) })
+    renderApp(`/cars/${ka.id}`)
+
+    const heading = await screen.findByRole('heading', { name: 'Ka' })
+    expect(heading.nextElementSibling).toHaveTextContent(/^Ford$/)
+    const details = screen.getByText('Hatchback').closest('dl') as HTMLElement
+    const value = (field: string) =>
+      within(details).getByText(field).nextElementSibling?.textContent
+    expect(value('First registration')).toBe('Not recorded')
+    expect(value('License plate')).toBe('Not recorded')
   })
 
   it('shows a not-found state for a missing or unowned car', async () => {
@@ -356,6 +421,32 @@ describe('car editing', () => {
       fin: 'WVWZZZ1KZ',
       purchaseDate: '2019-04-15',
       purchasePrice: null,
+    })
+  })
+
+  it('clears the license plate', async () => {
+    const saved = { ...golf, licensePlate: null }
+    const calls = backend({
+      [`GET ${carPath}`]: [
+        () => response(200, golf),
+        () => response(200, saved),
+      ],
+      [`PATCH ${carPath}`]: () => response(200, saved),
+    })
+    const user = userEvent.setup()
+    renderApp(`/cars/${golf.id}/edit`)
+
+    const plate = await screen.findByRole('textbox', { name: /License plate/ })
+    expect(plate).toHaveValue('W-123AB')
+    await user.clear(plate)
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Golf' }),
+    ).toBeInTheDocument()
+    expect(bodyOf(calls, `PATCH ${carPath}`)).toMatchObject({
+      licensePlate: null,
+      firstRegistration: '2019-03-01',
     })
   })
 

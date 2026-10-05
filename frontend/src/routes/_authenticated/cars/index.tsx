@@ -89,8 +89,12 @@ function CarsPage() {
                       </Link>
                     </td>
                     <td>{t(`cars.fuels.${car.fuel}`)}</td>
-                    <td>{formatDate(car.firstRegistration, locale)}</td>
-                    <td>{car.licensePlate}</td>
+                    <td>
+                      {car.firstRegistration === null
+                        ? t('cars.notRecorded')
+                        : formatDate(car.firstRegistration, locale)}
+                    </td>
+                    <td>{car.licensePlate ?? t('cars.notRecorded')}</td>
                     <td className="numeric">
                       {car.purchasePrice === null
                         ? t('cars.notRecorded')

@@ -24,8 +24,8 @@ const (
 var stamp = time.Date(2026, 9, 27, 10, 0, 0, 123456000, time.UTC)
 
 func sampleCar() Car {
-	return Car{ID: carID, Type: "Hatchback", Make: "VW", Name: "Golf", Fuel: "diesel", FirstRegistration: "2019-03-01",
-		LicensePlate: "W-123AB", IsActive: true, CreatedAt: stamp, UpdatedAt: stamp}
+	return Car{ID: carID, Type: "Hatchback", Make: "VW", Name: "Golf", Fuel: "diesel", FirstRegistration: ptr("2019-03-01"),
+		LicensePlate: ptr("W-123AB"), IsActive: true, CreatedAt: stamp, UpdatedAt: stamp}
 }
 
 type fakeRepository struct {
@@ -54,6 +54,7 @@ func (f *fakeRepository) Create(_ context.Context, accountID string, in Input) (
 	}
 	c := sampleCar()
 	c.Name, c.Fuel, c.FIN, c.IsActive = in.Name, in.Fuel, in.FIN, in.IsActive
+	c.FirstRegistration, c.LicensePlate = in.FirstRegistration, in.LicensePlate
 	return c, nil
 }
 
@@ -73,8 +74,13 @@ func (f *fakeRepository) Update(_ context.Context, accountID, _ string, p Patch)
 		return Car{}, f.err
 	}
 	c := sampleCar()
-	if p.FIN.Set {
-		c.FIN = p.FIN.Value
+	for _, field := range []struct {
+		patch  Nullable
+		column **string
+	}{{p.FirstRegistration, &c.FirstRegistration}, {p.LicensePlate, &c.LicensePlate}, {p.FIN, &c.FIN}} {
+		if field.patch.Set {
+			*field.column = field.patch.Value
+		}
 	}
 	return c, nil
 }
@@ -144,6 +150,28 @@ func TestCreateCarWithOptionalFields(t *testing.T) {
 	}
 }
 
+func TestCreateCarWithoutRegistrationDetails(t *testing.T) {
+	for _, body := range []string{
+		`{"type":"Car","make":"VW","name":"Golf","fuel":"diesel"}`,
+		`{"type":"Car","make":"VW","name":"Golf","fuel":"diesel","firstRegistration":null,"licensePlate":null}`,
+	} {
+		repo := &fakeRepository{}
+		rec := serve(t, repo, passSession, http.MethodPost, "/api/v1/cars", body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("%s: status = %d, body = %s", body, rec.Code, rec.Body)
+		}
+		if repo.input.FirstRegistration != nil || repo.input.LicensePlate != nil {
+			t.Fatalf("%s: store input = %+v", body, repo.input)
+		}
+		got := decodeMap(t, rec)
+		for _, key := range []string{"firstRegistration", "licensePlate"} {
+			if value, ok := got[key]; !ok || value != nil {
+				t.Fatalf("%s: %s = %v (present %v), want null", body, key, value, ok)
+			}
+		}
+	}
+}
+
 func TestCarValidation(t *testing.T) {
 	cases := []struct {
 		name, method, body string
@@ -153,8 +181,10 @@ func TestCarValidation(t *testing.T) {
 		{"unsupported fuel on update", http.MethodPatch, `{"fuel":"petrol"}`, map[string]string{"fuel": apierror.ReasonInvalidEnum}},
 		{"undocumented member on create", http.MethodPost, strings.Replace(validCreate, `{`, `{"owner":"x",`, 1), map[string]string{"owner": apierror.ReasonUnknown}},
 		{"undocumented member on update", http.MethodPatch, `{"name":"Golf","id":"x"}`, map[string]string{"id": apierror.ReasonUnknown}},
-		{"missing required members", http.MethodPost, `{"type":"Hatchback"}`, map[string]string{"make": apierror.ReasonRequired, "name": apierror.ReasonRequired, "fuel": apierror.ReasonRequired, "firstRegistration": apierror.ReasonRequired, "licensePlate": apierror.ReasonRequired}},
+		{"missing required members", http.MethodPost, `{"type":"Hatchback"}`, map[string]string{"make": apierror.ReasonRequired, "name": apierror.ReasonRequired, "fuel": apierror.ReasonRequired}},
 		{"blank strings", http.MethodPatch, `{"name":"  ","fin":""}`, map[string]string{"name": apierror.ReasonEmpty, "fin": apierror.ReasonEmpty}},
+		{"blank license plate on create", http.MethodPost, strings.Replace(validCreate, `"W-123AB"`, `" "`, 1), map[string]string{"licensePlate": apierror.ReasonEmpty}},
+		{"blank license plate on update", http.MethodPatch, `{"licensePlate":""}`, map[string]string{"licensePlate": apierror.ReasonEmpty}},
 		{"null required member", http.MethodPatch, `{"make":null}`, map[string]string{"make": apierror.ReasonInvalidType}},
 		{"wrong types", http.MethodPatch, `{"isActive":"yes","type":3,"purchasePrice":12}`, map[string]string{"isActive": apierror.ReasonInvalidType, "type": apierror.ReasonInvalidType, "purchasePrice": apierror.ReasonInvalidType}},
 		{"invalid dates", http.MethodPatch, `{"firstRegistration":"2019-02-30","purchaseDate":"15.04.2019"}`, map[string]string{"firstRegistration": apierror.ReasonInvalidDate, "purchaseDate": apierror.ReasonInvalidDate}},
@@ -202,15 +232,16 @@ func TestMalformedBodyIsRejected(t *testing.T) {
 
 func TestUpdateClearsOptionalField(t *testing.T) {
 	repo := &fakeRepository{}
-	rec := serve(t, repo, passSession, http.MethodPatch, "/api/v1/cars/"+carID, `{"fin":null,"purchasePrice":"100"}`)
+	rec := serve(t, repo, passSession, http.MethodPatch, "/api/v1/cars/"+carID, `{"fin":null,"purchasePrice":"100","firstRegistration":null,"licensePlate":null}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body)
 	}
 	p := repo.patch
-	if !p.FIN.Set || p.FIN.Value != nil || !p.PurchasePrice.Set || *p.PurchasePrice.Value != "100" || p.PurchaseDate.Set || p.Name != nil {
+	if !p.FIN.Set || p.FIN.Value != nil || !p.FirstRegistration.Set || p.FirstRegistration.Value != nil ||
+		!p.LicensePlate.Set || p.LicensePlate.Value != nil || !p.PurchasePrice.Set || *p.PurchasePrice.Value != "100" || p.PurchaseDate.Set || p.Name != nil {
 		t.Fatalf("patch = %+v", p)
 	}
-	if body := decodeMap(t, rec); body["fin"] != nil {
+	if body := decodeMap(t, rec); body["fin"] != nil || body["firstRegistration"] != nil || body["licensePlate"] != nil {
 		t.Fatalf("body = %v", body)
 	}
 }

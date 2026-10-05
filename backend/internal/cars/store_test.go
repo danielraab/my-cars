@@ -62,7 +62,7 @@ func testAccount(t *testing.T, pool *pgxpool.Pool) string {
 func ptr(s string) *string { return &s }
 
 func validInput(name string) Input {
-	return Input{Type: "Hatchback", Make: "VW", Name: name, Fuel: "diesel", FirstRegistration: "2019-03-01", LicensePlate: "W-123AB", IsActive: true}
+	return Input{Type: "Hatchback", Make: "VW", Name: name, Fuel: "diesel", FirstRegistration: ptr("2019-03-01"), LicensePlate: ptr("W-123AB"), IsActive: true}
 }
 
 func TestStoreListPaginates(t *testing.T) {
@@ -120,13 +120,13 @@ func TestStoreCreateGetDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Name != "Golf" || c.Fuel != "diesel" || c.FirstRegistration != "2019-03-01" || *c.FIN != "WVWZZZ1KZ" ||
+	if c.Name != "Golf" || c.Fuel != "diesel" || *c.FirstRegistration != "2019-03-01" || *c.FIN != "WVWZZZ1KZ" ||
 		*c.PurchaseDate != "2019-04-15" || *c.PurchasePrice != "18500.50" || !c.IsActive {
 		t.Fatalf("created = %+v", c)
 	}
 
 	got, err := s.Get(ctx, account, c.ID)
-	if err != nil || got.ID != c.ID || got.LicensePlate != "W-123AB" {
+	if err != nil || got.ID != c.ID || *got.LicensePlate != "W-123AB" {
 		t.Fatalf("get = %+v, %v", got, err)
 	}
 	if _, err := s.Get(ctx, other, c.ID); !errors.Is(err, ErrNotFound) {
@@ -149,6 +149,26 @@ func TestStoreCreateGetDelete(t *testing.T) {
 	var remaining int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM refuels WHERE id = $1`, refuelID).Scan(&remaining); err != nil || remaining != 0 {
 		t.Fatalf("refuel after car delete = %d, %v", remaining, err)
+	}
+}
+
+func TestStoreCreateWithoutRegistrationDetails(t *testing.T) {
+	s, pool := testStore(t)
+	ctx := context.Background()
+	account := testAccount(t, pool)
+
+	in := validInput("Ka")
+	in.FirstRegistration, in.LicensePlate = nil, nil
+	c, err := s.Create(ctx, account, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.FirstRegistration != nil || c.LicensePlate != nil {
+		t.Fatalf("created = %+v", c)
+	}
+	got, err := s.Get(ctx, account, c.ID)
+	if err != nil || got.FirstRegistration != nil || got.LicensePlate != nil {
+		t.Fatalf("get = %+v, %v", got, err)
 	}
 }
 
@@ -178,11 +198,22 @@ func TestStoreUpdateTriState(t *testing.T) {
 	if updated.Name != "Golf GTD" || updated.IsActive || updated.FIN != nil ||
 		updated.PurchaseDate == nil || *updated.PurchaseDate != "2019-04-15" ||
 		updated.PurchasePrice == nil || *updated.PurchasePrice != "17999.99" ||
-		updated.Make != "VW" || updated.FirstRegistration != "2019-03-01" {
+		updated.Make != "VW" || *updated.FirstRegistration != "2019-03-01" || *updated.LicensePlate != "W-123AB" {
 		t.Fatalf("updated = %+v", updated)
 	}
 	if !updated.UpdatedAt.After(c.UpdatedAt) {
 		t.Fatalf("updated_at not advanced: %v -> %v", c.UpdatedAt, updated.UpdatedAt)
+	}
+
+	cleared, err := s.Update(ctx, account, c.ID, Patch{
+		FirstRegistration: Nullable{Set: true},
+		LicensePlate:      Nullable{Set: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.FirstRegistration != nil || cleared.LicensePlate != nil || cleared.Name != "Golf GTD" {
+		t.Fatalf("cleared = %+v", cleared)
 	}
 
 	if _, err := s.Update(ctx, other, c.ID, Patch{Name: ptr("stolen")}); !errors.Is(err, ErrNotFound) {

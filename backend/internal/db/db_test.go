@@ -69,8 +69,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := sqlDB.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 4 {
-		t.Errorf("schema_migrations.version = %d, want 4", version)
+	if version != 5 {
+		t.Errorf("schema_migrations.version = %d, want 5", version)
 	}
 	if dirty {
 		t.Errorf("schema_migrations.dirty = true, want false")
@@ -119,6 +119,7 @@ func TestDomainSchema(t *testing.T) {
 
 	carID := insertCar(t, sqlDB, accountID)
 	assertRejected(t, sqlDB, "INSERT INTO cars (account_id, type, make, name, fuel, first_registration, license_plate) VALUES ($1, ' ', 'Ford', 'Focus', 'gasoline', '2020-01-01', 'AB-123')", accountID)
+	assertOptionalRegistration(t, sqlDB, accountID)
 
 	assertNullableOdometerAndNumericChecks(t, sqlDB, carID)
 	assertUpdatedAtTrigger(t, sqlDB, carID)
@@ -174,6 +175,19 @@ func insertCar(t *testing.T, sqlDB *sql.DB, accountID string) string {
 		t.Fatalf("insert car: %v", err)
 	}
 	return id
+}
+
+func assertOptionalRegistration(t *testing.T, sqlDB *sql.DB, accountID string) {
+	t.Helper()
+	var registration sql.NullTime
+	var plate sql.NullString
+	if err := sqlDB.QueryRow("INSERT INTO cars (account_id, type, make, name, fuel) VALUES ($1, 'Car', 'Ford', 'Ka', 'gasoline') RETURNING first_registration, license_plate", accountID).Scan(&registration, &plate); err != nil {
+		t.Fatalf("insert car without registration details: %v", err)
+	}
+	if registration.Valid || plate.Valid {
+		t.Errorf("first_registration = %v, license_plate = %v, want both NULL", registration, plate)
+	}
+	assertRejected(t, sqlDB, "INSERT INTO cars (account_id, type, make, name, fuel, license_plate) VALUES ($1, 'Car', 'Ford', 'Ka', 'gasoline', '  ')", accountID)
 }
 
 func assertNullableOdometerAndNumericChecks(t *testing.T, sqlDB *sql.DB, carID string) {

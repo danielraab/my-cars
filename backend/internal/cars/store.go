@@ -22,8 +22,8 @@ type Car struct {
 	Make              string
 	Name              string
 	Fuel              string
-	FirstRegistration string
-	LicensePlate      string
+	FirstRegistration *string
+	LicensePlate      *string
 	FIN               *string
 	IsActive          bool
 	PurchaseDate      *string
@@ -34,9 +34,9 @@ type Car struct {
 
 // Input is a validated car creation request.
 type Input struct {
-	Type, Make, Name, Fuel, FirstRegistration, LicensePlate string
-	FIN, PurchaseDate, PurchasePrice                        *string
-	IsActive                                                bool
+	Type, Make, Name, Fuel                                            string
+	FirstRegistration, LicensePlate, FIN, PurchaseDate, PurchasePrice *string
+	IsActive                                                          bool
 }
 
 // Nullable is a patch value for a nullable column: Set false leaves the
@@ -48,9 +48,9 @@ type Nullable struct {
 
 // Patch is a validated partial update; nil pointers leave columns unchanged.
 type Patch struct {
-	Type, Make, Name, Fuel, FirstRegistration, LicensePlate *string
-	IsActive                                                *bool
-	FIN, PurchaseDate, PurchasePrice                        Nullable
+	Type, Make, Name, Fuel                                            *string
+	IsActive                                                          *bool
+	FirstRegistration, LicensePlate, FIN, PurchaseDate, PurchasePrice Nullable
 }
 
 // Cursor is the keyset position of the last car on a page.
@@ -148,15 +148,16 @@ func (s *Store) Update(ctx context.Context, accountID, carID string, p Patch) (C
   make = COALESCE($4, make),
   name = COALESCE($5, name),
   fuel = COALESCE($6::text::vehicle_fuel, fuel),
-  first_registration = COALESCE($7::text::date, first_registration),
-  license_plate = COALESCE($8, license_plate),
-  is_active = COALESCE($9, is_active),
-  fin = CASE WHEN $10::boolean THEN $11 ELSE fin END,
-  purchase_date = CASE WHEN $12::boolean THEN $13::text::date ELSE purchase_date END,
-  purchase_price = CASE WHEN $14::boolean THEN $15::text::numeric ELSE purchase_price END
+  is_active = COALESCE($7, is_active),
+  first_registration = CASE WHEN $8::boolean THEN $9::text::date ELSE first_registration END,
+  license_plate = CASE WHEN $10::boolean THEN $11 ELSE license_plate END,
+  fin = CASE WHEN $12::boolean THEN $13 ELSE fin END,
+  purchase_date = CASE WHEN $14::boolean THEN $15::text::date ELSE purchase_date END,
+  purchase_price = CASE WHEN $16::boolean THEN $17::text::numeric ELSE purchase_price END
 WHERE account_id = $1 AND id = $2
 RETURNING `+columns,
-		accountID, carID, p.Type, p.Make, p.Name, p.Fuel, p.FirstRegistration, p.LicensePlate, p.IsActive,
+		accountID, carID, p.Type, p.Make, p.Name, p.Fuel, p.IsActive,
+		p.FirstRegistration.Set, p.FirstRegistration.Value, p.LicensePlate.Set, p.LicensePlate.Value,
 		p.FIN.Set, p.FIN.Value, p.PurchaseDate.Set, p.PurchaseDate.Value, p.PurchasePrice.Set, p.PurchasePrice.Value))
 }
 

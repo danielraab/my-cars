@@ -993,8 +993,6 @@ components:
       - make
       - name
       - fuel
-      - firstRegistration
-      - licensePlate
       properties:
         type:
           type: string
@@ -1010,10 +1008,14 @@ components:
           - gasoline
           - electric
         firstRegistration:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date
         licensePlate:
-          type: string
+          type:
+          - string
+          - 'null'
         fin:
           type:
           - string
@@ -1047,10 +1049,14 @@ components:
           - gasoline
           - electric
         firstRegistration:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date
         licensePlate:
-          type: string
+          type:
+          - string
+          - 'null'
         fin:
           type:
           - string
@@ -1066,8 +1072,9 @@ components:
           $ref: '#/components/schemas/NullableDecimal'
     Car:
       type: object
-      description: A car. Every member is always present; `fin`,
-        `purchaseDate`, and `purchasePrice` are `null` when not recorded.
+      description: A car. Every member is always present;
+        `firstRegistration`, `licensePlate`, `fin`, `purchaseDate`, and
+        `purchasePrice` are `null` when not recorded.
       required:
       - id
       - type
@@ -1099,10 +1106,14 @@ components:
           - gasoline
           - electric
         firstRegistration:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date
         licensePlate:
-          type: string
+          type:
+          - string
+          - 'null'
         fin:
           type:
           - string

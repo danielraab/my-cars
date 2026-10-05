@@ -71,7 +71,9 @@ function CarView({ car }: { car: Car }) {
           <p className="eyebrow">{t('cars.detail.eyebrow')}</p>
           <h1 id="car-title">{car.name}</h1>
           <p>
-            {car.make} · {car.licensePlate}
+            {car.licensePlate === null
+              ? car.make
+              : `${car.make} · ${car.licensePlate}`}
           </p>
         </div>
         <Link
@@ -141,8 +143,13 @@ function CarDetails({ car }: { car: Car }) {
     ['make', car.make],
     ['name', car.name],
     ['fuel', t(`cars.fuels.${car.fuel}`)],
-    ['firstRegistration', formatDate(car.firstRegistration, locale)],
-    ['licensePlate', car.licensePlate],
+    [
+      'firstRegistration',
+      car.firstRegistration === null
+        ? notRecorded
+        : formatDate(car.firstRegistration, locale),
+    ],
+    ['licensePlate', car.licensePlate ?? notRecorded],
     ['fin', car.fin ?? notRecorded],
     [
       'purchaseDate',

@@ -380,8 +380,8 @@ export interface components {
             /** @enum {string} */
             fuel: "other" | "diesel" | "gasoline" | "electric";
             /** Format: date */
-            firstRegistration: string;
-            licensePlate: string;
+            firstRegistration?: string | null;
+            licensePlate?: string | null;
             fin?: string | null;
             /** @default true */
             isActive: boolean;
@@ -396,15 +396,15 @@ export interface components {
             /** @enum {string} */
             fuel?: "other" | "diesel" | "gasoline" | "electric";
             /** Format: date */
-            firstRegistration?: string;
-            licensePlate?: string;
+            firstRegistration?: string | null;
+            licensePlate?: string | null;
             fin?: string | null;
             isActive?: boolean;
             /** Format: date */
             purchaseDate?: string | null;
             purchasePrice?: components["schemas"]["NullableDecimal"];
         };
-        /** @description A car. Every member is always present; `fin`, `purchaseDate`, and `purchasePrice` are `null` when not recorded. */
+        /** @description A car. Every member is always present; `firstRegistration`, `licensePlate`, `fin`, `purchaseDate`, and `purchasePrice` are `null` when not recorded. */
         Car: {
             id: components["schemas"]["UUID"];
             type: string;
@@ -413,8 +413,8 @@ export interface components {
             /** @enum {string} */
             fuel: "other" | "diesel" | "gasoline" | "electric";
             /** Format: date */
-            firstRegistration: string;
-            licensePlate: string;
+            firstRegistration: string | null;
+            licensePlate: string | null;
             fin: string | null;
             isActive: boolean;
             /** Format: date */

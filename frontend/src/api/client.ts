@@ -104,8 +104,6 @@ function isCar(value: unknown): value is Car {
     value.type,
     value.make,
     value.name,
-    value.firstRegistration,
-    value.licensePlate,
     value.createdAt,
     value.updatedAt,
   ]
@@ -113,7 +111,13 @@ function isCar(value: unknown): value is Car {
     required.every((field) => typeof field === 'string') &&
     carFuels.some((fuel) => fuel === value.fuel) &&
     typeof value.isActive === 'boolean' &&
-    [value.fin, value.purchaseDate, value.purchasePrice].every(isNullableString)
+    [
+      value.firstRegistration,
+      value.licensePlate,
+      value.fin,
+      value.purchaseDate,
+      value.purchasePrice,
+    ].every(isNullableString)
   )
 }
 

@@ -27,7 +27,7 @@ jobs:
       image: ${{ steps.filter.outputs.image }}
       i18n: ${{ steps.filter.outputs.i18n }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -89,7 +89,7 @@ jobs:
     env:
       DATABASE_URL: postgres://mycars:mycars@localhost:5432/mycars?sslmode=disable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-go@v6
         with:
@@ -109,7 +109,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -151,7 +151,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -225,7 +225,7 @@ jobs:
     if: ${{ always() && !startsWith(github.ref, 'refs/tags/') && needs.changes.outputs.image == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v3
 
@@ -260,7 +260,7 @@ jobs:
       group: publish-${{ github.repository }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v3
 

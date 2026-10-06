@@ -1,7 +1,7 @@
 # One-time Legacy Data Import
 
-`db-schema-v1` deliberately creates no importer and does not read or modify
-`old/`. A future, separately approved one-time import runs only after the new
+`db-schema-v1` deliberately creates no importer and does not read the legacy
+code. A future, separately approved one-time import runs only after the new
 application is working.
 
 Before writing any rows, that importer must produce a reviewable preflight

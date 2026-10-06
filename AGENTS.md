@@ -1,13 +1,8 @@
 # my-car
 
-Rewrite of a legacy Next.js full-stack car management app. The old app is
-kept as read-only reference in [`old/`](old) — do not edit it, do not build
-new features by patching it.
-
-> **IMPORTANT: `old/` is strictly read-only.** Never create, edit, or
-> delete any file under `old/`, for any reason (not even formatting,
-> renames, or "cleanup"). It is reference material only and the entire
-> folder will be deleted once the rewrite is complete.
+Rewrite of a legacy Next.js full-stack car management app. The legacy code
+has been removed from the working tree; it remains available in git history
+(vendored in commit `bbd18eb`) for reference only.
 
 ## Target architecture
 

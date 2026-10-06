@@ -2,8 +2,8 @@
 
 A car management app — vehicles, refuels, repairs, and traffic tickets in
 one place. This repository is a ground-up **rewrite** of a legacy Next.js
-full-stack app; the legacy code lives, untouched, in [`old/`](old) purely
-as reference and will be deleted once the rewrite is complete.
+full-stack app; the legacy code is no longer in the tree and remains
+available in git history (vendored in commit `bbd18eb`).
 
 [![License: GPLv3](https://img.shields.io/github/license/danielraab/my-cars)](LICENSE)
 ![Status](https://img.shields.io/badge/status-rewrite--in--progress-yellow)
@@ -64,7 +64,6 @@ currently in flight.
 ├── backend/    # Go REST API, serves frontend static build in production
 ├── frontend/   # React app, builds to static files only
 ├── openspec/   # Spec-driven change proposals, specs, and project context
-├── old/        # READ-ONLY legacy Next.js app kept for reference — do not edit
 └── AGENTS.md   # Ground rules for AI/human contributors
 ```
 
@@ -107,8 +106,7 @@ pnpm lint:openapi
 
 Small, obvious fixes are exempt. See [`AGENTS.md`](AGENTS.md) and
 [`openspec/config.yaml`](openspec/config.yaml) for the full project
-context and ground rules, including that **`old/` is strictly read-only**
-and will be removed once the rewrite lands.
+context and ground rules.
 
 Parity with the legacy app is the acceptance criterion for the rewrite; see
 [`docs/parity-checklist.md`](docs/parity-checklist.md) for the checkable
@@ -120,7 +118,6 @@ inventory.
   anything beyond a trivial fix.
 - Keep the OpenAPI spec in sync with any backend endpoint change.
 - Add both `de` and `en` translations for any new frontend string.
-- Never modify files under `old/`.
 
 ## License
 

@@ -7,16 +7,17 @@ behaviour is not listed below and not listed in [Non-goals](#non-goals), it
 is not yet a decided parity requirement — cite the item you're implementing
 by id, or open a proposal to add a missing one.
 
-Derived from `old/` (the read-only legacy Next.js app, see `AGENTS.md`) at
-legacy commit `774a37f`. `old/` will be deleted once the rewrite lands; this
-document is what survives it.
+Derived from the legacy Next.js app at legacy commit `774a37f`, vendored
+into this repository in commit `bbd18eb`. The `old/` folder has since been
+deleted; the `old/...` paths cited below can be read with
+`git show bbd18eb:old/<path>`. This document is what survives it.
 
 ## Id conventions
 
 - `SCR-nn` — a screen (page) in the legacy frontend.
 - `EP-nn` — a method-and-path pair served by a legacy API handler.
 - `DRV-nn` — a value the legacy app computes rather than stores.
-- `NG-nn` — a non-goal: something in `old/` that is deliberately not a
+- `NG-nn` — a non-goal: something in the legacy app that is deliberately not a
   parity requirement, with the reason why.
 
 Numbers are assigned once per prefix and never reused, so a citation

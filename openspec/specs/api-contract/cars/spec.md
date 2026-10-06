@@ -7,11 +7,22 @@ Defines ownership-scoped car management needed by the car list, detail, edit, an
 ## Requirements
 
 ### Requirement: Caller can manage owned cars
-The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GET /api/v1/cars/{carId}`, `PATCH /api/v1/cars/{carId}`, and `DELETE /api/v1/cars/{carId}` operations. Car representations SHALL cover the legacy parity fields: type, make, name, fuel, first registration, license plate, FIN, active state, purchase date, and purchase price. The car fuel field SHALL accept only the stable codes `other`, `diesel`, `gasoline`, and `electric`. `CarInput` and `CarUpdate` SHALL reject any request member outside their documented properties with `400` and the common validation error representation identifying the offending member. FIN, purchase date, and purchase price SHALL be optional and SHALL be clearable by an update that sets them to `null`. A car representation SHALL always contain every documented member, using `null` for an optional value that is not recorded.
+The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GET /api/v1/cars/{carId}`, `PATCH /api/v1/cars/{carId}`, and `DELETE /api/v1/cars/{carId}` operations. Car representations SHALL cover the legacy parity fields: type, make, name, fuel, first registration, license plate, FIN, active state, purchase date, and purchase price. The car fuel field SHALL accept only the stable codes `other`, `diesel`, `gasoline`, and `electric`. `CarInput` and `CarUpdate` SHALL reject any request member outside their documented properties with `400` and the common validation error representation identifying the offending member. First registration, license plate, FIN, purchase date, and purchase price SHALL be optional and SHALL be clearable by an update that sets them to `null`. A license plate or FIN that is supplied as a string SHALL NOT be blank. A car representation SHALL always contain every documented member, using `null` for an optional value that is not recorded.
 
 #### Scenario: Caller creates a car
 - **WHEN** an authenticated caller submits a valid car creation request
 - **THEN** the response is `201` with a car owned by that caller
+
+#### Scenario: Caller creates a car without registration details
+- **WHEN** an authenticated caller submits a car creation request that omits
+  `firstRegistration` and `licensePlate`, or sets them to `null`
+- **THEN** the response is `201` and both members are `null` in the
+  returned car
+
+#### Scenario: Caller supplies a blank license plate
+- **WHEN** an authenticated caller submits a car creation or update request
+  with `licensePlate` set to a blank string
+- **THEN** the response is `400` with `fields.licensePlate` set to `empty`
 
 #### Scenario: Caller supplies an unsupported car fuel
 - **WHEN** an authenticated caller submits a car creation or update request
@@ -25,8 +36,9 @@ The system SHALL document paginated `GET /api/v1/cars`, `POST /api/v1/cars`, `GE
   representation identifying that member, and no car is created or changed
 
 #### Scenario: Caller clears an optional car field
-- **WHEN** an authenticated caller updates one of their cars with `fin`,
-  `purchaseDate`, or `purchasePrice` set to `null`
+- **WHEN** an authenticated caller updates one of their cars with
+  `firstRegistration`, `licensePlate`, `fin`, `purchaseDate`, or
+  `purchasePrice` set to `null`
 - **THEN** the response is `200` and that member is `null` in the returned car
 
 #### Scenario: Caller deletes a car

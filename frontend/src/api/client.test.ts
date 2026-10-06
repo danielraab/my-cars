@@ -250,23 +250,24 @@ describe('API client', () => {
     await expect(getMe()).rejects.toBeInstanceOf(UnauthorizedError)
   })
 
-  it.each([
-    {},
-    { ...session.profile, email: null },
-    session,
-  ])('rejects malformed profiles %#', async (body) => {
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 })),
-    )
+  it.each([{}, { ...session.profile, email: null }, session])(
+    'rejects malformed profiles %#',
+    async (body) => {
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValue(
+            new Response(JSON.stringify(body), { status: 200 }),
+          ),
+      )
 
-    await expect(getMe()).rejects.toMatchObject({
-      status: 502,
-      code: 'invalid_response',
-    })
-  })
+      await expect(getMe()).rejects.toMatchObject({
+        status: 502,
+        code: 'invalid_response',
+      })
+    },
+  )
 })
 
 describe('cars API client', () => {

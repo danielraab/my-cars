@@ -13,16 +13,12 @@ describe('validateDashboardSearch', () => {
     expect(validateDashboardSearch({ year: '2024' }).year).toBe(2024)
   })
 
-  it.each([
-    'abc',
-    '20245',
-    '24',
-    2024.5,
-    '',
-    null,
-  ])('drops a malformed year %j', (year) => {
-    expect(validateDashboardSearch({ year }).year).toBeUndefined()
-  })
+  it.each(['abc', '20245', '24', 2024.5, '', null])(
+    'drops a malformed year %j',
+    (year) => {
+      expect(validateDashboardSearch({ year }).year).toBeUndefined()
+    },
+  )
 
   it('drops a malformed car', () => {
     expect(validateDashboardSearch({ carId: 'car-1' }).carId).toBeUndefined()

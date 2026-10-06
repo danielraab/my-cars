@@ -1,7 +1,7 @@
 export const defaultReturnTo = '/home'
 
 export function validReturnTo(value: string | null | undefined): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+  if (!value?.startsWith('/') || value.startsWith('//')) {
     return defaultReturnTo
   }
   if (value.includes('\\')) return defaultReturnTo

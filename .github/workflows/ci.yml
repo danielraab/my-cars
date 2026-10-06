@@ -91,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           # Read the version from go.mod so CI cannot drift from the module.
           go-version-file: backend/go.mod

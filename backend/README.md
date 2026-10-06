@@ -57,7 +57,37 @@ Add `--profile dev` for pgadmin (`localhost:8081`) and Mailpit
 (`localhost:8025`) alongside it. Mailpit accepts the `.env.example` SMTP
 settings and displays delivered magic links in its web UI.
 
-## Configuration
+## Importing the legacy data
+
+`import-legacy` copies the legacy MariaDB data, exported with `mysqldump`, into
+a **fresh** database. It runs once: it refuses to write if accounts, cars or
+expenses already exist, and it writes everything in one transaction. Run a dry
+run first. It needs no database and prints only the problems it finds, one per
+line, or `no problems found`:
+
+```bash
+go run . import-legacy ../dump.sql --dry-run
+DATABASE_URL='postgres://...' go run . import-legacy ../dump.sql
+```
+
+A real run applies pending migrations, validates the whole dump, writes nothing
+if there is any problem, and prints the imported row counts. The mapping
+rules (category labels, purchase price `0` → empty, dropped credentials, and
+so on) are specified in `openspec/specs/platform/legacy-data-import`.
+
+In production, mount the dump into the app container and run the same binary:
+
+```bash
+docker compose --profile prod run --rm -v "$PWD/dump.sql:/dump.sql:ro" \
+  app import-legacy /dump.sql --dry-run
+```
+
+Nobody should log in between deploying to the empty database and running the
+import: a login creates an account, and the database then no longer counts as
+fresh. Afterwards, legacy users sign in by magic link or OIDC with their legacy
+email address. Delete the dump once it has been imported, because it contains
+personal data.
+
 
 Every variable the service reads is listed in [`.env.example`](.env.example)
 with a placeholder value, and the names match what `docker-compose.yml` sets.

@@ -96,9 +96,15 @@ In one transaction:
    EXCLUSIVE MODE`;
 2. check every table with `SELECT EXISTS (...)`, and abort with "database is
    not fresh: <table> has rows" if any has rows;
-3. `COPY` (`pgx.CopyFrom`) accounts, then cars, refuels, repairs and tickets,
-   in foreign-key order;
+3. insert accounts, then cars, refuels, repairs and tickets, in
+   foreign-key order, as one `pgx.Batch` of `INSERT ... $n::text::<type>`
+   statements;
 4. commit.
+
+*Changed during implementation:* the plan was `pgx.CopyFrom`, but binary COPY
+cannot encode the custom enum types or decimal-as-text without registering
+types with pgx. Batched inserts reuse the casts the stores already use, and
+at about 160 rows throughput doesn't matter.
 
 The lock closes the gap between the check and the insert. It matters little
 for a one-off run, but costs nothing. `created_at`/`updated_at` are supplied

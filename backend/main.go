@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"at.draab/my-car/internal/db"
 	"at.draab/my-car/internal/healthcheck"
 	"at.draab/my-car/internal/httpserver"
+	"at.draab/my-car/internal/legacyimport"
 	"at.draab/my-car/internal/profile"
 	"at.draab/my-car/internal/refuels"
 	"at.draab/my-car/internal/repairs"
@@ -43,7 +45,89 @@ func main() {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "import-legacy" {
+		os.Exit(runImportLegacy(os.Args[2:], os.Stdout, os.Stderr))
+	}
 	runServer()
+}
+
+// importLegacyArgs parses `import-legacy <dump.sql> [--dry-run]`.
+func importLegacyArgs(args []string) (path string, dryRun bool, err error) {
+	for _, arg := range args {
+		switch {
+		case arg == "--dry-run":
+			dryRun = true
+		case strings.HasPrefix(arg, "-") || path != "":
+			return "", false, fmt.Errorf("usage: backend import-legacy <dump.sql> [--dry-run] (imports once, into a fresh database)")
+		default:
+			path = arg
+		}
+	}
+	if path == "" {
+		return "", false, fmt.Errorf("usage: backend import-legacy <dump.sql> [--dry-run] (imports once, into a fresh database)")
+	}
+	return path, dryRun, nil
+}
+
+// runImportLegacy validates the dump and, unless dryRun, writes it. Problems
+// go to stdout, one per line and nothing else, so a dry run lists only them;
+// it returns the process exit code.
+func runImportLegacy(args []string, stdout, stderr io.Writer) int {
+	path, dryRun, err := importLegacyArgs(args)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	dump, err := readLegacyDump(path)
+	if err != nil {
+		fmt.Fprintf(stdout, "dump: %v\n", err)
+		return 1
+	}
+	plan, problems := legacyimport.Map(dump)
+	for _, p := range problems {
+		fmt.Fprintln(stdout, p)
+	}
+	if len(problems) > 0 {
+		return 1
+	}
+	if dryRun {
+		fmt.Fprintln(stdout, "no problems found")
+		return 0
+	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		fmt.Fprintln(stderr, "import-legacy: DATABASE_URL is required")
+		return 1
+	}
+	if err := db.RunMigrations(databaseURL); err != nil {
+		fmt.Fprintf(stderr, "import-legacy: run migrations: %v\n", err)
+		return 1
+	}
+	ctx := context.Background()
+	pool, err := db.NewPool(ctx, databaseURL)
+	if err != nil {
+		fmt.Fprintf(stderr, "import-legacy: %v\n", err)
+		return 1
+	}
+	defer pool.Close()
+	counts, err := legacyimport.Write(ctx, pool, plan)
+	if err != nil {
+		fmt.Fprintf(stderr, "import-legacy: %v; nothing imported\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "imported %d accounts, %d cars, %d refuels, %d repairs, %d tickets\n",
+		counts.Accounts, counts.Cars, counts.Refuels, counts.Repairs, counts.Tickets)
+	return 0
+}
+
+func readLegacyDump(path string) (legacyimport.Dump, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return legacyimport.Dump{}, err
+	}
+	defer f.Close()
+	return legacyimport.Parse(f)
 }
 
 func seedEmails(args []string) ([]string, error) {

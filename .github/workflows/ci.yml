@@ -235,7 +235,9 @@ jobs:
           context: .
           push: false
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Cache entries are immutable: a concurrent or re-run build that finds
+          # its key already reserved must not fail an otherwise good build.
+          cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
             REVISION=${{ github.event.pull_request.head.sha || github.sha }}
 
@@ -283,7 +285,7 @@ jobs:
           context: .
           push: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
             VERSION=${{ github.ref_name }}
             REVISION=${{ github.sha }}

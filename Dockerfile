@@ -24,6 +24,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/server .
 
 # ---- final: minimal non-root runtime ----
 FROM gcr.io/distroless/static-debian12:nonroot AS final
+ARG VERSION=dev
+ARG REVISION=unknown
+LABEL org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.revision=$REVISION
 COPY --from=backend /out/server /app/server
 # distroless ships no shell; borrow the static busybox binary as /bin/sh so
 # tools that shell out (e.g. `docker exec ... sh -c`) still work. The server

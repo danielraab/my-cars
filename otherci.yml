@@ -1,0 +1,324 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ["*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Detects which parts of the repo changed so the jobs below can skip
+  # themselves when their inputs didn't. Skipped for tag pushes — those
+  # publish a release and must always run the full suite, and a brand-new
+  # tag ref has no meaningful "before" commit to diff against.
+  changes:
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.ref, 'refs/tags/')"
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      contract: ${{ steps.filter.outputs.contract }}
+      i18n: ${{ steps.filter.outputs.i18n }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+            contract:
+              - 'openapi/**'
+              - 'backend/openapi.yaml'
+              - 'frontend/src/api/schema.d.ts'
+              # The generator runs with these dependencies, so a toolchain
+              # update must validate regeneration as well.
+              - 'frontend/package.json'
+              - 'frontend/pnpm-lock.yaml'
+              - 'frontend/scripts/generate-api.mjs'
+              - '.github/workflows/ci.yml'
+            i18n:
+              - 'frontend/src/i18n/**'
+              - 'frontend/scripts/i18n-coverage.mjs'
+              - '.github/workflows/ci.yml'
+
+  frontend:
+    needs: changes
+    if: always() && (startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.frontend == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build
+
+  # Lints the OpenAPI contract and fails if the generated artifacts
+  # (frontend types, backend embedded copy) are stale relative to it.
+  contract:
+    needs: changes
+    if: always() && (startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.contract == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Lint openapi/openapi.yaml
+        run: pnpm dlx @stoplight/spectral-cli lint openapi/openapi.yaml --ruleset openapi/.spectral.yaml
+      - name: Install frontend deps
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Regenerate the frontend API types
+        working-directory: frontend
+        run: pnpm generate:api
+      - name: Sync the backend copy of the contract
+        run: cp openapi/openapi.yaml backend/openapi.yaml
+      - name: Fail on contract drift
+        run: git diff --exit-code -- frontend/src/api/schema.d.ts backend/openapi.yaml
+
+  # Reports per-locale translation coverage against en.json (the source of
+  # truth — see frontend/AGENTS.md). Informational only: continue-on-error
+  # keeps a shortfall from failing the workflow, and no other job needs:
+  # this one or is needed by it, so it never gates or delays anything else.
+  # Scoped to pull requests, same as backend-integration below — its only
+  # output is a PR comment, so there's nothing useful for it to do on push.
+  # A PR comment (and the failed-but-allowed step, surfaced by GitHub as a
+  # warning rather than a red X) only appears when some locale is short of
+  # 100%; full coverage succeeds silently, and a stale comment from a
+  # previously-short PR is removed once it's resolved.
+  i18n-coverage:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/master') &&
+      needs.changes.outputs.i18n == 'true'
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - name: Compute translation coverage
+        id: coverage
+        # Exits 1 on a shortfall on purpose (so a local run fails visibly)
+        # — both follow-up steps below need `always()` in their own `if:`,
+        # or GitHub Actions implicitly ANDs their condition with success()
+        # and skips them outright whenever this step's exit code is
+        # non-zero, silently defeating the whole point of this job.
+        run: node frontend/scripts/i18n-coverage.mjs
+      - name: Comment on PR
+        if: always() && github.event_name == 'pull_request' && steps.coverage.outputs.has_shortfall == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- i18n-coverage-report -->";
+            const body = fs.readFileSync(
+              `${process.env.RUNNER_TEMP}/i18n-coverage-report.md`,
+              "utf8",
+            );
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Remove stale PR comment
+        if: always() && github.event_name == 'pull_request' && steps.coverage.outputs.has_shortfall == 'false'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const marker = "<!-- i18n-coverage-report -->";
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+              });
+            }
+
+  # Unit/handler tests only. No database is available here, so the
+  # internal/storage/postgres integration tests self-skip (DATABASE_URL is
+  # unset) — see the backend-integration job below for those.
+  backend:
+    needs: changes
+    if: always() && (startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.backend == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+      - name: gofmt
+        run: |
+          UNFORMATTED="$(gofmt -l .)"
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not gofmt'd:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: go test ./...
+
+  # Runs the internal/storage/postgres integration tests against a real
+  # Postgres. Scoped to pull requests: integration tests are not part of the
+  # always-on push pipeline, only the PR gate (see backend/AGENTS.md).
+  backend-integration:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/master') &&
+      needs.changes.outputs.backend == 'true'
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: familyfinances
+          POSTGRES_PASSWORD: familyfinances
+          POSTGRES_DB: familyfinances
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U familyfinances -d familyfinances"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://familyfinances:familyfinances@localhost:5432/familyfinances?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+      - run: go test ./internal/storage/postgres/...
+
+  # Validates the combined production image for pull requests without loading
+  # it locally or authenticating to (or pushing to) a container registry.
+  image:
+    needs: [frontend, backend, contract]
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/master') &&
+      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped') &&
+      (needs.backend.result == 'success' || needs.backend.result == 'skipped') &&
+      (needs.contract.result == 'success' || needs.contract.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          build-args: |
+            REVISION=${{ github.event.pull_request.head.sha }}
+
+  # Builds and publishes the combined image. Only runs when a new git tag is
+  # pushed, using that tag as the image tag.
+  publish:
+    needs: [frontend, backend, contract]
+    # The implicit success() GitHub ANDs onto a plain `if` checks the whole
+    # transitive dependency chain, not just this job's own `needs` — and
+    # `changes` (an ancestor via frontend/backend/contract) is deliberately
+    # skipped on tag pushes. Without `always()` that skip would propagate
+    # here and skip publish too, even though its direct needs all succeeded.
+    if: >-
+      always() &&
+      needs.frontend.result == 'success' &&
+      needs.backend.result == 'success' &&
+      needs.contract.result == 'success' &&
+      startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: publish-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image name
+        id: version
+        run: |
+          IMAGE_PATH="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=ghcr.io/${IMAGE_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            REVISION=${{ github.sha }}
+          tags: |
+            ${{ steps.version.outputs.image }}:${{ github.ref_name }}
+            ${{ steps.version.outputs.image }}:latest

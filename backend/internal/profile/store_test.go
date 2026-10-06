@@ -23,6 +23,17 @@ func TestStoreUpdateAccountNames(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Close()
+	// Serialize with other packages' database tests, some of which truncate
+	// the domain tables or require them empty while holding this lock.
+	lock, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Release()
+	if _, err := lock.Exec(ctx, `SELECT pg_advisory_lock(7242026)`); err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Exec(ctx, `SELECT pg_advisory_unlock(7242026)`)
 	email := "profile-test-" + time.Now().Format("150405.000000000") + "@example.com"
 	var id string
 	if err := pool.QueryRow(ctx, `INSERT INTO accounts (email,first_name,last_name) VALUES ($1,'Ada','Lovelace') RETURNING id`, email).Scan(&id); err != nil {

@@ -8,6 +8,9 @@ import { join } from 'node:path'
 import { resources } from '../src/i18n/resources.ts'
 
 const SOURCE = 'en'
+// Test-only keys (e.g. internal.fallbackProbe, which exists in en alone to
+// exercise the fallback to English) are not user-facing and need no translation.
+const IGNORED_PREFIX = 'internal.'
 
 function flatten(node, prefix = '') {
   return Object.entries(node).flatMap(([key, value]) => {
@@ -18,7 +21,12 @@ function flatten(node, prefix = '') {
   })
 }
 
-const keysOf = (locale) => new Set(flatten(resources[locale].translation))
+const keysOf = (locale) =>
+  new Set(
+    flatten(resources[locale].translation).filter(
+      (key) => !key.startsWith(IGNORED_PREFIX),
+    ),
+  )
 const sourceKeys = keysOf(SOURCE)
 
 const rows = Object.keys(resources)

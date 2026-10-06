@@ -11,7 +11,8 @@ schema: spec-driven
 context: |
   Domain: car management app. This is a rewrite of a legacy Next.js full-stack
   app (Sequelize/Postgres/MariaDB, Bootstrap, JWT auth via jsonwebtoken +
-  nodemailer) that lives untouched in the `old/` folder for reference only.
+  nodemailer) that has been removed from the working tree (see git history, vendored in
+  commit `bbd18eb`).
 
   Target architecture:
   - Backend: Go. Exposes a REST API. In production it also serves the

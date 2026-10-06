@@ -222,23 +222,24 @@ describe('protected routes', () => {
 })
 
 describe('logout', () => {
-  it.each([
-    204, 401,
-  ])('clears local session state after status %s', async (status) => {
-    const fetchMock = vi.fn(async (_input: string, init?: RequestInit) =>
-      init?.method === 'DELETE' ? response(status) : response(200, session),
-    )
-    vi.stubGlobal('fetch', fetchMock)
-    const user = userEvent.setup()
-    renderApp('/home')
+  it.each([204, 401])(
+    'clears local session state after status %s',
+    async (status) => {
+      const fetchMock = vi.fn(async (_input: string, init?: RequestInit) =>
+        init?.method === 'DELETE' ? response(status) : response(200, session),
+      )
+      vi.stubGlobal('fetch', fetchMock)
+      const user = userEvent.setup()
+      renderApp('/home')
 
-    await user.click(await screen.findByRole('button', { name: 'Sign out' }))
-    expect(
-      await screen.findByRole('heading', {
-        name: 'Keep every journey under control.',
-      }),
-    ).toBeInTheDocument()
-  })
+      await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+      expect(
+        await screen.findByRole('heading', {
+          name: 'Keep every journey under control.',
+        }),
+      ).toBeInTheDocument()
+    },
+  )
 
   it('retains protected content when logout fails unexpectedly', async () => {
     const fetchMock = vi.fn(async (_input: string, init?: RequestInit) =>

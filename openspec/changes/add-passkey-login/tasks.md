@@ -22,12 +22,12 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 Regenerate OpenAPI types and add typed client functions plus `src/auth/passkeys.ts` (support detection, base64url JSON ↔ ArrayBuffer conversion, create/get wrappers, cancellation detection); verify unit tests cover conversion round-trips, unsupported browsers, and `NotAllowedError` mapping; `pnpm check:api` passes.
-- [ ] 4.2 Add passkey sign-in to `/auth/login` shown only when `passkey` is reported and WebAuthn is supported, navigating to the validated return path on success; verify route tests cover shown/hidden states, success navigation, backend rejection, and cancellation in de and en.
-- [ ] 4.3 Add the passkey section to `/profile` (list with details, empty/loading/error states, fresh-login note, add flow with reauthentication link to `/auth/login?returnTo=/profile`, unsupported-browser notice, rename, delete with confirmation dialog, redirect to login when the current session is revoked); verify route tests cover each spec scenario in de and en.
-- [ ] 4.4 Add all new de/en translation keys; verify the localization key-parity test passes.
+- [x] 4.1 Regenerate OpenAPI types and add typed client functions plus `src/auth/passkeys.ts` (support detection, base64url JSON ↔ ArrayBuffer conversion, create/get wrappers, cancellation detection); verify unit tests cover conversion round-trips, unsupported browsers, and `NotAllowedError` mapping; `pnpm check:api` passes.
+- [x] 4.2 Add passkey sign-in to `/auth/login` shown only when `passkey` is reported and WebAuthn is supported, navigating to the validated return path on success; verify route tests cover shown/hidden states, success navigation, backend rejection, and cancellation in de and en.
+- [x] 4.3 Add the passkey section to `/profile` (list with details, empty/loading/error states, fresh-login note, add flow with reauthentication link to `/auth/login?returnTo=/profile`, unsupported-browser notice, rename, delete with confirmation dialog, redirect to login when the current session is revoked); verify route tests cover each spec scenario in de and en.
+- [x] 4.4 Add all new de/en translation keys; verify the localization key-parity test passes.
 
 ## 5. Integration
 
-- [ ] 5.1 Run frontend `check:api`, tests, typecheck, Biome, OpenAPI lint, and build; run full backend tests, `openspec validate add-passkey-login --strict`, and `git diff --check`; verify all pass.
-- [ ] 5.2 Manually exercise register → logout → passkey login → delete in a browser against the backend origin (e.g. Chromium virtual authenticator); verify the session created by the passkey is revoked after deletion.
+- [x] 5.1 Run frontend `check:api`, tests, typecheck, Biome, OpenAPI lint, and build; run full backend tests, `openspec validate add-passkey-login --strict`, and `git diff --check`; verify all pass.
+- [x] 5.2 Manually exercise register → logout → passkey login → delete in a browser against the backend origin (e.g. Chromium virtual authenticator); verify the session created by the passkey is revoked after deletion.

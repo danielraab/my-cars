@@ -63,6 +63,12 @@ export const resources = {
           'We could not load the available sign-in options. Please try again.',
         methodsRetry: 'Try again',
         oidc: 'Continue with identity provider',
+        passkey: 'Sign in with a passkey',
+        passkeyPending: 'Waiting for your passkey…',
+        passkeyRejected:
+          'Your passkey could not be verified. Try again or use another sign-in method.',
+        passkeyUnavailable:
+          'Passkey sign-in is currently unavailable. Please use another sign-in method.',
         divider: 'or',
         emailLabel: 'Email address',
         emailPlaceholder: 'you@example.com',
@@ -104,6 +110,55 @@ export const resources = {
           invalid_type: 'Enter text only.',
           invalid: 'Check this value.',
         },
+      },
+      passkeys: {
+        title: 'Passkeys',
+        description:
+          'Sign in with your fingerprint, face, or device PIN instead of an email link.',
+        freshLoginHint:
+          'For your security, adding a passkey requires a sign-in within the last 5 minutes. Removing a passkey is always possible.',
+        add: 'Add passkey',
+        adding: 'Waiting for your passkey…',
+        added: 'Your passkey has been added.',
+        addCancelled: 'Adding the passkey was cancelled.',
+        addError: 'The passkey could not be added. Please try again.',
+        alreadyRegistered: 'This passkey is already registered.',
+        reauthenticate:
+          'Your last sign-in was more than 5 minutes ago. Sign in again to add a passkey.',
+        reauthenticateLink: 'Sign in again',
+        unsupported:
+          'This browser does not support passkeys. You can still rename and remove existing passkeys here.',
+        loading: 'Loading your passkeys…',
+        loadError: 'We could not load your passkeys. Please try again.',
+        retry: 'Try again',
+        empty: 'You have not added a passkey yet.',
+        listLabel: 'Your passkeys',
+        defaultName: 'Passkey {{number}}',
+        synced: 'Synced across devices',
+        deviceBound: 'Stored on this device only',
+        createdAt: 'Added {{date}}',
+        lastUsedAt: 'Last used {{date}}',
+        neverUsed: 'Not used for sign-in yet',
+        rename: 'Rename',
+        renameAction: 'Rename {{name}}',
+        nameLabel: 'Passkey name',
+        save: 'Save name',
+        saving: 'Saving…',
+        cancel: 'Cancel',
+        renameError: 'The name could not be saved. Please try again.',
+        nameErrors: {
+          empty: 'Enter a name.',
+          too_long: 'Use at most 100 characters.',
+          invalid: 'Check this name.',
+        },
+        remove: 'Remove',
+        removePrompt:
+          'Remove “{{name}}”? Sessions signed in with this passkey will be signed out.',
+        removeConfirm: 'Remove passkey',
+        removeCancel: 'Keep',
+        removing: 'Removing…',
+        removeError: 'The passkey could not be removed. Please try again.',
+        removed: 'The passkey has been removed.',
       },
       dateRange: {
         label: 'Date range',
@@ -591,6 +646,12 @@ export const resources = {
           'Die verfügbaren Anmeldeoptionen konnten nicht geladen werden. Bitte versuche es erneut.',
         methodsRetry: 'Erneut versuchen',
         oidc: 'Mit Identitätsanbieter fortfahren',
+        passkey: 'Mit Passkey anmelden',
+        passkeyPending: 'Warte auf deinen Passkey…',
+        passkeyRejected:
+          'Dein Passkey konnte nicht überprüft werden. Versuche es erneut oder nutze eine andere Anmeldemethode.',
+        passkeyUnavailable:
+          'Die Anmeldung mit Passkey ist derzeit nicht verfügbar. Bitte nutze eine andere Anmeldemethode.',
         divider: 'oder',
         emailLabel: 'E-Mail-Adresse',
         emailPlaceholder: 'du@beispiel.de',
@@ -635,6 +696,59 @@ export const resources = {
           invalid_type: 'Gib nur Text ein.',
           invalid: 'Bitte überprüfe diesen Wert.',
         },
+      },
+      passkeys: {
+        title: 'Passkeys',
+        description:
+          'Melde dich mit Fingerabdruck, Gesicht oder Geräte-PIN statt mit einem E-Mail-Link an.',
+        freshLoginHint:
+          'Zu deiner Sicherheit setzt das Hinzufügen eines Passkeys eine Anmeldung innerhalb der letzten 5 Minuten voraus. Entfernen ist jederzeit möglich.',
+        add: 'Passkey hinzufügen',
+        adding: 'Warte auf deinen Passkey…',
+        added: 'Dein Passkey wurde hinzugefügt.',
+        addCancelled: 'Das Hinzufügen des Passkeys wurde abgebrochen.',
+        addError:
+          'Der Passkey konnte nicht hinzugefügt werden. Bitte versuche es erneut.',
+        alreadyRegistered: 'Dieser Passkey ist bereits registriert.',
+        reauthenticate:
+          'Deine letzte Anmeldung liegt mehr als 5 Minuten zurück. Melde dich erneut an, um einen Passkey hinzuzufügen.',
+        reauthenticateLink: 'Erneut anmelden',
+        unsupported:
+          'Dieser Browser unterstützt keine Passkeys. Bestehende Passkeys kannst du hier trotzdem umbenennen und entfernen.',
+        loading: 'Passkeys werden geladen…',
+        loadError:
+          'Deine Passkeys konnten nicht geladen werden. Bitte versuche es erneut.',
+        retry: 'Erneut versuchen',
+        empty: 'Du hast noch keinen Passkey hinzugefügt.',
+        listLabel: 'Deine Passkeys',
+        defaultName: 'Passkey {{number}}',
+        synced: 'Zwischen Geräten synchronisiert',
+        deviceBound: 'Nur auf diesem Gerät gespeichert',
+        createdAt: 'Hinzugefügt am {{date}}',
+        lastUsedAt: 'Zuletzt verwendet am {{date}}',
+        neverUsed: 'Noch nicht zur Anmeldung verwendet',
+        rename: 'Umbenennen',
+        renameAction: '{{name}} umbenennen',
+        nameLabel: 'Name des Passkeys',
+        save: 'Namen speichern',
+        saving: 'Wird gespeichert…',
+        cancel: 'Abbrechen',
+        renameError:
+          'Der Name konnte nicht gespeichert werden. Bitte versuche es erneut.',
+        nameErrors: {
+          empty: 'Gib einen Namen ein.',
+          too_long: 'Verwende höchstens 100 Zeichen.',
+          invalid: 'Bitte überprüfe diesen Namen.',
+        },
+        remove: 'Entfernen',
+        removePrompt:
+          '„{{name}}“ entfernen? Mit diesem Passkey angemeldete Sitzungen werden abgemeldet.',
+        removeConfirm: 'Passkey entfernen',
+        removeCancel: 'Behalten',
+        removing: 'Wird entfernt…',
+        removeError:
+          'Der Passkey konnte nicht entfernt werden. Bitte versuche es erneut.',
+        removed: 'Der Passkey wurde entfernt.',
       },
       dateRange: {
         label: 'Zeitraum',

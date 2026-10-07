@@ -1,3 +1,8 @@
+import type {
+  PasskeyCreationOptionsJSON,
+  PasskeyRequestOptionsJSON,
+  PublicKeyCredentialJSON,
+} from '#/auth/passkeys'
 import type { components } from './schema.gen'
 
 export type ApiErrorBody = components['schemas']['Error']
@@ -7,6 +12,13 @@ export type ProfileUpdate = components['schemas']['ProfileUpdate']
 export type MagicLinkRequest = components['schemas']['MagicLinkRequest']
 export type AuthenticationMethods =
   components['schemas']['AuthenticationMethods']
+export type AuthenticationMethod = AuthenticationMethods['methods'][number]
+export const authenticationMethods: readonly AuthenticationMethod[] = [
+  'magic_link',
+  'passkey',
+  'oidc',
+]
+export type PasskeySummary = components['schemas']['PasskeySummary']
 export type Car = components['schemas']['Car']
 export type CarFuel = Car['fuel']
 type GeneratedCarInput = components['schemas']['CarInput']
@@ -249,7 +261,37 @@ function isAuthenticationMethods(
     methods.length > 0 &&
     methods.includes('magic_link') &&
     new Set(methods).size === methods.length &&
-    methods.every((method) => method === 'magic_link' || method === 'oidc')
+    methods.every((method) => authenticationMethods.includes(method))
+  )
+}
+
+function isPasskeySummary(value: unknown): value is PasskeySummary {
+  return (
+    isRecord(value) &&
+    [value.id, value.name, value.createdAt].every(
+      (field) => typeof field === 'string',
+    ) &&
+    isNullableString(value.lastUsedAt) &&
+    isNullableString(value.authenticatorName) &&
+    typeof value.backedUp === 'boolean'
+  )
+}
+
+function isPasskeyList(value: unknown): value is { items: PasskeySummary[] } {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.items) &&
+    value.items.every(isPasskeySummary)
+  )
+}
+
+function isWebAuthnOptions(
+  value: unknown,
+): value is { publicKey: Record<string, unknown> } {
+  return (
+    isRecord(value) &&
+    isRecord(value.publicKey) &&
+    typeof value.publicKey.challenge === 'string'
   )
 }
 
@@ -662,4 +704,103 @@ export async function logout(): Promise<void> {
       'The server response is invalid',
     )
   }
+}
+
+function passkeyPath(passkeyId: string): string {
+  return `/api/v1/passkeys/${encodeURIComponent(passkeyId)}`
+}
+
+function jsonRequest(method: string, body?: unknown): RequestInit {
+  return body === undefined
+    ? { method }
+    : {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+}
+
+async function expectNoContent(response: Response): Promise<void> {
+  if (!response.ok) throw await errorFrom(response)
+  if (response.status !== 204) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+}
+
+export async function getPasskeys(): Promise<PasskeySummary[]> {
+  const response = await fetchApi('/api/v1/passkeys')
+  return (await decoded(response, isPasskeyList)).items
+}
+
+/** Starts registration; fails with code `reauthentication_required` (403)
+ * when the session is older than the fresh-login window. */
+export async function startPasskeyRegistration(): Promise<PasskeyCreationOptionsJSON> {
+  const response = await fetchApi(
+    '/api/v1/passkeys/registration-options',
+    jsonRequest('POST'),
+  )
+  return decoded(response, isWebAuthnOptions)
+}
+
+export async function registerPasskey(input: {
+  name: string
+  credential: PublicKeyCredentialJSON
+}): Promise<PasskeySummary> {
+  const response = await fetchApi(
+    '/api/v1/passkeys',
+    jsonRequest('POST', input),
+  )
+  return decoded(response, isPasskeySummary)
+}
+
+export async function renamePasskey(
+  passkeyId: string,
+  name: string,
+): Promise<PasskeySummary> {
+  const response = await fetchApi(
+    passkeyPath(passkeyId),
+    jsonRequest('PATCH', { name }),
+  )
+  return decoded(response, isPasskeySummary)
+}
+
+export async function deletePasskey(passkeyId: string): Promise<void> {
+  const response = await fetchApi(passkeyPath(passkeyId), {
+    method: 'DELETE',
+  })
+  if (response.status === 401) throw new UnauthorizedError()
+  await expectNoContent(response)
+}
+
+export async function startPasskeyLogin(): Promise<PasskeyRequestOptionsJSON> {
+  const response = await fetchApi(
+    '/api/v1/auth/passkey/options',
+    jsonRequest('POST'),
+  )
+  if (!response.ok) throw await errorFrom(response)
+  const body = await jsonBody(response)
+  if (!isWebAuthnOptions(body)) {
+    throw new ApiError(
+      502,
+      'invalid_response',
+      'The server response is invalid',
+    )
+  }
+  return body
+}
+
+/** Completes a passkey login; the backend sets the session cookie. A rejected
+ * assertion fails with an ApiError of status 401. */
+export async function completePasskeyLogin(
+  credential: PublicKeyCredentialJSON,
+): Promise<void> {
+  const response = await fetchApi(
+    '/api/v1/auth/passkey',
+    jsonRequest('POST', credential),
+  )
+  await expectNoContent(response)
 }

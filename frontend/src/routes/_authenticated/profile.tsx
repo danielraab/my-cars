@@ -12,6 +12,7 @@ import {
   updateMe,
 } from '#/api/client'
 import { sessionQueryKey } from '#/auth/session'
+import { PasskeySection } from '#/components/passkey-section'
 
 const profileQueryKey = ['me'] as const
 
@@ -62,6 +63,8 @@ function ProfilePage() {
       ) : (
         <ProfileForm profile={profile.data} />
       )}
+
+      <PasskeySection />
     </section>
   )
 }

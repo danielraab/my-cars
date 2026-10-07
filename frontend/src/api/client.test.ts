@@ -44,15 +44,18 @@ describe('API client', () => {
   it('returns enabled authentication methods', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ methods: ['magic_link', 'oidc'] }), {
-          status: 200,
-        }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ methods: ['magic_link', 'passkey', 'oidc'] }),
+            { status: 200 },
+          ),
+        ),
     )
 
     await expect(getAuthenticationMethods()).resolves.toEqual({
-      methods: ['magic_link', 'oidc'],
+      methods: ['magic_link', 'passkey', 'oidc'],
     })
   })
 

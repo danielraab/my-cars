@@ -205,6 +205,10 @@ select:focus-visible {
   background: var(--navy);
 }
 
+.login-passkey + .button-oidc {
+  margin-top: 0.75rem;
+}
+
 .public-footer {
   display: flex;
   justify-content: center;
@@ -942,6 +946,107 @@ select:focus-visible {
   color: #3d6a06;
   font-size: 0.88rem;
   font-weight: 650;
+}
+
+.passkey-section {
+  margin-top: 1.6rem;
+}
+
+.passkey-section h2 {
+  margin: 0 0 0.4rem;
+  color: var(--navy);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.passkey-intro,
+.passkey-empty,
+.passkey-meta,
+.passkey-notice {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.passkey-intro {
+  margin: 0 0 1.2rem;
+}
+
+.passkey-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: var(--muted);
+}
+
+.passkey-status p {
+  margin: 0;
+}
+
+.passkey-list {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.passkey-item {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+}
+
+.passkey-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.passkey-heading svg {
+  flex: none;
+  margin-top: 0.15rem;
+  color: var(--navy);
+}
+
+.passkey-heading h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.passkey-meta {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.passkey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.passkey-rename {
+  margin-top: 0.9rem;
+}
+
+.passkey-add {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+}
+
+.passkey-add .field-hint {
+  margin: 0 !important;
+}
+
+.passkey-notice {
+  display: block;
+  font-size: 0.88rem;
 }
 
 .list-page {

@@ -23,13 +23,15 @@ function response(status: number, body?: unknown) {
 
 type Handler = (init?: RequestInit) => Response | Promise<Response>
 
-// Routes fetch calls by "METHOD path"; the session is always valid.
+// Routes fetch calls by "METHOD path"; the session is always valid and the
+// passkey section (covered in -passkeys.test.tsx) finds no passkeys.
 function backend(routes: Record<string, Handler | Handler[]>) {
   const calls: { key: string; init?: RequestInit }[] = []
   const fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${path}`
     calls.push({ key, init })
     if (key === 'GET /api/v1/session') return response(200, { profile })
+    if (key === 'GET /api/v1/passkeys') return response(200, { items: [] })
     const route = routes[key]
     const handler = Array.isArray(route) ? route.shift() : route
     if (!handler) throw new Error(`unexpected request ${key}`)

@@ -1,7 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  Fingerprint,
   KeyRound,
   LoaderCircle,
   Mail,
@@ -11,9 +12,20 @@ import {
 import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError, requestMagicLink } from '#/api/client'
+import {
+  ApiError,
+  completePasskeyLogin,
+  requestMagicLink,
+  startPasskeyLogin,
+} from '#/api/client'
 import { authenticationMethodsQueryOptions } from '#/auth/methods'
+import {
+  getPasskeyCredential,
+  PasskeyCancelledError,
+  passkeysSupported,
+} from '#/auth/passkeys'
 import { oidcStartUrl, validReturnTo } from '#/auth/return-to'
+import { sessionQueryKey } from '#/auth/session'
 import { PublicHeader } from '#/components/public-header'
 
 type LoginSearch = { returnTo?: string }
@@ -37,6 +49,27 @@ function LoginPage() {
   const [invalid, setInvalid] = useState(false)
   const methods = useQuery(authenticationMethodsQueryOptions)
   const magicLink = useMutation({ mutationFn: requestMagicLink })
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const passkey = useMutation({
+    mutationFn: async () => {
+      const options = await startPasskeyLogin()
+      await completePasskeyLogin(await getPasskeyCredential(options))
+    },
+    onSuccess: () => {
+      // The backend set a new session cookie; resolve it afresh.
+      queryClient.removeQueries({ queryKey: sessionQueryKey })
+      router.history.push(returnTo)
+    },
+  })
+  const offerPasskey =
+    methods.data?.methods.includes('passkey') === true && passkeysSupported()
+  const passkeyRejected =
+    passkey.error instanceof ApiError && passkey.error.status === 401
+  const passkeyUnavailable =
+    passkey.isError &&
+    !passkeyRejected &&
+    !(passkey.error instanceof PasskeyCancelledError)
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -100,19 +133,46 @@ function LoginPage() {
             </output>
           ) : (
             <>
-              {methods.data.methods.includes('oidc') ? (
-                <>
-                  <a
+              {offerPasskey ? (
+                <div className="login-passkey">
+                  <button
                     className="button button-oidc"
-                    href={oidcStartUrl(returnTo)}
+                    disabled={passkey.isPending}
+                    type="button"
+                    onClick={() => passkey.mutate()}
                   >
-                    <KeyRound aria-hidden="true" size={18} />
-                    {t('login.oidc')}
-                  </a>
-                  <div className="divider">
-                    <span>{t('login.divider')}</span>
-                  </div>
-                </>
+                    {passkey.isPending ? (
+                      <LoaderCircle
+                        className="spin"
+                        aria-hidden="true"
+                        size={18}
+                      />
+                    ) : (
+                      <Fingerprint aria-hidden="true" size={18} />
+                    )}
+                    {passkey.isPending
+                      ? t('login.passkeyPending')
+                      : t('login.passkey')}
+                  </button>
+                  {passkeyRejected || passkeyUnavailable ? (
+                    <p className="field-error" role="alert">
+                      {passkeyRejected
+                        ? t('login.passkeyRejected')
+                        : t('login.passkeyUnavailable')}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {methods.data.methods.includes('oidc') ? (
+                <a className="button button-oidc" href={oidcStartUrl(returnTo)}>
+                  <KeyRound aria-hidden="true" size={18} />
+                  {t('login.oidc')}
+                </a>
+              ) : null}
+              {offerPasskey || methods.data.methods.includes('oidc') ? (
+                <div className="divider">
+                  <span>{t('login.divider')}</span>
+                </div>
               ) : null}
               <form noValidate onSubmit={submit}>
                 <label htmlFor="email">{t('login.emailLabel')}</label>

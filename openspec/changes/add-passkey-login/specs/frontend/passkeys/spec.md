@@ -54,8 +54,8 @@ renaming, and deleting existing passkeys.
 
 ### Requirement: User can rename and delete passkeys
 The frontend SHALL let the user rename a passkey with a non-empty name and
-delete a passkey after a confirmation dialog, without requiring a fresh
-login. If deleting revokes the current session, the frontend SHALL clear its
+delete a passkey after an explicit confirmation step, without requiring a
+fresh login. If deleting revokes the current session, the frontend SHALL clear its
 session state and navigate to login.
 
 #### Scenario: User renames a passkey

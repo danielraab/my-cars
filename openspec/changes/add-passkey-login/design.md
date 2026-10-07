@@ -69,6 +69,8 @@ webauthn_credentials
   sign_count       BIGINT NOT NULL
   aaguid           BYTEA                              -- 16 bytes or NULL
   transports       TEXT[] NOT NULL DEFAULT '{}'
+  attestation_format TEXT NOT NULL DEFAULT 'none'
+  user_verified    BOOLEAN NOT NULL       -- needed to rebuild the library's credential record
   backup_eligible  BOOLEAN NOT NULL
   backup_state     BOOLEAN NOT NULL
   name             TEXT NOT NULL CHECK (btrim(name) <> '' AND length(name) <= 100)
@@ -115,9 +117,11 @@ re-authenticated in place, so creation time is exactly the login time.
 
 ### Passkey login establishes the session in one transaction
 
-`establishSession` gains an optional credential ID. The assertion handler
-consumes the challenge, verifies the assertion, updates `sign_count` and
-`last_used_at`, and creates the session row with `credential_id`. A
+The assertion handler consumes the challenge, verifies the assertion, and
+then calls `Store.CompletePasskeyLogin`, which updates `sign_count`,
+`backup_state` and `last_used_at` and creates the session row with
+`credential_id` in one transaction (instead of extending `establishSession`,
+so the counter update and the session cannot diverge). A
 counter regression on a credential with a non-zero counter (clone warning) is
 rejected; synced passkeys that always report 0 are accepted. The endpoint
 returns `204` + cookie; the frontend navigates using its existing
@@ -134,8 +138,9 @@ it handles by navigating to login.
 
 ### Authenticator display name from a bundled AAGUID map
 
-A trimmed copy of the community-maintained passkey AAGUID list (MIT licensed;
-name only, no icons) is embedded in the backend and mapped at response time to
+The AAGUID/name pairs of the community-maintained passkey AAGUID list
+(github.com/passkeydeveloper/passkey-authenticator-aaguids; names only, no
+icons) is embedded in the backend and mapped at response time to
 `authenticatorName`; unknown or zero AAGUIDs yield `null`. Fetching the list at
 runtime was rejected (network dependency); FIDO MDS was rejected as
 attestation-oriented and heavy.

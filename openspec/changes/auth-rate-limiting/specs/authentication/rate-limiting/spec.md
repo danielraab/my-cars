@@ -43,8 +43,8 @@ does not bypass the limits.
 The system SHALL apply per-client token-bucket limits, kept separately for
 each endpoint group: magic-link request 5 per 10 minutes with burst 3;
 magic-link consumption, OIDC start, and OIDC callback 30 per minute; passkey
-login options and assertion 30 per minute. Authenticated endpoints SHALL NOT
-be throttled by this capability.
+login options and assertion 30 per minute, unless per-client limiting is
+disabled. Authenticated endpoints SHALL NOT be throttled.
 
 #### Scenario: Magic-link requests exceed the client limit
 - **WHEN** one client sends a fourth magic-link request within a few seconds
@@ -57,6 +57,28 @@ be throttled by this capability.
 #### Scenario: Different clients are independent
 - **WHEN** one client has exhausted a limit
 - **THEN** requests from another client address are still accepted
+
+### Requirement: Per-client limiting can be disabled
+The system SHALL enable per-client limiting by default and SHALL disable it
+when explicitly configured off, for deployments that cannot specify trusted
+proxies. When disabled it SHALL log this at startup and SHALL keep the
+per-recipient magic-link limit. Invalid values SHALL fail startup.
+
+#### Scenario: Per-client limiting is disabled
+- **WHEN** per-client limiting is configured off and one client sends ten magic-link requests for different addresses within a minute
+- **THEN** none of them is rejected as rate limited
+
+#### Scenario: Recipient limit still applies when disabled
+- **WHEN** per-client limiting is configured off and a fourth magic-link request for the same address arrives within 15 minutes
+- **THEN** the response is the normal accepted response, no email is sent, and the hit is logged
+
+#### Scenario: Disabled state is visible at startup
+- **WHEN** the backend starts with per-client limiting configured off
+- **THEN** it writes a startup log entry stating that per-client rate limiting is disabled
+
+#### Scenario: Invalid switch value
+- **WHEN** the per-client limiting setting is neither `true` nor `false`
+- **THEN** startup fails with an error naming the setting
 
 ### Requirement: Magic-link delivery is throttled per recipient without disclosure
 The system SHALL send at most 3 magic-link emails per normalized address per

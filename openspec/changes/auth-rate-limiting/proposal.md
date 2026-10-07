@@ -23,6 +23,10 @@ that the passkey login endpoints are covered too.
   - magic-link request: 5 per 10 minutes, burst 3;
   - magic-link consumption, OIDC start, OIDC callback: 30 per minute;
   - passkey login options and assertion: 30 per minute.
+- Allow per-client-IP limiting to be switched off with a new optional
+  `RATE_LIMIT_PER_IP` setting (`true` by default) for deployments that cannot
+  specify their trusted proxies. The per-recipient magic-link limit and
+  logging stay active either way; startup logs that per-IP limiting is off.
 - Add a per-recipient limit for magic-link requests (3 emails per normalized
   address per 15 minutes) that silently skips delivery while returning the
   normal accepted response, so it cannot reveal account existence.
@@ -55,8 +59,9 @@ that the passkey login endpoints are covered too.
 ## Impact
 
 - **Configuration**: new optional `TRUSTED_PROXIES` environment variable
-  (comma-separated CIDRs/IPs), added to `.env.example`, config validation, and
-  the backend README with a reverse-proxy example.
+  (comma-separated CIDRs/IPs) and `RATE_LIMIT_PER_IP` switch (`true`/`false`,
+  default `true`), added to `.env.example`, config validation, and the backend
+  README with a Traefik example.
 - **Backend**: new rate-limiting middleware and client-IP resolver in the auth
   package; route registration wraps public auth routes; magic-link handler
   consults the per-recipient limiter; first use of structured `log/slog`

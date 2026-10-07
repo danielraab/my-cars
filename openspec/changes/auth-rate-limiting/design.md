@@ -8,7 +8,7 @@ Public auth routes are registered in `auth.Service.RegisterRoutes` on the
 shared `http.ServeMux` built by `httpserver.NewMux`. The magic-link handler
 already normalizes the email before creating a challenge. The backend runs as a
 single container behind a reverse proxy, so `r.RemoteAddr` is the proxy's
-address in production. Logging uses the standard `log` package without levels.
+address in production (Traefik). Logging uses the standard `log` package without levels.
 Expired authentication rows are already pruned hourly by `Store.Prune`
 (`main.go`), and `add-passkey-login` extends it to passkey challenges.
 
@@ -56,9 +56,26 @@ parse errors fail startup. `ClientIP(r)`:
 The limiter key is the IPv4 address or the IPv6 address masked to /64
 (IPv4-mapped IPv6 is unmapped first). Using `X-Real-IP` or the leftmost
 `X-Forwarded-For` entry was rejected: the leftmost value is client-controlled,
-and `X-Real-IP` is not set uniformly by all proxies. With Docker-based proxies
-the operator configures the Docker network range (e.g. `172.16.0.0/12`); the
-README documents this.
+and `X-Real-IP` is not set uniformly by all proxies. The README documents the
+Traefik setup: give the Docker network shared by Traefik and the app a fixed
+subnet (e.g. `172.30.0.0/24`) and set `TRUSTED_PROXIES` to it; keep Traefik's
+`forwardedHeaders.insecure` off so Traefik replaces client-supplied
+`X-Forwarded-For` with the real peer address; if a CDN/load balancer sits in
+front of Traefik, list its ranges in both Traefik's `trustedIPs` and
+`TRUSTED_PROXIES`; verify by checking that rate-limit log keys show public
+client IPs rather than `172.x` addresses.
+
+### Per-IP limiting can be switched off
+
+`RATE_LIMIT_PER_IP` (`true`/`false`, default `true`; anything else fails
+startup) controls whether route groups are wrapped with the per-client
+limiter. When `false`, `RegisterRoutes` skips the wrapping entirely, startup
+logs `slog.Info("per-IP rate limiting disabled")`, and the per-recipient
+magic-link limit and its logging remain active because they do not depend on
+the client address. Automatically disabling per-IP limiting when
+`TRUSTED_PROXIES` is empty was rejected: direct (proxy-less) deployments
+legitimately have no trusted proxies and still benefit from per-IP limits, so
+the operator decides explicitly.
 
 ### Middleware per route group, applied at registration
 
@@ -101,8 +118,11 @@ in a few minutes.
   Accepted as requested; entries are short and the proxy/infra can apply its
   own limits. Can be sampled later without spec change to the logged content.
 - [Misconfigured `TRUSTED_PROXIES`: empty behind a proxy → all users share one
-  bucket] → README calls this out; magic-link burst limits are low, so the
-  symptom (frequent 429s) is visible quickly.
+  bucket] → README calls this out; the log key reveals it (always the proxy
+  address); operators who cannot fix it set `RATE_LIMIT_PER_IP=false`.
+- [Per-IP limiting disabled → login endpoints only protected by the
+  per-recipient magic-link limit] → Explicit opt-out, logged at startup;
+  rely on Traefik middleware (e.g. its `rateLimit`) if needed.
 - [Limits reset on restart] → Acceptable for abuse throttling.
 - [Shared NAT / CGNAT users share a bucket] → Limits sized for that (30/min on
   login flows); magic-link per-IP limit is the tightest and only affects
@@ -112,6 +132,6 @@ in a few minutes.
 
 ## Migration Plan
 
-No schema change. Deploy with `TRUSTED_PROXIES` set to the reverse proxy's
-address range; without it, the backend behaves correctly for direct
-connections only. Rollback is a binary rollback.
+No schema change. Deploy with `TRUSTED_PROXIES` set to the Traefik network
+subnet, or with `RATE_LIMIT_PER_IP=false` if that is not possible; without
+either, the backend behaves correctly for direct connections only. Rollback is a binary rollback.

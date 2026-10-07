@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { sessionQueryOptions } from '#/auth/session'
+import { GithubLink } from '#/components/github-link'
 import { PublicHeader } from '#/components/public-header'
 import { SessionUnavailable } from '#/components/session-unavailable'
 
@@ -110,6 +111,9 @@ function LandingPage() {
           </section>
         )}
       </main>
+      <footer className="public-footer">
+        <GithubLink className="footer-link" />
+      </footer>
     </div>
   )
 }

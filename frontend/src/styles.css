@@ -216,11 +216,8 @@ select:focus-visible {
 
 .footer-link {
   display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  padding: 0.4rem;
   color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 650;
 }
 
 .footer-link:hover {
@@ -660,6 +657,10 @@ select:focus-visible {
 
 .sidebar-footer .language-control {
   margin-bottom: 0.7rem;
+}
+
+.navigation-link.icon-link {
+  width: auto;
 }
 
 .logout-button {

@@ -91,7 +91,7 @@ export function AppShell({ session }: { session: Session }) {
         <div className="sidebar-footer">
           <p>{t('shell.account', { email: session.profile.email })}</p>
           <LanguageControl />
-          <GithubLink className="navigation-link" />
+          <GithubLink className="navigation-link icon-link" />
           <button
             className="navigation-link logout-button"
             disabled={logout.isPending}
@@ -143,7 +143,7 @@ export function AppShell({ session }: { session: Session }) {
           <Navigation close={() => setMenuOpen(false)} />
           <div className="mobile-panel-footer">
             <LanguageControl />
-            <GithubLink className="navigation-link" />
+            <GithubLink className="navigation-link icon-link" />
             <button
               className="navigation-link logout-button"
               disabled={logout.isPending}

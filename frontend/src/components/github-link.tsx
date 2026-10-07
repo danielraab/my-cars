@@ -19,9 +19,15 @@ function GithubMark({ size }: { size: number }) {
 export function GithubLink({ className }: { className?: string }) {
   const { t } = useTranslation()
   return (
-    <a className={className} href={githubUrl} rel="noreferrer" target="_blank">
+    <a
+      aria-label={t('github.label')}
+      className={className}
+      href={githubUrl}
+      rel="noreferrer"
+      target="_blank"
+      title={t('github.label')}
+    >
       <GithubMark size={19} />
-      {t('github.label')}
     </a>
   )
 }

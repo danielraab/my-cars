@@ -16,6 +16,10 @@ type Account struct{ ID, Email, FirstName, LastName string }
 type Session struct {
 	Account
 	ExpiresAt time.Time
+	// CreatedAt is when the session was established, i.e. the login time.
+	CreatedAt time.Time
+	// PasskeyID names the passkey that established the session, or "".
+	PasskeyID string
 }
 
 type Store struct{ pool *pgxpool.Pool }
@@ -126,7 +130,7 @@ func (s *Store) CreateSession(ctx context.Context, digest []byte, accountID stri
 }
 func (s *Store) Session(ctx context.Context, digest []byte, now time.Time) (Session, error) {
 	var out Session
-	err := s.pool.QueryRow(ctx, `SELECT a.id,a.email,a.first_name,a.last_name,s.expires_at FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_digest=$1 AND s.revoked_at IS NULL AND s.expires_at>$2`, digest, now).Scan(&out.ID, &out.Email, &out.FirstName, &out.LastName, &out.ExpiresAt)
+	err := s.pool.QueryRow(ctx, `SELECT a.id,a.email,a.first_name,a.last_name,s.expires_at,s.created_at,coalesce(s.credential_id::text,'') FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_digest=$1 AND s.revoked_at IS NULL AND s.expires_at>$2`, digest, now).Scan(&out.ID, &out.Email, &out.FirstName, &out.LastName, &out.ExpiresAt, &out.CreatedAt, &out.PasskeyID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Session{}, ErrInvalidCredential
 	}
@@ -138,7 +142,7 @@ func (s *Store) RevokeSession(ctx context.Context, digest []byte, now time.Time)
 }
 
 func (s *Store) Prune(ctx context.Context, now time.Time) error {
-	for _, q := range []string{`DELETE FROM oidc_login_attempts WHERE expires_at <= $1`, `DELETE FROM magic_link_challenges WHERE expires_at <= $1`, `DELETE FROM sessions WHERE expires_at <= $1 OR revoked_at IS NOT NULL`} {
+	for _, q := range []string{`DELETE FROM oidc_login_attempts WHERE expires_at <= $1`, `DELETE FROM magic_link_challenges WHERE expires_at <= $1`, `DELETE FROM webauthn_challenges WHERE expires_at <= $1`, `DELETE FROM sessions WHERE expires_at <= $1 OR revoked_at IS NOT NULL`} {
 		if _, err := s.pool.Exec(ctx, q, now); err != nil {
 			return err
 		}

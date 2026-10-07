@@ -2,23 +2,23 @@
 
 ## 1. Contract and schema
 
-- [ ] 1.1 Add the passkey login, management, and registration operations, the `PasskeySummary` and request schemas, the `reauthentication_required` 403 response, and `passkey` in the method-code enum to both synchronized OpenAPI documents; verify `pnpm lint:openapi` and the backend OpenAPI sync test pass.
-- [ ] 1.2 Add migration `000006_passkeys` creating `webauthn_credentials`, `webauthn_challenges`, and nullable `sessions.credential_id` with the constraints from design.md, plus its down migration; verify migration up/down tests pass against Postgres.
+- [x] 1.1 Add the passkey login, management, and registration operations, the `PasskeySummary` and request schemas, the `reauthentication_required` 403 response, and `passkey` in the method-code enum to both synchronized OpenAPI documents; verify `pnpm lint:openapi` and the backend OpenAPI sync test pass.
+- [x] 1.2 Add migration `000006_passkeys` creating `webauthn_credentials`, `webauthn_challenges`, and nullable `sessions.credential_id` with the constraints from design.md, plus its down migration; verify migration up/down tests pass against Postgres.
 
 ## 2. Backend passkey core
 
-- [ ] 2.1 Add `github.com/go-webauthn/webauthn` and construct the relying party from `AUTH_BASE_URL` (RP ID = host, single origin); verify unit tests cover RP ID/origin derivation with and without a port.
-- [ ] 2.2 Implement store methods for ceremony challenges (create, consume once before expiry, account binding) and credentials (create, list by account, find by credential ID, update counter/last use, rename and delete scoped by account); verify store tests cover replay, expiry, wrong-account, duplicate credential ID, and foreign-account access.
-- [ ] 2.3 Extend `Store.Session`/`RequireSession` to carry session `created_at` and `credential_id`, and let `establishSession` record an optional credential; verify existing auth tests still pass and new tests assert OIDC/magic-link sessions have no credential.
-- [ ] 2.4 Embed the trimmed AAGUID → authenticator-name map and expose a lookup returning nil for unknown/zero AAGUIDs; verify a unit test resolves a known AAGUID and rejects unknown ones.
-- [ ] 2.5 Extend `Store.Prune` to delete expired `webauthn_challenges`; verify the prune test covers expired and unexpired challenges.
+- [x] 2.1 Add `github.com/go-webauthn/webauthn` and construct the relying party from `AUTH_BASE_URL` (RP ID = host, single origin); verify unit tests cover RP ID/origin derivation with and without a port.
+- [x] 2.2 Implement store methods for ceremony challenges (create, consume once before expiry, account binding) and credentials (create, list by account, find by credential ID, update counter/last use, rename and delete scoped by account); verify store tests cover replay, expiry, wrong-account, duplicate credential ID, and foreign-account access.
+- [x] 2.3 Extend `Store.Session`/`RequireSession` to carry session `created_at` and `credential_id`, and let `establishSession` record an optional credential; verify existing auth tests still pass and new tests assert OIDC/magic-link sessions have no credential.
+- [x] 2.4 Embed the trimmed AAGUID → authenticator-name map and expose a lookup returning nil for unknown/zero AAGUIDs; verify a unit test resolves a known AAGUID and rejects unknown ones.
+- [x] 2.5 Extend `Store.Prune` to delete expired `webauthn_challenges`; verify the prune test covers expired and unexpired challenges.
 
 ## 3. Backend endpoints
 
-- [ ] 3.1 Implement `POST /api/v1/passkeys/registration-options` and `POST /api/v1/passkeys` with the 5-minute fresh-login check on both, ceremony cookie handling, `excludeCredentials`, name validation, and `201` summary; verify handler tests cover fresh success, stale session on options and on finish (403 `reauthentication_required`), replay, expiry, and invalid name.
-- [ ] 3.2 Implement `GET /api/v1/passkeys`, `PATCH /api/v1/passkeys/{passkeyId}`, and `DELETE /api/v1/passkeys/{passkeyId}` with transactional revocation of sessions created by the deleted passkey and cookie clearing when the caller's own session is revoked; verify tests cover listing without key material, rename, foreign 404, revocation of only matching sessions, and deleting the last passkey.
-- [ ] 3.3 Implement `POST /api/v1/auth/passkey/options` and `POST /api/v1/auth/passkey` (discoverable flow, user verification required, owner cross-check, clone-warning rejection, counter/last-use update, session with credential, `204` + cookie, `401` on failure) and add `passkey` to `GET /api/v1/auth/methods`; verify tests with a software authenticator cover success, unknown credential, bad signature, wrong origin, replay, and the method list.
-- [ ] 3.4 Document passkeys in `backend/README.md` (RP derived from `AUTH_BASE_URL`, no dev-server support, domain change invalidates passkeys); verify the README states each limitation.
+- [x] 3.1 Implement `POST /api/v1/passkeys/registration-options` and `POST /api/v1/passkeys` with the 5-minute fresh-login check on both, ceremony cookie handling, `excludeCredentials`, name validation, and `201` summary; verify handler tests cover fresh success, stale session on options and on finish (403 `reauthentication_required`), replay, expiry, and invalid name.
+- [x] 3.2 Implement `GET /api/v1/passkeys`, `PATCH /api/v1/passkeys/{passkeyId}`, and `DELETE /api/v1/passkeys/{passkeyId}` with transactional revocation of sessions created by the deleted passkey and cookie clearing when the caller's own session is revoked; verify tests cover listing without key material, rename, foreign 404, revocation of only matching sessions, and deleting the last passkey.
+- [x] 3.3 Implement `POST /api/v1/auth/passkey/options` and `POST /api/v1/auth/passkey` (discoverable flow, user verification required, owner cross-check, clone-warning rejection, counter/last-use update, session with credential, `204` + cookie, `401` on failure) and add `passkey` to `GET /api/v1/auth/methods`; verify tests with a software authenticator cover success, unknown credential, bad signature, wrong origin, replay, and the method list.
+- [x] 3.4 Document passkeys in `backend/README.md` (RP derived from `AUTH_BASE_URL`, no dev-server support, domain change invalidates passkeys); verify the README states each limitation.
 
 ## 4. Frontend
 

@@ -10,8 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"golang.org/x/oauth2"
 )
+
+// sessionLifetime is how long a browser session stays valid after login.
+const sessionLifetime = 30 * 24 * time.Hour
 
 type Repository interface {
 	CreateMagicLink(context.Context, []byte, string, string, time.Time) error
@@ -23,12 +27,14 @@ type Repository interface {
 	CreateSession(context.Context, []byte, string, time.Time) error
 	Session(context.Context, []byte, time.Time) (Session, error)
 	RevokeSession(context.Context, []byte, time.Time) error
+	PasskeyRepository
 }
 
 type Service struct {
 	store   Repository
 	mailer  Mailer
 	oidc    OIDCProvider
+	rp      *webauthn.WebAuthn
 	baseURL string
 	now     func() time.Time
 }
@@ -39,8 +45,15 @@ type authenticatedSession struct {
 	digest []byte
 }
 
+// NewService wires the authentication routes. Passkeys are always enabled,
+// with the relying party derived from baseURL, which must be an http(s)
+// origin as validated by configuration loading; anything else panics.
 func NewService(store Repository, mailer Mailer, oidc OIDCProvider, baseURL string) *Service {
-	return &Service{store: store, mailer: mailer, oidc: oidc, baseURL: strings.TrimRight(baseURL, "/"), now: time.Now}
+	rp, err := NewRelyingParty(baseURL)
+	if err != nil {
+		panic(err)
+	}
+	return &Service{store: store, mailer: mailer, oidc: oidc, rp: rp, baseURL: strings.TrimRight(baseURL, "/"), now: time.Now}
 }
 
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
@@ -51,12 +64,13 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 		mux.HandleFunc("GET /api/v1/auth/oidc/start", s.startOIDC)
 		mux.HandleFunc("GET /api/v1/auth/oidc/callback", s.callbackOIDC)
 	}
+	s.registerPasskeyRoutes(mux)
 	mux.Handle("GET /api/v1/session", s.RequireSession(http.HandlerFunc(s.getSession)))
 	mux.Handle("DELETE /api/v1/session", s.RequireSession(http.HandlerFunc(s.logout)))
 }
 
 func (s *Service) getAuthenticationMethods(w http.ResponseWriter, _ *http.Request) {
-	methods := []string{"magic_link"}
+	methods := []string{"magic_link", "passkey"}
 	if s.oidc != nil {
 		methods = append(methods, "oidc")
 	}
@@ -137,7 +151,7 @@ func (s *Service) consumeMagicLink(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "authentication unavailable")
 		return
 	}
-	expires := s.now().Add(30 * 24 * time.Hour)
+	expires := s.now().Add(sessionLifetime)
 	login, err := s.store.ConsumeMagicLinkAndCreateSession(r.Context(), Digest(r.PathValue("token")), sessionDigest, s.now(), expires)
 	if err != nil {
 		writeError(w, 400, "invalid or expired magic link")
@@ -151,7 +165,7 @@ func (s *Service) establishSession(w http.ResponseWriter, ctx context.Context, a
 	if err != nil {
 		return err
 	}
-	expires := s.now().Add(30 * 24 * time.Hour)
+	expires := s.now().Add(sessionLifetime)
 	if err = s.store.CreateSession(ctx, digest, a.ID, expires); err != nil {
 		return err
 	}

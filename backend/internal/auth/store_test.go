@@ -38,6 +38,8 @@ func testStore(t *testing.T) (*Store, func()) {
 		ctx := context.Background()
 		pool.Exec(ctx, `DELETE FROM magic_link_challenges WHERE email LIKE 'auth-test-%'`)
 		pool.Exec(ctx, `DELETE FROM sessions WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE 'auth-test-%')`)
+		pool.Exec(ctx, `DELETE FROM webauthn_challenges WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE 'auth-test-%') OR session_data->>'test' = 'auth-test'`)
+		pool.Exec(ctx, `DELETE FROM webauthn_credentials WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE 'auth-test-%')`)
 		pool.Exec(ctx, `DELETE FROM oidc_identities WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE 'auth-test-%')`)
 		pool.Exec(ctx, `DELETE FROM accounts WHERE email LIKE 'auth-test-%'`)
 		lock.Exec(ctx, `SELECT pg_advisory_unlock(7242026)`)

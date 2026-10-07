@@ -17,9 +17,27 @@ Authentication is passwordless and entirely backend-owned:
   `SMTP_TLS`, and optional `SMTP_USER`/`SMTP_PASSWORD`. `SMTP_TLS` accepts
   `none`, `starttls`, or `tls`.
 
-Both methods normalize a provider-verified email and resolve it to the same
-account. Passwords, bearer JWTs, refresh tokens, and browser-localStorage
-credentials are deliberately unsupported.
+- **Passkeys** (WebAuthn discoverable credentials) are always enabled and need
+  no extra configuration. A signed-in user adds them from the profile screen;
+  adding one requires a login within the last 5 minutes, deleting one is always
+  allowed and also ends every session that was established with it.
+
+OIDC and magic links normalize a provider-verified email and resolve it to the
+same account. A passkey never resolves through email: it belongs to the account
+that registered it and never creates an account. Passwords, bearer JWTs,
+refresh tokens, and browser-localStorage credentials are deliberately
+unsupported.
+
+The passkey relying party is derived from `AUTH_BASE_URL`: its host (without
+port) is the relying-party ID and its origin is the only accepted origin. This
+has two consequences:
+
+- Passkeys only work when the app is opened through that exact origin. They do
+  not work through the Vite dev server (`localhost:3000`) while `AUTH_BASE_URL`
+  points at the backend.
+- Changing the deployment's domain invalidates every registered passkey,
+  because passkeys are bound to the relying-party ID. Users can still sign in
+  with a magic link and register new passkeys.
 
 Successful login sets the opaque `my_car_session` cookie. It is `Secure`,
 `HttpOnly`, `SameSite=Lax`, and backed by a revocable server-side session. This

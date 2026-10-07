@@ -15,6 +15,7 @@ import (
 )
 
 type fakeStore struct {
+	PasskeyRepository
 	magicDigest        []byte
 	email, magicReturn string
 	magicUsed, deleted bool
@@ -156,13 +157,13 @@ func TestMagicLinkRequestConsumptionAndReplay(t *testing.T) {
 func TestAuthenticationMethodsReflectOIDCAvailability(t *testing.T) {
 	s, _, _, _ := newTestService()
 	w := serve(s, "GET", "/api/v1/auth/methods", "", nil)
-	if w.Code != http.StatusOK || w.Body.String() != "{\"methods\":[\"magic_link\",\"oidc\"]}\n" {
+	if w.Code != http.StatusOK || w.Body.String() != "{\"methods\":[\"magic_link\",\"passkey\",\"oidc\"]}\n" {
 		t.Fatalf("enabled response=%d %q", w.Code, w.Body.String())
 	}
 
 	s.oidc = nil
 	w = serve(s, "GET", "/api/v1/auth/methods", "", nil)
-	if w.Code != http.StatusOK || w.Body.String() != "{\"methods\":[\"magic_link\"]}\n" {
+	if w.Code != http.StatusOK || w.Body.String() != "{\"methods\":[\"magic_link\",\"passkey\"]}\n" {
 		t.Fatalf("disabled response=%d %q", w.Code, w.Body.String())
 	}
 	for _, target := range []string{"/api/v1/auth/oidc/start", "/api/v1/auth/oidc/callback"} {

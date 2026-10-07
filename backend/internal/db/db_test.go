@@ -69,8 +69,8 @@ func TestRunMigrations(t *testing.T) {
 	if err := sqlDB.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if version != 5 {
-		t.Errorf("schema_migrations.version = %d, want 5", version)
+	if version != 6 {
+		t.Errorf("schema_migrations.version = %d, want 6", version)
 	}
 	if dirty {
 		t.Errorf("schema_migrations.dirty = true, want false")
@@ -120,6 +120,7 @@ func TestDomainSchema(t *testing.T) {
 	carID := insertCar(t, sqlDB, accountID)
 	assertRejected(t, sqlDB, "INSERT INTO cars (account_id, type, make, name, fuel, first_registration, license_plate) VALUES ($1, ' ', 'Ford', 'Focus', 'gasoline', '2020-01-01', 'AB-123')", accountID)
 	assertOptionalRegistration(t, sqlDB, accountID)
+	assertPasskeySchema(t, sqlDB, accountID)
 
 	assertNullableOdometerAndNumericChecks(t, sqlDB, carID)
 	assertUpdatedAtTrigger(t, sqlDB, carID)
@@ -128,7 +129,7 @@ func TestDomainSchema(t *testing.T) {
 
 func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
-	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets", "oidc_identities", "oidc_login_attempts", "magic_link_challenges", "sessions"} {
+	for _, table := range []string{"accounts", "cars", "refuels", "repairs", "tickets", "oidc_identities", "oidc_login_attempts", "magic_link_challenges", "sessions", "webauthn_credentials", "webauthn_challenges"} {
 		var exists bool
 		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1)", table).Scan(&exists); err != nil {
 			t.Fatalf("check %s table: %v", table, err)
@@ -148,7 +149,7 @@ func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
 		}
 	}
 
-	for _, index := range []string{"cars_account_created_at_id_idx", "refuels_car_date_id_idx", "repairs_car_date_id_idx", "tickets_car_date_id_idx", "oidc_login_attempts_expiry_idx", "magic_link_challenges_expiry_idx", "sessions_account_expiry_idx", "sessions_expiry_idx"} {
+	for _, index := range []string{"cars_account_created_at_id_idx", "refuels_car_date_id_idx", "repairs_car_date_id_idx", "tickets_car_date_id_idx", "oidc_login_attempts_expiry_idx", "magic_link_challenges_expiry_idx", "sessions_account_expiry_idx", "sessions_expiry_idx", "webauthn_credentials_account_created_at_id_idx", "webauthn_challenges_expiry_idx", "sessions_credential_idx"} {
 		var exists bool
 		if err := sqlDB.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = $1)", index).Scan(&exists); err != nil {
 			t.Fatalf("check %s index: %v", index, err)
@@ -156,6 +157,47 @@ func assertSchemaObjects(t *testing.T, sqlDB *sql.DB) {
 		if !exists {
 			t.Errorf("%s does not exist", index)
 		}
+	}
+}
+
+func assertPasskeySchema(t *testing.T, sqlDB *sql.DB, accountID string) {
+	t.Helper()
+	insert := "INSERT INTO webauthn_credentials (credential_id, account_id, public_key, aaguid, user_verified, backup_eligible, backup_state, name) VALUES ($1, $2, decode('01','hex'), $3, true, $4, $5, $6) RETURNING id"
+	var credentialID string
+	if err := sqlDB.QueryRow(insert, []byte("cred-1"), accountID, make([]byte, 16), true, true, "Laptop").Scan(&credentialID); err != nil {
+		t.Fatalf("insert passkey: %v", err)
+	}
+	assertRejected(t, sqlDB, insert, []byte("cred-1"), accountID, nil, false, false, "Duplicate")
+	assertRejected(t, sqlDB, insert, []byte("cred-2"), accountID, nil, false, false, "  ")
+	assertRejected(t, sqlDB, insert, []byte("cred-3"), accountID, nil, false, true, "Backed up but not eligible")
+	assertRejected(t, sqlDB, insert, []byte("cred-4"), accountID, []byte("short"), false, false, "Bad AAGUID")
+
+	challenge := "INSERT INTO webauthn_challenges (ceremony_digest, kind, account_id, session_data, expires_at) VALUES ($1, $2, $3, '{}', now() + interval '5 minutes')"
+	digest := make([]byte, 32)
+	assertRejected(t, sqlDB, challenge, digest, "login", accountID)
+	assertRejected(t, sqlDB, challenge, digest, "registration", nil)
+	assertRejected(t, sqlDB, challenge, digest[:8], "login", nil)
+	if _, err := sqlDB.Exec(challenge, digest, "login", nil); err != nil {
+		t.Fatalf("insert login challenge: %v", err)
+	}
+
+	sessionDigest := make([]byte, 32)
+	sessionDigest[0] = 1
+	if _, err := sqlDB.Exec("INSERT INTO sessions (token_digest, account_id, expires_at, credential_id) VALUES ($1, $2, now() + interval '1 hour', $3)", sessionDigest, accountID, credentialID); err != nil {
+		t.Fatalf("insert passkey session: %v", err)
+	}
+	if _, err := sqlDB.Exec("DELETE FROM webauthn_credentials WHERE id = $1", credentialID); err != nil {
+		t.Fatalf("delete passkey: %v", err)
+	}
+	var remaining sql.NullString
+	if err := sqlDB.QueryRow("SELECT credential_id FROM sessions WHERE token_digest = $1", sessionDigest).Scan(&remaining); err != nil {
+		t.Fatalf("read session after passkey deletion: %v", err)
+	}
+	if remaining.Valid {
+		t.Errorf("session credential_id = %q after deletion, want NULL", remaining.String)
+	}
+	if _, err := sqlDB.Exec("DELETE FROM sessions WHERE token_digest = $1", sessionDigest); err != nil {
+		t.Fatalf("cleanup passkey session: %v", err)
 	}
 }
 

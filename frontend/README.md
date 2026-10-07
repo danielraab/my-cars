@@ -57,6 +57,28 @@ English and German resources live in
 be added to both locales. The selected `de` or `en` preference is the only
 frontend state persisted in `localStorage`; English is the translation fallback.
 
+## App icon
+
+The favicon and installed-app icons are static files in [`public/`](public/),
+alongside the web app manifest (`manifest.webmanifest`). They reproduce the
+header's brand mark: lucide's `Gauge` glyph in the brand navy on the lime tile.
+
+- `icon.svg` is the favicon and the source of the `any` icons (`icon-192.png`,
+  `icon-512.png`) and `favicon.ico`.
+- `icon-maskable.svg` is a full-bleed variant with the glyph inside the central
+  80 % circle. It is the source of `icon-maskable-512.png` and
+  `apple-touch-icon.png`.
+
+Both SVGs copy the glyph's path data by hand; `src/app-icon.test.tsx` fails when
+a lucide upgrade redraws it. The PNGs and the ICO are committed, not built. After
+editing an SVG, re-render them with
+[chrome-headless-shell](https://developer.chrome.com/blog/chrome-headless-shell)
+(e.g. `npx @puppeteer/browsers install chrome-headless-shell@stable`):
+
+```bash
+CHROME=/path/to/chrome-headless-shell node scripts/render-app-icons.mjs
+```
+
 ## Verification
 
 ```bash

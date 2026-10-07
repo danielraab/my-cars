@@ -50,12 +50,10 @@ scaled to about 60 % of the tile, which is what the header tile shows
 because the user asked for no generation step. The glyph is two short
 paths, and a test guards against drift (below).
 
-**Drift guard:** a Vitest test reads `public/icon.svg` and asserts that it
-contains each `d` attribute of lucide-react's `Gauge` icon. lucide-react
-exports each icon's node data as `__iconNode`. If that export is
-unavailable, the test renders `<Gauge>` with `@testing-library/react` and
-compares the `path` `d` attributes. A lucide upgrade that redraws the gauge
-then fails CI instead of silently diverging.
+**Drift guard:** a Vitest test (`src/app-icon.test.tsx`) renders lucide-react's
+`<Gauge>` and asserts that both icon SVGs contain each of its `path` `d`
+attributes. lucide-react doesn't publicly export the node data, so the test
+renders the icon instead. A lucide upgrade that redraws the gauge then fails CI instead of silently diverging.
 
 ### Raster files: committed PNGs and one ICO, produced once
 
@@ -73,12 +71,14 @@ also committed): a full-bleed lime square with the glyph scaled so its
 bounds fit within the central 80 % circle (glyph ≈ 50 % of the width). The
 asymmetric corner can't survive OS masking, so these variants drop it.
 
-The PNGs are rendered once with the Chromium already installed for tests
-(Playwright `page.screenshot` of the SVG at the target size, with
-`omitBackground` for the transparent variants). The ICO is packed from the
-16 and 32 renders. The exact steps go in a new "App icon" section of
-`frontend/README.md`, so a future icon change can repeat them. They go there
-rather than in `public/`, where Vite would ship them with the build.
+The PNGs and ICO are produced by `frontend/scripts/render-app-icons.mjs`, a
+dependency-free script run by hand. It screenshots each SVG with
+`chrome-headless-shell` at the target size (transparent default background),
+and packs the 16 and 32 px renders into a PNG-embedded ICO. The regular Chrome
+binary isn't usable for this: its new headless mode subtracts window
+decorations from `--window-size` and crops the render. The steps are in an
+"App icon" section of `frontend/README.md`, not in `public/`, where Vite would
+ship them with the build. Re-running the script gives byte-identical output.
 
 *Alternative:* `@vite-pwa/assets-generator` at build time. Rejected by the
 user: the icon changes rarely, and committed files keep the build simple.

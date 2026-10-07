@@ -42,6 +42,9 @@ describe('public routes', () => {
     expect(
       screen.getAllByRole('link', { name: /Sign in/ }).length,
     ).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('link', { name: 'Source on GitHub' }),
+    ).toHaveAttribute('href', 'https://github.com/danielraab/my-cars/')
   })
 
   it('sends authenticated landing cards directly to protected areas', async () => {
@@ -174,6 +177,9 @@ describe('protected routes', () => {
       screen.getByText('Signed in as driver@example.com'),
     ).toBeInTheDocument()
     expect(screen.getByRole('navigation')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Source on GitHub' }),
+    ).toHaveAttribute('href', 'https://github.com/danielraab/my-cars/')
   })
 
   it('presents server failure as retryable and recovers', async () => {

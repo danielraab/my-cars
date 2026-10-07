@@ -23,6 +23,7 @@ import {
 } from '#/api/client'
 import { sessionQueryKey } from '#/auth/session'
 
+import { GithubLink } from './github-link'
 import { LanguageControl } from './language-control'
 
 const navigation = [
@@ -90,6 +91,7 @@ export function AppShell({ session }: { session: Session }) {
         <div className="sidebar-footer">
           <p>{t('shell.account', { email: session.profile.email })}</p>
           <LanguageControl />
+          <GithubLink className="navigation-link" />
           <button
             className="navigation-link logout-button"
             disabled={logout.isPending}
@@ -141,6 +143,7 @@ export function AppShell({ session }: { session: Session }) {
           <Navigation close={() => setMenuOpen(false)} />
           <div className="mobile-panel-footer">
             <LanguageControl />
+            <GithubLink className="navigation-link" />
             <button
               className="navigation-link logout-button"
               disabled={logout.isPending}

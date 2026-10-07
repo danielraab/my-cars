@@ -10,6 +10,9 @@ export const resources = {
         de: 'Deutsch',
         en: 'English',
       },
+      github: {
+        label: 'Source on GitHub',
+      },
       navigation: {
         label: 'Application navigation',
         open: 'Open navigation',
@@ -534,6 +537,9 @@ export const resources = {
         label: 'Sprache',
         de: 'Deutsch',
         en: 'English',
+      },
+      github: {
+        label: 'Quellcode auf GitHub',
       },
       navigation: {
         label: 'Anwendungsnavigation',

@@ -205,6 +205,28 @@ select:focus-visible {
   background: var(--navy);
 }
 
+.public-footer {
+  display: flex;
+  justify-content: center;
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.footer-link:hover {
+  color: var(--ink);
+}
+
 .landing-main {
   width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;

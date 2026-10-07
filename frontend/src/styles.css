@@ -655,12 +655,25 @@ select:focus-visible {
   white-space: nowrap;
 }
 
-.sidebar-footer .language-control {
+.sidebar-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.7rem;
 }
 
-.navigation-link.icon-link {
-  width: auto;
+.sidebar-icon-link {
+  display: grid;
+  padding: 0.5rem;
+  place-items: center;
+  color: #b9c8c3;
+  border-radius: 0.55rem;
+}
+
+.sidebar-icon-link:hover {
+  color: white;
+  background: rgb(255 255 255 / 8%);
 }
 
 .logout-button {

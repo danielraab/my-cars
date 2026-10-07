@@ -30,7 +30,7 @@ already carries a machine-readable `code`.
 
 - Conditional-mediation (autofill) login, cross-device hybrid tuning, or
   attestation verification.
-- Rate limiting and expired-row cleanup (follow-up `auth-rate-limit-and-cleanup`).
+- Rate limiting (follow-up `auth-rate-limiting`).
 - Supporting the Vite dev origin or multiple origins.
 - A post-login hint encouraging passkey creation.
 
@@ -162,8 +162,9 @@ validates `1..100` characters.
 
 - [Passkeys do not work via the Vite dev server origin] → Documented known
   limitation; developers test through the backend origin (`AUTH_BASE_URL`).
-- [Anonymous login-options calls insert rows] → Same exposure as magic-link
-  requests today; addressed by the follow-up rate-limit/cleanup change.
+- [Anonymous login-options calls insert rows] → Expired rows are removed by the
+  existing hourly `Store.Prune` (extended to `webauthn_challenges`); request
+  volume is addressed by the follow-up rate-limiting change.
 - [Changing the deployment domain invalidates all passkeys (RP ID change)] →
   Magic link remains the recovery path; noted in backend README.
 - [Stolen fresh session (< 5 min) can still add a passkey] → Window kept short;

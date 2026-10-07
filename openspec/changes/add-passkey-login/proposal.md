@@ -32,10 +32,11 @@ Passkeys are not part of the legacy app and not covered by
   (AAGUID) and backup flags are stored for display only.
 - Known limitation: passkeys only work when the app is opened via the
   `AUTH_BASE_URL` origin, so they do not work through the Vite dev server.
-- Out of scope (follow-up change `auth-rate-limit-and-cleanup`): per-IP rate
-  limiting of all public authentication endpoints behind the reverse proxy and
-  periodic cleanup of expired authentication rows. Also out of scope: any
-  post-login hint nudging users to create a passkey.
+- Expired passkey ceremony challenges are removed by the existing periodic
+  authentication-state prune.
+- Out of scope (follow-up change `auth-rate-limiting`): per-IP rate limiting
+  of all public authentication endpoints behind the reverse proxy. Also out of
+  scope: any post-login hint nudging users to create a passkey.
 
 ## Capabilities
 
@@ -70,5 +71,6 @@ Passkeys are not part of the legacy app and not covered by
 - **Frontend**: profile screen passkey section, login button, WebAuthn JSON
   (de)serialization helper, de/en translations.
 - **Security**: a stolen but older session cookie cannot be used to add a
-  persistent passkey; anonymous ceremony starts add rows until the follow-up
-  rate-limit/cleanup change lands (same exposure as magic-link requests today).
+  persistent passkey; anonymous ceremony starts are unthrottled until the
+  follow-up rate-limiting change lands (same exposure as magic-link requests
+  today), and their rows are pruned hourly once expired.

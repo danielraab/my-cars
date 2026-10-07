@@ -11,6 +11,7 @@
 - [ ] 2.2 Implement store methods for ceremony challenges (create, consume once before expiry, account binding) and credentials (create, list by account, find by credential ID, update counter/last use, rename and delete scoped by account); verify store tests cover replay, expiry, wrong-account, duplicate credential ID, and foreign-account access.
 - [ ] 2.3 Extend `Store.Session`/`RequireSession` to carry session `created_at` and `credential_id`, and let `establishSession` record an optional credential; verify existing auth tests still pass and new tests assert OIDC/magic-link sessions have no credential.
 - [ ] 2.4 Embed the trimmed AAGUID → authenticator-name map and expose a lookup returning nil for unknown/zero AAGUIDs; verify a unit test resolves a known AAGUID and rejects unknown ones.
+- [ ] 2.5 Extend `Store.Prune` to delete expired `webauthn_challenges`; verify the prune test covers expired and unexpired challenges.
 
 ## 3. Backend endpoints
 

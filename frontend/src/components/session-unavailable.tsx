@@ -9,7 +9,7 @@ export function SessionUnavailable({ retry }: { retry: () => void }) {
       <div className="status-icon">
         <RefreshCw aria-hidden="true" size={24} />
       </div>
-      <p className="eyebrow">my-car</p>
+      <p className="eyebrow">{t('brand.name')}</p>
       <h1>{t('sessionError.title')}</h1>
       <p>{t('sessionError.description')}</p>
       <button className="button button-primary" type="button" onClick={retry}>

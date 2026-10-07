@@ -57,12 +57,15 @@ func (m *SMTPMailer) SendMagicLink(ctx context.Context, to, link string) error {
 	if err != nil {
 		return err
 	}
-	message := strings.Join([]string{"From: " + m.from, "To: " + to, "Subject: Your my-car sign-in link", "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8", "", "Sign in to my-car:\r\n" + link + "\r\n"}, "\r\n")
-	if _, err = w.Write([]byte(message)); err != nil {
+	if _, err = w.Write([]byte(magicLinkMessage(m.from, to, link))); err != nil {
 		return err
 	}
 	if err = w.Close(); err != nil {
 		return err
 	}
 	return c.Quit()
+}
+
+func magicLinkMessage(from, to, link string) string {
+	return strings.Join([]string{"From: " + from, "To: " + to, "Subject: Your My cars sign-in link", "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8", "", "Sign in to My cars:\r\n" + link + "\r\n"}, "\r\n")
 }

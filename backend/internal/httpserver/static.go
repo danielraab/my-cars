@@ -4,10 +4,20 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
+	"mime"
 	"net/http"
 	"path"
 	"strings"
 )
+
+// Neither Go's built-in MIME table nor a typical /etc/mime.types knows the web
+// app manifest's extension, so without this http.ServeContent would sniff it
+// as text/plain.
+func init() {
+	if err := mime.AddExtensionType(".webmanifest", "application/manifest+json"); err != nil {
+		panic(err)
+	}
+}
 
 // staticHandler serves the embedded frontend build for any request outside
 // /api/: the matching file if the request path corresponds to one, or

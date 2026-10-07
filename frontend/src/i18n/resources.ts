@@ -2,7 +2,7 @@ export const resources = {
   en: {
     translation: {
       brand: {
-        name: 'my-car',
+        name: 'My cars',
         tagline: 'Everything about your car, in one place.',
       },
       language: {
@@ -53,7 +53,7 @@ export const resources = {
       },
       login: {
         eyebrow: 'Welcome back',
-        title: 'Sign in to my-car',
+        title: 'Sign in to My cars',
         description:
           'Choose your identity provider or receive a secure sign-in link by email.',
         descriptionMagicLink: 'Receive a secure sign-in link by email.',
@@ -85,7 +85,7 @@ export const resources = {
       profile: {
         eyebrow: 'Your account',
         title: 'Profile',
-        description: 'Manage the name shown in my-car.',
+        description: 'Manage the name shown in My cars.',
         loading: 'Loading your profile…',
         loadErrorTitle: 'Profile unavailable',
         loadError: 'We could not load your profile. Please try again.',
@@ -113,7 +113,7 @@ export const resources = {
       cars: {
         eyebrow: 'Your garage',
         title: 'Cars',
-        description: 'Every car you keep track of in my-car.',
+        description: 'Every car you keep track of in My cars.',
         add: 'Add car',
         loading: 'Loading your cars…',
         loadErrorTitle: 'Cars unavailable',
@@ -530,7 +530,7 @@ export const resources = {
   de: {
     translation: {
       brand: {
-        name: 'my-car',
+        name: 'My cars',
         tagline: 'Alles rund ums Auto an einem Ort.',
       },
       language: {
@@ -581,7 +581,7 @@ export const resources = {
       },
       login: {
         eyebrow: 'Willkommen zurück',
-        title: 'Bei my-car anmelden',
+        title: 'Bei My cars anmelden',
         description:
           'Wähle deinen Identitätsanbieter oder erhalte einen sicheren Anmeldelink per E-Mail.',
         descriptionMagicLink: 'Erhalte einen sicheren Anmeldelink per E-Mail.',
@@ -614,7 +614,7 @@ export const resources = {
       profile: {
         eyebrow: 'Dein Konto',
         title: 'Profil',
-        description: 'Verwalte den Namen, der in my-car angezeigt wird.',
+        description: 'Verwalte den Namen, der in My cars angezeigt wird.',
         loading: 'Profil wird geladen…',
         loadErrorTitle: 'Profil nicht verfügbar',
         loadError:
@@ -644,7 +644,7 @@ export const resources = {
       cars: {
         eyebrow: 'Deine Garage',
         title: 'Autos',
-        description: 'Alle Autos, die du in my-car verwaltest.',
+        description: 'Alle Autos, die du in My cars verwaltest.',
         add: 'Auto hinzufügen',
         loading: 'Autos werden geladen…',
         loadErrorTitle: 'Autos nicht verfügbar',

@@ -158,7 +158,7 @@ describe('protected routes', () => {
     const { router } = renderApp('/cars')
 
     expect(
-      await screen.findByRole('heading', { name: 'Sign in to my-car' }),
+      await screen.findByRole('heading', { name: 'Sign in to My cars' }),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('heading', { name: 'Cars' }),

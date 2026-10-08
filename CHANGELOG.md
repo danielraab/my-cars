@@ -16,6 +16,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   service worker and no offline support. Known limitation: on iOS an installed
   app keeps its own cookies, so a magic link opened from the mail app signs in
   Safari rather than the installed app; sign in with OIDC there instead.
+- **Analytics snippet**: the optional `ANALYTICS_SNIPPET` environment variable
+  holds raw HTML (for example an Umami tracker tag) that the backend inserts
+  before `</head>` on every page. Unset, pages are unchanged.
 
 ### Changed
 

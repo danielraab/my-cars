@@ -185,6 +185,33 @@ The Dockerfile builds `frontend/` with Vite, copies the result into
 `static/out/` and compiles it into the binary, so `static/out/` is generated
 and git-ignored. Building the backend on its own does not produce it.
 
+### Analytics snippet
+
+Set `ANALYTICS_SNIPPET` to raw HTML, typically the tracker tag of an analytics
+tool, to have it included on every page. Single-quote it in `.env` or the
+shell:
+
+```sh
+ANALYTICS_SNIPPET='<script defer src="https://umami.example/script.js" data-website-id="..."></script>'
+```
+
+- At startup the backend inserts the snippet verbatim immediately before the
+  first `</head>` of the embedded `index.html`. Every response that serves
+  that document (`/`, `/index.html` and every client-side route) carries it;
+  `/api/` responses and other static files never do. Trackers that follow
+  History API navigations, such as Umami, then count in-app page changes too.
+- Unset or empty (including only whitespace) leaves `index.html` unchanged.
+- If a snippet is set but the embedded frontend has no `index.html` or it has
+  no `</head>`, the backend refuses to start. The startup log only notes that
+  a snippet is configured, never its contents.
+- The Vite dev server (`pnpm dev`) does not go through the backend, so the
+  snippet is absent during frontend development.
+- Every visitor, signed in or not, is tracked alike; there is no consent banner
+  or opt-out. Choosing a tool that needs no consent (such as cookieless Umami)
+  is the operator's responsibility.
+- The snippet is not validated. A malformed one breaks the page's `<head>`, and
+  a future Content-Security-Policy would have to allow its sources.
+
 ## Conventions
 
 Non-trivial changes go through the OpenSpec `explore → propose → apply`

@@ -51,6 +51,7 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       RATE_LIMIT_PER_IP: ${RATE_LIMIT_PER_IP:-true}
+      ANALYTICS_SNIPPET: ${ANALYTICS_SNIPPET:-}
     ports:
       - "8080:8080"
     depends_on:

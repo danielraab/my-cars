@@ -30,6 +30,9 @@ type Config struct {
 	// RateLimitPerIP enables per-client-address throttling of the public
 	// authentication endpoints.
 	RateLimitPerIP bool
+	// AnalyticsSnippet is raw operator-provided HTML inserted into the
+	// frontend's index.html before </head>; empty when unset.
+	AnalyticsSnippet string
 }
 
 // EnvKeys lists every environment variable Load reads, in the order
@@ -50,6 +53,7 @@ var EnvKeys = []string{
 	"OIDC_CLIENT_SECRET",
 	"TRUSTED_PROXIES",
 	"RATE_LIMIT_PER_IP",
+	"ANALYTICS_SNIPPET",
 }
 
 var requiredEnvKeys = []string{
@@ -76,7 +80,7 @@ func Load() (*Config, error) {
 		}
 		values[key] = v
 	}
-	for _, key := range append([]string{"SMTP_USER", "SMTP_PASSWORD", "TRUSTED_PROXIES", "RATE_LIMIT_PER_IP"}, oidcEnvKeys...) {
+	for _, key := range append([]string{"SMTP_USER", "SMTP_PASSWORD", "TRUSTED_PROXIES", "RATE_LIMIT_PER_IP", "ANALYTICS_SNIPPET"}, oidcEnvKeys...) {
 		values[key] = os.Getenv(key)
 	}
 	if len(missing) > 0 {
@@ -121,6 +125,13 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("RATE_LIMIT_PER_IP must be true or false")
 	}
 
+	// An all-whitespace value is treated as unset so a stray space in a
+	// compose file doesn't alter every served page.
+	analyticsSnippet := values["ANALYTICS_SNIPPET"]
+	if strings.TrimSpace(analyticsSnippet) == "" {
+		analyticsSnippet = ""
+	}
+
 	return &Config{
 		Port:             values["PORT"],
 		DatabaseURL:      values["DATABASE_URL"],
@@ -136,6 +147,7 @@ func Load() (*Config, error) {
 		OIDCClientSecret: values["OIDC_CLIENT_SECRET"],
 		TrustedProxies:   trustedProxies,
 		RateLimitPerIP:   rateLimitPerIP,
+		AnalyticsSnippet: analyticsSnippet,
 	}, nil
 }
 

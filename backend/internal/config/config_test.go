@@ -198,3 +198,15 @@ func TestLoad_RateLimitPerIP(t *testing.T) {
 		}
 	}
 }
+
+func TestLoad_AnalyticsSnippet(t *testing.T) {
+	snippet := `<script defer src="https://stats.example/script.js" data-website-id="abc"></script>`
+	for raw, want := range map[string]string{"": "", "   \n\t": "", snippet: snippet} {
+		setAllEnv(t)
+		t.Setenv("ANALYTICS_SNIPPET", raw)
+		cfg, err := Load()
+		if err != nil || cfg.AnalyticsSnippet != want {
+			t.Errorf("%q: Load() = %+v, err %v; want AnalyticsSnippet %q", raw, cfg, err, want)
+		}
+	}
+}

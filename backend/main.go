@@ -217,6 +217,13 @@ func runServer() {
 	if err != nil {
 		log.Fatalf("prepare embedded static assets: %v", err)
 	}
+	staticOut, err = httpserver.WithAnalyticsSnippet(staticOut, cfg.AnalyticsSnippet)
+	if err != nil {
+		log.Fatalf("prepare analytics snippet: %v", err)
+	}
+	if cfg.AnalyticsSnippet != "" {
+		log.Printf("analytics snippet configured")
+	}
 
 	store := auth.NewStore(pool)
 	if err := store.Prune(ctx, time.Now()); err != nil {

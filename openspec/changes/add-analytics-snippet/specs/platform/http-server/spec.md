@@ -52,7 +52,8 @@ for byte as embedded.
 
 ### Requirement: Unusable analytics snippet configuration fails startup
 The system SHALL refuse to start when `ANALYTICS_SNIPPET` is non-empty but
-the embedded `index.html` contains no `</head>`, reporting the reason
+the embedded frontend has no `index.html` or it contains no `</head>`,
+reporting the reason
 without printing the snippet. When a snippet is in use, startup SHALL log
 that one is configured, without its contents.
 
@@ -61,6 +62,12 @@ that one is configured, without its contents.
   has no `</head>`
 - **THEN** the backend exits at startup with an error naming
   `ANALYTICS_SNIPPET` and the missing `</head>`
+
+#### Scenario: Embedded frontend without index.html
+- **WHEN** `ANALYTICS_SNIPPET` is non-empty and the embedded frontend build
+  contains no `index.html`
+- **THEN** the backend exits at startup with an error naming
+  `ANALYTICS_SNIPPET` and the missing `index.html`
 
 #### Scenario: Snippet contents not logged
 - **WHEN** the backend starts with a non-empty `ANALYTICS_SNIPPET`

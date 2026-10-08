@@ -40,22 +40,23 @@ frontend change and the tracker loads from `<head>` before the bundle.
 delays the tracker until after the app has booted.
 
 ### Build once at startup, serve from memory
-At startup, read `index.html` from the embedded FS, insert the snippet
-before the first `</head>` (case-insensitive match), and keep the result as
-a `[]byte`. `staticHandler` takes the prepared document as an extra
-argument (via `NewMux`) and serves it through `http.ServeContent` with a
-`bytes.Reader` whenever the resolved file is `index.html`, so
-`Content-Length`, conditional and Range handling stay correct. With no
-snippet, the prepared bytes equal the embedded file. The preparation is a
-small pure function (`(indexHTML []byte, snippet string) ([]byte, error)`)
-so it is unit-testable without the HTTP layer.
-*Alternative:* rewriting on every request costs work per page load and
-spreads the logic into the hot path for no benefit, since the env var cannot
+At startup, `httpserver.WithAnalyticsSnippet(staticFS, snippet)` reads
+`index.html` from the embedded FS, inserts the snippet before the first
+`</head>` (case-insensitive match), and returns an `fs.FS` overlay that
+serves the prepared bytes as `index.html` and delegates every other name.
+`staticHandler` and `NewMux` stay unchanged: all three paths already resolve
+to the name `index.html`, and the overlay's file is an `io.ReadSeeker`, so
+`http.ServeContent` keeps `Content-Length`, conditional and Range handling
+correct. With no snippet the original FS is returned untouched.
+*Alternatives:* passing the prepared bytes through `NewMux` would change a
+signature used by every handler package's tests for no behavioural gain;
+rewriting on every request costs work per page load for a value that cannot
 change at runtime.
 
-### Fail fast when `</head>` is missing
-A missing head end tag means the build is broken or unexpected. Exiting at
-startup surfaces it immediately. *Alternative:* appending before `</body>`
+### Fail fast when `index.html` or `</head>` is missing
+A missing document or head end tag means the build is broken or unexpected
+(the committed `static/out/placeholder` build has no `index.html` at all).
+Exiting at startup surfaces it immediately. *Alternative:* appending before `</body>`
 or at the end would hide the problem and place trackers inconsistently.
 
 ### Configuration handling

@@ -28,8 +28,9 @@ func Run(ctx context.Context, pool *pgxpool.Pool, emails []string, now time.Time
 	}
 	defer tx.Rollback(ctx)
 	// Explicit list protects migration history and unrelated tables.
-	_, err = tx.Exec(ctx, `TRUNCATE TABLE sessions, oidc_identities, oidc_login_attempts,
-		magic_link_challenges, refuels, repairs, tickets, cars, accounts`)
+	_, err = tx.Exec(ctx, `TRUNCATE TABLE sessions, webauthn_challenges, webauthn_credentials,
+		oidc_identities, oidc_login_attempts, magic_link_challenges, refuels, repairs,
+		tickets, cars, accounts`)
 	if err != nil {
 		return fmt.Errorf("clear application data: %w", err)
 	}

@@ -84,6 +84,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/passkey/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts a discoverable-credential passkey login. No email is accepted or revealed. The returned options contain no allowed-credential list and require user verification. A short-lived HttpOnly ceremony cookie correlates the options with the following assertion. */
+        post: operations["startPasskeyLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/passkey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verifies a passkey assertion for the ceremony started by `startPasskeyLogin` and establishes a session for the account that owns the credential. Never creates an account. */
+        post: operations["completePasskeyLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session": {
         parameters: {
             query?: never;
@@ -98,6 +132,59 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPasskeys"];
+        put?: never;
+        /** @description Completes the registration ceremony started by `startPasskeyRegistration`. Requires a session established at most 5 minutes ago. */
+        post: operations["registerPasskey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/passkeys/registration-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts registering a discoverable passkey for the caller. Requires a session established at most 5 minutes ago. The caller's existing passkeys are excluded. A short-lived HttpOnly ceremony cookie correlates the options with the following registration. */
+        post: operations["startPasskeyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/passkeys/{passkeyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                passkeyId: components["parameters"]["PasskeyId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Deletes the passkey and revokes every session established with it, including the caller's session if it was. In that case the session cookie is cleared. No fresh login is required. */
+        delete: operations["deletePasskey"];
+        options?: never;
+        head?: never;
+        patch: operations["renamePasskey"];
         trace?: never;
     };
     "/me": {
@@ -365,7 +452,55 @@ export interface components {
             profile: components["schemas"]["Profile"];
         };
         AuthenticationMethods: {
-            methods: ("magic_link" | "oidc")[];
+            methods: ("magic_link" | "oidc" | "passkey")[];
+        };
+        PasskeySummary: {
+            id: components["schemas"]["UUID"];
+            name: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastUsedAt: string | null;
+            /** @description Authenticator model name derived from its AAGUID, or `null` when unknown. */
+            authenticatorName: string | null;
+            /** @description Whether the passkey is synced (backed up) across devices. */
+            backedUp: boolean;
+        };
+        PasskeyList: {
+            items: components["schemas"]["PasskeySummary"][];
+        };
+        /** @description Trimmed before validation; must not be blank. */
+        PasskeyName: string;
+        PasskeyRegistration: {
+            name: components["schemas"]["PasskeyName"];
+            credential: components["schemas"]["PublicKeyCredentialJSON"];
+        };
+        PasskeyUpdate: {
+            name: components["schemas"]["PasskeyName"];
+        };
+        PasskeyCreationOptions: {
+            /** @description W3C WebAuthn `PublicKeyCredentialCreationOptionsJSON` (binary members base64url-encoded). */
+            publicKey: {
+                [key: string]: unknown;
+            };
+        };
+        PasskeyRequestOptions: {
+            /** @description W3C WebAuthn `PublicKeyCredentialRequestOptionsJSON` (binary members base64url-encoded). */
+            publicKey: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description W3C WebAuthn `RegistrationResponseJSON` or `AuthenticationResponseJSON` (binary members base64url-encoded). */
+        PublicKeyCredentialJSON: {
+            id: string;
+            rawId: string;
+            /** @enum {string} */
+            type: "public-key";
+            response: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
         };
         MagicLinkRequest: {
             /** Format: email */
@@ -608,6 +743,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description The session is older than the fresh-login window (5 minutes); the error code is `reauthentication_required`. */
+        ReauthenticationRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Unexpected server error. */
         ServerError: {
             headers: {
@@ -623,6 +767,7 @@ export interface components {
         Cursor: string;
         Limit: number;
         CarId: components["schemas"]["UUID"];
+        PasskeyId: components["schemas"]["UUID"];
         RefuelId: components["schemas"]["UUID"];
         RepairId: components["schemas"]["UUID"];
         TicketId: components["schemas"]["UUID"];
@@ -829,6 +974,55 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
+    startPasskeyLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description WebAuthn request options in their JSON form. */
+            200: {
+                headers: {
+                    /** @description HttpOnly Secure SameSite=Strict passkey ceremony cookie. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyRequestOptions"];
+                };
+            };
+            default: components["responses"]["ServerError"];
+        };
+    };
+    completePasskeyLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicKeyCredentialJSON"];
+            };
+        };
+        responses: {
+            /** @description Session established. */
+            204: {
+                headers: {
+                    /** @description HttpOnly Secure SameSite session cookie. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
     getSession: {
         parameters: {
             query?: never;
@@ -868,6 +1062,135 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    listPasskeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's passkeys ordered by creation time then ID. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    registerPasskey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyRegistration"];
+            };
+        };
+        responses: {
+            /** @description Registered passkey. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeySummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ReauthenticationRequired"];
+            409: components["responses"]["Conflict"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    startPasskeyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description WebAuthn creation options in their JSON form. */
+            200: {
+                headers: {
+                    /** @description HttpOnly Secure SameSite=Strict passkey ceremony cookie. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyCreationOptions"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ReauthenticationRequired"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    deletePasskey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                passkeyId: components["parameters"]["PasskeyId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Passkey deleted and its sessions revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            default: components["responses"]["ServerError"];
+        };
+    };
+    renamePasskey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                passkeyId: components["parameters"]["PasskeyId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Renamed passkey. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeySummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             default: components["responses"]["ServerError"];
         };
     };

@@ -98,6 +98,57 @@ paths:
           $ref: '#/components/responses/SessionRedirect'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /auth/passkey/options:
+    post:
+      tags:
+      - Authentication
+      security: []
+      operationId: startPasskeyLogin
+      description: Starts a discoverable-credential passkey login. No email is
+        accepted or revealed. The returned options contain no allowed-credential
+        list and require user verification. A short-lived HttpOnly ceremony
+        cookie correlates the options with the following assertion.
+      responses:
+        '200':
+          description: WebAuthn request options in their JSON form.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: HttpOnly Secure SameSite=Strict passkey ceremony cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasskeyRequestOptions'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /auth/passkey:
+    post:
+      tags:
+      - Authentication
+      security: []
+      operationId: completePasskeyLogin
+      description: Verifies a passkey assertion for the ceremony started by
+        `startPasskeyLogin` and establishes a session for the account that owns
+        the credential. Never creates an account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicKeyCredentialJSON'
+      responses:
+        '204':
+          description: Session established.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: HttpOnly Secure SameSite session cookie.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
   /session:
     get:
       tags:
@@ -123,6 +174,123 @@ paths:
           description: Session invalidated and cookie cleared.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /passkeys:
+    get:
+      tags:
+      - Passkeys
+      operationId: listPasskeys
+      responses:
+        '200':
+          description: The caller's passkeys ordered by creation time then ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasskeyList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+      - Passkeys
+      operationId: registerPasskey
+      description: Completes the registration ceremony started by
+        `startPasskeyRegistration`. Requires a session established at most
+        5 minutes ago.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasskeyRegistration'
+      responses:
+        '201':
+          description: Registered passkey.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasskeySummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ReauthenticationRequired'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /passkeys/registration-options:
+    post:
+      tags:
+      - Passkeys
+      operationId: startPasskeyRegistration
+      description: Starts registering a discoverable passkey for the caller.
+        Requires a session established at most 5 minutes ago. The caller's
+        existing passkeys are excluded. A short-lived HttpOnly ceremony cookie
+        correlates the options with the following registration.
+      responses:
+        '200':
+          description: WebAuthn creation options in their JSON form.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: HttpOnly Secure SameSite=Strict passkey ceremony cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasskeyCreationOptions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ReauthenticationRequired'
+        default:
+          $ref: '#/components/responses/ServerError'
+  /passkeys/{passkeyId}:
+    parameters:
+    - $ref: '#/components/parameters/PasskeyId'
+    patch:
+      tags:
+      - Passkeys
+      operationId: renamePasskey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasskeyUpdate'
+      responses:
+        '200':
+          description: Renamed passkey.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasskeySummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+      - Passkeys
+      operationId: deletePasskey
+      description: Deletes the passkey and revokes every session established
+        with it, including the caller's session if it was. In that case the
+        session cookie is cleared. No fresh login is required.
+      responses:
+        '204':
+          description: Passkey deleted and its sessions revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         default:
           $ref: '#/components/responses/ServerError'
   /me:
@@ -544,6 +712,12 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/UUID'
+    PasskeyId:
+      name: passkeyId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UUID'
     RefuelId:
       name: refuelId
       in: path
@@ -631,6 +805,13 @@ components:
             $ref: '#/components/schemas/Error'
     Conflict:
       description: Request conflicts with existing state.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ReauthenticationRequired:
+      description: The session is older than the fresh-login window (5 minutes);
+        the error code is `reauthentication_required`.
       content:
         application/json:
           schema:
@@ -974,6 +1155,113 @@ components:
             enum:
             - magic_link
             - oidc
+            - passkey
+    PasskeySummary:
+      type: object
+      required:
+      - id
+      - name
+      - createdAt
+      - lastUsedAt
+      - authenticatorName
+      - backedUp
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        authenticatorName:
+          type:
+          - string
+          - 'null'
+          description: Authenticator model name derived from its AAGUID, or
+            `null` when unknown.
+        backedUp:
+          type: boolean
+          description: Whether the passkey is synced (backed up) across devices.
+    PasskeyList:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PasskeySummary'
+    PasskeyName:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Trimmed before validation; must not be blank.
+    PasskeyRegistration:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - credential
+      properties:
+        name:
+          $ref: '#/components/schemas/PasskeyName'
+        credential:
+          $ref: '#/components/schemas/PublicKeyCredentialJSON'
+    PasskeyUpdate:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          $ref: '#/components/schemas/PasskeyName'
+    PasskeyCreationOptions:
+      type: object
+      required:
+      - publicKey
+      properties:
+        publicKey:
+          type: object
+          description: W3C WebAuthn `PublicKeyCredentialCreationOptionsJSON`
+            (binary members base64url-encoded).
+          additionalProperties: true
+    PasskeyRequestOptions:
+      type: object
+      required:
+      - publicKey
+      properties:
+        publicKey:
+          type: object
+          description: W3C WebAuthn `PublicKeyCredentialRequestOptionsJSON`
+            (binary members base64url-encoded).
+          additionalProperties: true
+    PublicKeyCredentialJSON:
+      type: object
+      description: W3C WebAuthn `RegistrationResponseJSON` or
+        `AuthenticationResponseJSON` (binary members base64url-encoded).
+      required:
+      - id
+      - rawId
+      - type
+      - response
+      properties:
+        id:
+          type: string
+        rawId:
+          type: string
+        type:
+          type: string
+          enum:
+          - public-key
+        response:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
     MagicLinkRequest:
       type: object
       required:

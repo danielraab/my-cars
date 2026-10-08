@@ -61,6 +61,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Sends a sign-in link unless the address already received 3 within the last 15 minutes; that case is answered with the same `202` and no email, so the response never reveals anything about the address. */
         post: operations["requestMagicLink"];
         delete?: never;
         options?: never;
@@ -752,6 +753,26 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Too many requests from this client; the error code is `rate_limited`. Sign-in endpoints are limited per client address. */
+        RateLimited: {
+            headers: {
+                /** @description Seconds to wait before retrying. */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Too many requests from this client; the browser is sent to `/auth/login?error=rate_limited`. */
+        RateLimitedRedirect: {
+            headers: {
+                /** @description Always `/auth/login?error=rate_limited`. */
+                Location?: string;
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
         /** @description Unexpected server error. */
         ServerError: {
             headers: {
@@ -916,6 +937,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             302: components["responses"]["Redirect"];
+            303: components["responses"]["RateLimitedRedirect"];
             400: components["responses"]["BadRequest"];
         };
     };
@@ -932,6 +954,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             302: components["responses"]["SessionRedirect"];
+            303: components["responses"]["RateLimitedRedirect"];
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
@@ -957,6 +980,7 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+            429: components["responses"]["RateLimited"];
         };
     };
     consumeMagicLink: {
@@ -971,6 +995,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             302: components["responses"]["SessionRedirect"];
+            303: components["responses"]["RateLimitedRedirect"];
             400: components["responses"]["BadRequest"];
         };
     };
@@ -994,6 +1019,7 @@ export interface operations {
                     "application/json": components["schemas"]["PasskeyRequestOptions"];
                 };
             };
+            429: components["responses"]["RateLimited"];
             default: components["responses"]["ServerError"];
         };
     };
@@ -1020,6 +1046,7 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Unauthorized"];
+            429: components["responses"]["RateLimited"];
             default: components["responses"]["ServerError"];
         };
     };

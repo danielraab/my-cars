@@ -31,11 +31,16 @@ Expired authentication rows are already pruned hourly by `Store.Prune`
 
 ### In-memory token buckets with `golang.org/x/time/rate`
 
-A `Limiter` type holds a `map[string]*entry` (bucket + last-seen time) behind a
-mutex, one instance per endpoint group plus one for magic-link recipients. A
-background sweep (every minute) removes entries idle longer than the time
-their bucket needs to refill completely, keeping memory proportional to recently
-active clients. Limit values are package constants.
+A `keyedLimiter` holds a `map[string]*bucket` (token bucket + last-seen time)
+behind a mutex, one instance per endpoint group. At most once a minute, the
+next request sweeps out entries idle longer than their bucket needs to refill
+completely, keeping memory proportional to recently active clients without a
+background goroutine (and with an injectable clock for tests). Limit values
+are package constants.
+
+The per-recipient limit uses a small sliding-window limiter instead of a
+token bucket, because the spec promises "at most 3 per 15 minutes": a bucket
+refilling one token per 5 minutes would admit a fourth email after 5 minutes.
 
 Postgres-backed counters were rejected: one container, and a DB write per
 auth request is unnecessary cost. A hand-rolled fixed-window counter was
@@ -69,7 +74,9 @@ client IPs rather than `172.x` addresses.
 
 `RATE_LIMIT_PER_IP` (`true`/`false`, default `true`; anything else fails
 startup) controls whether route groups are wrapped with the per-client
-limiter. When `false`, `RegisterRoutes` skips the wrapping entirely, startup
+limiter. `main.go` passes it and `TRUSTED_PROXIES` to
+`Service.ConfigureRateLimiting` before route registration. When `false`,
+`RegisterRoutes` skips the wrapping entirely, startup
 logs `slog.Info("per-IP rate limiting disabled")`, and the per-recipient
 magic-link limit and its logging remain active because they do not depend on
 the client address. Automatically disabling per-IP limiting when

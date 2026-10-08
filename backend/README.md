@@ -44,6 +44,68 @@ Successful login sets the opaque `my_car_session` cookie. It is `Secure`,
 means browser login testing requires HTTPS (browsers treat `localhost`
 specially in some contexts, but deployments must terminate TLS).
 
+## Rate limiting
+
+The public sign-in endpoints are rate limited in memory (limits reset on
+restart and are per process):
+
+| Endpoints | Limit per client address |
+|---|---|
+| Magic-link request | 5 per 10 minutes, burst 3 |
+| Magic-link link, OIDC start and callback | 30 per minute |
+| Passkey login options and assertion | 30 per minute |
+
+On top of that, one email address receives at most 3 magic links per
+15 minutes. Further requests get the same `202` as always, but no email is
+sent, so the limit reveals nothing about the address. Throttled JSON requests
+get `429` with `Retry-After` and error code `rate_limited`; throttled browser
+navigations (the magic link, OIDC start and callback) are redirected to
+`/auth/login?error=rate_limited`. Every throttled request is logged at `INFO`
+level with the limit, endpoint group and client key; a recipient appears only
+as the first 12 hex characters of its SHA-256 hash.
+
+The client address is the TCP peer unless that peer is listed in
+`TRUSTED_PROXIES` (comma-separated IPs or CIDR ranges). Then the rightmost
+`X-Forwarded-For` entry that is not itself a trusted proxy is used. IPv6
+clients are grouped by `/64`. Two misconfigurations to avoid:
+
+- **Behind a proxy with `TRUSTED_PROXIES` empty**, every request appears to
+  come from the proxy, so all users share one limit and a single client can
+  block sign-in for everyone. The log shows it: every key is the proxy's
+  address.
+- **Trusting more than your proxy** lets clients pick their own address via
+  `X-Forwarded-For` and bypass the per-client limits.
+
+If you cannot specify the proxy's addresses, set `RATE_LIMIT_PER_IP=false`.
+The backend then logs at startup that per-IP limiting is disabled and only the
+per-recipient magic-link limit applies; consider rate limiting in the proxy
+instead (for example Traefik's `rateLimit` middleware).
+
+### Traefik
+
+Traefik connects to the app over a Docker network, so its address is a
+container IP that can change on restart. Give the shared network a fixed subnet
+and trust that subnet:
+
+```yaml
+networks:
+  web:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+```
+
+```bash
+TRUSTED_PROXIES=172.30.0.0/24
+```
+
+Keep Traefik's `forwardedHeaders.insecure` off (the default): Traefik then
+replaces any `X-Forwarded-For` a client sends with the real peer address. If a
+CDN or load balancer sits in front of Traefik, list its ranges both in
+Traefik's `entryPoints.<name>.forwardedHeaders.trustedIPs` and in
+`TRUSTED_PROXIES`. To check the setup, request a few magic links from a phone:
+the rate-limit log keys should show its public address, not a `172.x` address.
+
 ## Running it
 
 ```bash

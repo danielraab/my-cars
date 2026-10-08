@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
@@ -23,6 +24,12 @@ type Config struct {
 	OIDCIssuerURL    string
 	OIDCClientID     string
 	OIDCClientSecret string
+	// TrustedProxies lists the reverse proxies whose X-Forwarded-For header
+	// is believed when resolving a client's address for rate limiting.
+	TrustedProxies []netip.Prefix
+	// RateLimitPerIP enables per-client-address throttling of the public
+	// authentication endpoints.
+	RateLimitPerIP bool
 }
 
 // EnvKeys lists every environment variable Load reads, in the order
@@ -41,6 +48,8 @@ var EnvKeys = []string{
 	"OIDC_ISSUER_URL",
 	"OIDC_CLIENT_ID",
 	"OIDC_CLIENT_SECRET",
+	"TRUSTED_PROXIES",
+	"RATE_LIMIT_PER_IP",
 }
 
 var requiredEnvKeys = []string{
@@ -67,7 +76,7 @@ func Load() (*Config, error) {
 		}
 		values[key] = v
 	}
-	for _, key := range append([]string{"SMTP_USER", "SMTP_PASSWORD"}, oidcEnvKeys...) {
+	for _, key := range append([]string{"SMTP_USER", "SMTP_PASSWORD", "TRUSTED_PROXIES", "RATE_LIMIT_PER_IP"}, oidcEnvKeys...) {
 		values[key] = os.Getenv(key)
 	}
 	if len(missing) > 0 {
@@ -99,6 +108,18 @@ func Load() (*Config, error) {
 	if values["SMTP_TLS"] != "none" && values["SMTP_TLS"] != "starttls" && values["SMTP_TLS"] != "tls" {
 		return nil, fmt.Errorf("SMTP_TLS must be one of none, starttls, tls")
 	}
+	trustedProxies, err := parseTrustedProxies(values["TRUSTED_PROXIES"])
+	if err != nil {
+		return nil, err
+	}
+	rateLimitPerIP := true
+	switch values["RATE_LIMIT_PER_IP"] {
+	case "", "true":
+	case "false":
+		rateLimitPerIP = false
+	default:
+		return nil, fmt.Errorf("RATE_LIMIT_PER_IP must be true or false")
+	}
 
 	return &Config{
 		Port:             values["PORT"],
@@ -113,7 +134,32 @@ func Load() (*Config, error) {
 		OIDCIssuerURL:    values["OIDC_ISSUER_URL"],
 		OIDCClientID:     values["OIDC_CLIENT_ID"],
 		OIDCClientSecret: values["OIDC_CLIENT_SECRET"],
+		TrustedProxies:   trustedProxies,
+		RateLimitPerIP:   rateLimitPerIP,
 	}, nil
+}
+
+// parseTrustedProxies reads a comma-separated list of IP addresses and CIDR
+// ranges; a bare address trusts exactly that host.
+func parseTrustedProxies(raw string) ([]netip.Prefix, error) {
+	var out []netip.Prefix
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if prefix, err := netip.ParsePrefix(entry); err == nil {
+			out = append(out, prefix.Masked())
+			continue
+		}
+		addr, err := netip.ParseAddr(entry)
+		if err != nil {
+			return nil, fmt.Errorf("TRUSTED_PROXIES entry %q is neither an IP address nor a CIDR range", entry)
+		}
+		addr = addr.Unmap()
+		out = append(out, netip.PrefixFrom(addr, addr.BitLen()))
+	}
+	return out, nil
 }
 
 // OIDCEnabled reports whether the complete optional OIDC configuration is set.

@@ -79,6 +79,8 @@ export const resources = {
           'If the address can receive a sign-in link, it is on its way. You can close this page.',
         invalidEmail: 'Enter a valid email address.',
         unavailable: 'Sign-in is currently unavailable. Please try again.',
+        rateLimited:
+          'Too many sign-in attempts. Please wait a few minutes and try again.',
         back: 'Back to the welcome page',
         securityLabel: 'Secure · Passwordless',
       },
@@ -663,6 +665,8 @@ export const resources = {
         invalidEmail: 'Gib eine gültige E-Mail-Adresse ein.',
         unavailable:
           'Die Anmeldung ist derzeit nicht verfügbar. Bitte versuche es erneut.',
+        rateLimited:
+          'Zu viele Anmeldeversuche. Bitte warte ein paar Minuten und versuche es dann erneut.',
         back: 'Zurück zur Startseite',
         securityLabel: 'Sicher · Passwortlos',
       },

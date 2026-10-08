@@ -83,3 +83,48 @@ logout succeeded after another server or transport failure.
 #### Scenario: Logout fails unexpectedly
 - **WHEN** the logout operation fails with a transport error or server error other than `401`
 - **THEN** the frontend keeps the current session state and displays a localized error
+
+### Requirement: Login offers passkey sign-in when supported
+The login route SHALL offer a "sign in with a passkey" action when the backend
+reports `passkey` and the browser supports WebAuthn, without asking for an
+email. After a successful assertion it SHALL refresh session state and navigate
+to the validated local return path. It SHALL NOT receive or persist a token.
+
+#### Scenario: Passkey action is presented
+- **WHEN** the backend reports `passkey` and the browser supports WebAuthn
+- **THEN** the login route shows the passkey action alongside the other enabled methods
+
+#### Scenario: Browser lacks WebAuthn
+- **WHEN** the browser does not support WebAuthn
+- **THEN** the login route shows no passkey action
+
+#### Scenario: User signs in with a passkey
+- **WHEN** the user selects the passkey action and the backend accepts the assertion
+- **THEN** the frontend navigates to the validated return path, or `/home` if none was supplied
+
+#### Scenario: Passkey sign-in fails
+- **WHEN** the backend rejects the assertion
+- **THEN** the frontend shows a localized error that suggests another login method and does not navigate
+
+#### Scenario: User cancels the browser prompt
+- **WHEN** the user dismisses the browser passkey prompt
+- **THEN** the login route stays unchanged without an error message
+
+### Requirement: Login presents rate limiting as a localized message
+The login route SHALL show a localized, accessibly announced "too many
+attempts, try again later" message when the magic-link request or passkey
+sign-in responds `429`, or when the route is opened with
+`error=rate_limited`. It SHALL keep entered input and SHALL NOT report
+successful delivery.
+
+#### Scenario: Magic-link request is rate limited
+- **WHEN** the backend responds `429` to a magic-link request
+- **THEN** the login route shows the localized rate-limit message, keeps the email, and shows no delivery confirmation
+
+#### Scenario: Redirected after a throttled navigation
+- **WHEN** the login route is opened with `error=rate_limited`
+- **THEN** it shows the localized rate-limit message together with the login methods
+
+#### Scenario: Unknown error parameter
+- **WHEN** the login route is opened with an unrecognized `error` value
+- **THEN** no error message is shown

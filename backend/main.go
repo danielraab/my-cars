@@ -240,6 +240,7 @@ func runServer() {
 	}
 	mailer := auth.NewSMTPMailer(cfg.SMTPFrom, cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPTLS, cfg.SMTPUser, cfg.SMTPPassword)
 	authService := auth.NewService(store, mailer, oidcClient, cfg.AuthBaseURL)
+	authService.ConfigureRateLimiting(cfg.TrustedProxies, cfg.RateLimitPerIP)
 	profileHandler := profile.NewHandler(profile.NewStore(pool))
 	carsHandler := cars.NewHandler(cars.NewStore(pool))
 	repairsHandler := repairs.NewHandler(repairs.NewStore(pool))

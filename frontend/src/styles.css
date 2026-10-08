@@ -205,6 +205,10 @@ select:focus-visible {
   background: var(--navy);
 }
 
+.login-notice {
+  margin: 0 0 1rem;
+}
+
 .login-passkey + .button-oidc {
   margin-top: 0.75rem;
 }

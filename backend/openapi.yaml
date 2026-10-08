@@ -37,6 +37,8 @@ paths:
       responses:
         '302':
           $ref: '#/components/responses/Redirect'
+        '303':
+          $ref: '#/components/responses/RateLimitedRedirect'
         '400':
           $ref: '#/components/responses/BadRequest'
   /auth/oidc/callback:
@@ -59,6 +61,8 @@ paths:
       responses:
         '302':
           $ref: '#/components/responses/SessionRedirect'
+        '303':
+          $ref: '#/components/responses/RateLimitedRedirect'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -75,11 +79,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MagicLinkRequest'
+      description: Sends a sign-in link unless the address already received 3
+        within the last 15 minutes; that case is answered with the same `202`
+        and no email, so the response never reveals anything about the address.
       responses:
         '202':
           description: Request accepted without revealing account existence.
         '400':
           $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
   /auth/magic-links/{token}:
     get:
       tags:
@@ -96,6 +105,8 @@ paths:
       responses:
         '302':
           $ref: '#/components/responses/SessionRedirect'
+        '303':
+          $ref: '#/components/responses/RateLimitedRedirect'
         '400':
           $ref: '#/components/responses/BadRequest'
   /auth/passkey/options:
@@ -120,6 +131,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PasskeyRequestOptions'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         default:
           $ref: '#/components/responses/ServerError'
   /auth/passkey:
@@ -147,6 +160,8 @@ paths:
               description: HttpOnly Secure SameSite session cookie.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         default:
           $ref: '#/components/responses/ServerError'
   /session:
@@ -816,6 +831,27 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Too many requests from this client; the error code is
+        `rate_limited`. Sign-in endpoints are limited per client address.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimitedRedirect:
+      description: Too many requests from this client; the browser is sent to
+        `/auth/login?error=rate_limited`.
+      headers:
+        Location:
+          description: Always `/auth/login?error=rate_limited`.
+          schema:
+            type: string
     ServerError:
       description: Unexpected server error.
       content:

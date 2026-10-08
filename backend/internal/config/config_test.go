@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -48,8 +50,9 @@ func TestLoad_AllPresent(t *testing.T) {
 		OIDCIssuerURL:    "https://id.example.com",
 		OIDCClientID:     "my-car",
 		OIDCClientSecret: "secret",
+		RateLimitPerIP:   true,
 	}
-	if *cfg != *want {
+	if !reflect.DeepEqual(cfg, want) {
 		t.Fatalf("Load() = %+v, want %+v", *cfg, *want)
 	}
 }
@@ -148,5 +151,50 @@ func TestLoad_RejectsAuthBaseURLWithPath(t *testing.T) {
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "AUTH_BASE_URL") {
 		t.Fatalf("Load() error=%v", err)
+	}
+}
+
+func TestLoad_TrustedProxies(t *testing.T) {
+	for raw, want := range map[string][]netip.Prefix{
+		"":                                nil,
+		"172.30.0.2":                      {netip.MustParsePrefix("172.30.0.2/32")},
+		" 172.30.0.0/24 , 10.1.2.3/8 ":    {netip.MustParsePrefix("172.30.0.0/24"), netip.MustParsePrefix("10.0.0.0/8")},
+		"2001:db8::1, 2001:db8:abcd::/48": {netip.MustParsePrefix("2001:db8::1/128"), netip.MustParsePrefix("2001:db8:abcd::/48")},
+		"::ffff:192.0.2.7":                {netip.MustParsePrefix("192.0.2.7/32")},
+	} {
+		setAllEnv(t)
+		t.Setenv("TRUSTED_PROXIES", raw)
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("%q: %v", raw, err)
+		}
+		if !reflect.DeepEqual(cfg.TrustedProxies, want) {
+			t.Errorf("%q: TrustedProxies = %v, want %v", raw, cfg.TrustedProxies, want)
+		}
+	}
+	for _, raw := range []string{"proxy.example", "172.30.0.0/33", "172.30.0.2, nope"} {
+		setAllEnv(t)
+		t.Setenv("TRUSTED_PROXIES", raw)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "TRUSTED_PROXIES") {
+			t.Errorf("%q: error = %v, want one naming TRUSTED_PROXIES", raw, err)
+		}
+	}
+}
+
+func TestLoad_RateLimitPerIP(t *testing.T) {
+	for raw, want := range map[string]bool{"": true, "true": true, "false": false} {
+		setAllEnv(t)
+		t.Setenv("RATE_LIMIT_PER_IP", raw)
+		cfg, err := Load()
+		if err != nil || cfg.RateLimitPerIP != want {
+			t.Errorf("%q: RateLimitPerIP = %v, err %v; want %v", raw, cfg != nil && cfg.RateLimitPerIP, err, want)
+		}
+	}
+	for _, raw := range []string{"yes", "0", "FALSE"} {
+		setAllEnv(t)
+		t.Setenv("RATE_LIMIT_PER_IP", raw)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "RATE_LIMIT_PER_IP") {
+			t.Errorf("%q: error = %v, want one naming RATE_LIMIT_PER_IP", raw, err)
+		}
 	}
 }

@@ -28,14 +28,20 @@ import { oidcStartUrl, validReturnTo } from '#/auth/return-to'
 import { sessionQueryKey } from '#/auth/session'
 import { PublicHeader } from '#/components/public-header'
 
-type LoginSearch = { returnTo?: string }
+type LoginSearch = { returnTo?: string; error?: 'rate_limited' }
 
 export const Route = createFileRoute('/auth/login')({
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
     returnTo: typeof search.returnTo === 'string' ? search.returnTo : undefined,
+    // The backend redirects throttled sign-in navigations here.
+    error: search.error === 'rate_limited' ? 'rate_limited' : undefined,
   }),
   component: LoginPage,
 })
+
+function isRateLimited(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 429
+}
 
 function validEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -43,7 +49,7 @@ function validEmail(value: string): boolean {
 
 function LoginPage() {
   const { t } = useTranslation()
-  const { returnTo: rawReturnTo } = Route.useSearch()
+  const { returnTo: rawReturnTo, error: redirectError } = Route.useSearch()
   const returnTo = validReturnTo(rawReturnTo)
   const [email, setEmail] = useState('')
   const [invalid, setInvalid] = useState(false)
@@ -66,9 +72,11 @@ function LoginPage() {
     methods.data?.methods.includes('passkey') === true && passkeysSupported()
   const passkeyRejected =
     passkey.error instanceof ApiError && passkey.error.status === 401
+  const passkeyRateLimited = isRateLimited(passkey.error)
   const passkeyUnavailable =
     passkey.isError &&
     !passkeyRejected &&
+    !passkeyRateLimited &&
     !(passkey.error instanceof PasskeyCancelledError)
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -83,7 +91,9 @@ function LoginPage() {
 
   const backendValidation =
     magicLink.error instanceof ApiError && magicLink.error.status === 400
-  const unexpectedError = magicLink.isError && !backendValidation
+  const magicLinkRateLimited = isRateLimited(magicLink.error)
+  const unexpectedError =
+    magicLink.isError && !backendValidation && !magicLinkRateLimited
 
   return (
     <div className="public-page login-page">
@@ -133,6 +143,11 @@ function LoginPage() {
             </output>
           ) : (
             <>
+              {redirectError === 'rate_limited' ? (
+                <p className="field-error login-notice" role="alert">
+                  {t('login.rateLimited')}
+                </p>
+              ) : null}
               {offerPasskey ? (
                 <div className="login-passkey">
                   <button
@@ -154,11 +169,15 @@ function LoginPage() {
                       ? t('login.passkeyPending')
                       : t('login.passkey')}
                   </button>
-                  {passkeyRejected || passkeyUnavailable ? (
+                  {passkeyRejected ||
+                  passkeyRateLimited ||
+                  passkeyUnavailable ? (
                     <p className="field-error" role="alert">
                       {passkeyRejected
                         ? t('login.passkeyRejected')
-                        : t('login.passkeyUnavailable')}
+                        : passkeyRateLimited
+                          ? t('login.rateLimited')
+                          : t('login.passkeyUnavailable')}
                     </p>
                   ) : null}
                 </div>
@@ -195,6 +214,11 @@ function LoginPage() {
                 {invalid || backendValidation ? (
                   <p className="field-error" id="email-error" role="alert">
                     {t('login.invalidEmail')}
+                  </p>
+                ) : null}
+                {magicLinkRateLimited ? (
+                  <p className="field-error" role="alert">
+                    {t('login.rateLimited')}
                   </p>
                 ) : null}
                 {unexpectedError ? (

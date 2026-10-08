@@ -35,6 +35,7 @@ type Service struct {
 	mailer  Mailer
 	oidc    OIDCProvider
 	rp      *webauthn.WebAuthn
+	limits  *rateLimits
 	baseURL string
 	now     func() time.Time
 }
@@ -53,16 +54,16 @@ func NewService(store Repository, mailer Mailer, oidc OIDCProvider, baseURL stri
 	if err != nil {
 		panic(err)
 	}
-	return &Service{store: store, mailer: mailer, oidc: oidc, rp: rp, baseURL: strings.TrimRight(baseURL, "/"), now: time.Now}
+	return &Service{store: store, mailer: mailer, oidc: oidc, rp: rp, limits: newRateLimits(), baseURL: strings.TrimRight(baseURL, "/"), now: time.Now}
 }
 
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/methods", s.getAuthenticationMethods)
-	mux.HandleFunc("POST /api/v1/auth/magic-links", s.requestMagicLink)
-	mux.HandleFunc("GET /api/v1/auth/magic-links/{token}", s.consumeMagicLink)
+	mux.Handle("POST /api/v1/auth/magic-links", s.limit(groupMagicLinkRequest, limitJSON, s.requestMagicLink))
+	mux.Handle("GET /api/v1/auth/magic-links/{token}", s.limit(groupLoginRedirect, limitRedirect, s.consumeMagicLink))
 	if s.oidc != nil {
-		mux.HandleFunc("GET /api/v1/auth/oidc/start", s.startOIDC)
-		mux.HandleFunc("GET /api/v1/auth/oidc/callback", s.callbackOIDC)
+		mux.Handle("GET /api/v1/auth/oidc/start", s.limit(groupLoginRedirect, limitRedirect, s.startOIDC))
+		mux.Handle("GET /api/v1/auth/oidc/callback", s.limit(groupLoginRedirect, limitRedirect, s.callbackOIDC))
 	}
 	s.registerPasskeyRoutes(mux)
 	mux.Handle("GET /api/v1/session", s.RequireSession(http.HandlerFunc(s.getSession)))
@@ -124,6 +125,11 @@ func (s *Service) requestMagicLink(w http.ResponseWriter, r *http.Request) {
 	returnTo, ok := validReturnTo(input.ReturnTo)
 	if !ok {
 		writeError(w, 400, "invalid return target")
+		return
+	}
+	if !s.allowMagicLinkFor(email, r) {
+		// Same answer as a delivered link, so the limit reveals nothing.
+		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 	token, digest, err := NewCredential()

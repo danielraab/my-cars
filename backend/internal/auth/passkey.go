@@ -36,8 +36,8 @@ const (
 var passkeyIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 func (s *Service) registerPasskeyRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/auth/passkey/options", s.startPasskeyLogin)
-	mux.HandleFunc("POST /api/v1/auth/passkey", s.completePasskeyLogin)
+	mux.Handle("POST /api/v1/auth/passkey/options", s.limit(groupPasskeyLogin, limitJSON, s.startPasskeyLogin))
+	mux.Handle("POST /api/v1/auth/passkey", s.limit(groupPasskeyLogin, limitJSON, s.completePasskeyLogin))
 	mux.Handle("GET /api/v1/passkeys", s.RequireSession(http.HandlerFunc(s.listPasskeys)))
 	mux.Handle("POST /api/v1/passkeys", s.RequireSession(http.HandlerFunc(s.registerPasskey)))
 	mux.Handle("POST /api/v1/passkeys/registration-options", s.RequireSession(http.HandlerFunc(s.startPasskeyRegistration)))
